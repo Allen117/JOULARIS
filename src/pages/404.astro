@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout
+  title="找不到頁面｜JOULARIS"
+  description="您要找的頁面不存在，回到 JOULARIS 首頁看看吧。"
+>
+  <section class="section notfound">
+    <div class="container notfound-wrap">
+      <p class="code">404</p>
+      <h1>找不到這個頁面</h1>
+      <p>網址可能打錯了，或這個頁面已經移動位置。</p>
+      <a class="btn btn-primary" href="/">回到首頁</a>
+    </div>
+  </section>
+  <Footer />
+</BaseLayout>
+
+<style>
+  .notfound {
+    padding: 120px 0;
+  }
+
+  .notfound-wrap {
+    text-align: center;
+    max-width: 560px;
+  }
+
+  .code {
+    font-size: clamp(4rem, 12vw, 6rem);
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 0.1em;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .notfound h1 {
+    font-size: clamp(1.4rem, 4vw, 1.8rem);
+  }
+
+  .notfound .btn {
+    margin-top: 16px;
+  }
+</style>

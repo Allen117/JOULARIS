@@ -1,5 +1,9 @@
 ---
 // Hero：主標語 + CTA + EMS 系統實際畫面截圖
+// 截圖交給 astro:assets 產生 WebP 與響應式尺寸，減少首屏載入量
+import { Image } from 'astro:assets';
+import emsDashboard from '../assets/ems-dashboard.png';
+import logicflowHvac from '../assets/logicflow-hvac-v5.png';
 ---
 
 <section class="hero">
@@ -8,7 +12,7 @@
       <h1>JOULARIS</h1>
       <p class="tagline">幫你找到節能的方向</p>
       <p class="lede">
-        整合電、水、氣即時監控與費用分析的工業能源管理系統，
+        空調控制、能源監控與費用分析的工商能源管理系統，
         用數據告訴你能源花在哪裡、<strong>該從哪裡開始省</strong>。
       </p>
       <div class="cta-row">
@@ -19,21 +23,23 @@
 
     <div class="hero-shots">
       <div class="hero-shot hero-shot-main card">
-        <img
-          src="/ems-dashboard.png"
+        <Image
+          src={emsDashboard}
           alt="JOULARIS EMS 能源管理系統即時總覽畫面"
-          width="2520"
-          height="1575"
+          widths={[640, 960, 1400]}
+          sizes="(max-width: 860px) 100vw, 45vw"
+          format="webp"
           loading="eager"
           decoding="async"
         />
       </div>
       <div class="hero-shot hero-shot-sub card">
-        <img
-          src="/logicflow-hvac-v5.png"
+        <Image
+          src={logicflowHvac}
           alt="JOULARIS EMS 流程圖控制（LogicFlow）空調最佳化畫面"
-          width="2520"
-          height="1575"
+          widths={[640, 960, 1400]}
+          sizes="(max-width: 860px) 100vw, 42vw"
+          format="webp"
           loading="eager"
           decoding="async"
         />

@@ -9,10 +9,23 @@ interface Props {
 const {
   title = 'JOULARIS｜幫你找到節能的方向',
   description =
-    'JOULARIS 工業能源管理系統，整合電、水、氣即時監控與費用分析，用數據告訴你能源花在哪裡、該從哪裡開始省。',
+    'JOULARIS 工商能源管理系統，空調控制、能源監控與費用分析，用數據告訴你能源花在哪裡、該從哪裡開始省。',
 } = Astro.props;
 
-const ogImage = new URL('/logo.png', Astro.site ?? Astro.url);
+const siteUrl = Astro.site ?? Astro.url;
+const ogImage = new URL('/og.png', siteUrl);
+
+// Organization 結構化資料（不放 email，避免明文被爬蟲蒐集）
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'JOULARIS',
+  url: siteUrl.toString(),
+  logo: new URL('/logo.png', siteUrl).toString(),
+  slogan: '幫你找到節能的方向',
+  description:
+    'JOULARIS 工商能源管理系統，空調控制、能源監控與費用分析，用數據告訴你能源花在哪裡、該從哪裡開始省。',
+};
 ---
 
 <!doctype html>
@@ -26,11 +39,18 @@ const ogImage = new URL('/logo.png', Astro.site ?? Astro.url);
     <link rel="canonical" href={Astro.site ?? Astro.url} />
 
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="JOULARIS" />
+    <meta property="og:url" content={siteUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="zh_TW" />
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
+
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(orgJsonLd)} />
   </head>
   <body>
     <header class="nav">
