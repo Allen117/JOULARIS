@@ -1,5 +1,5 @@
 ---
-// Hero：主標語 + CTA + 儀表板示範畫面（虛構 demo 數據，僅供行銷展示）
+// Hero：主標語 + CTA + EMS 系統實際畫面截圖
 ---
 
 <section class="hero">
@@ -17,65 +17,15 @@
       </div>
     </div>
 
-    <div class="hero-mock card" aria-label="JOULARIS 儀表板示範畫面（示意資料）">
-      <div class="mock-bar">
-        <span class="mock-title">JOULARIS EMS · 即時總覽</span>
-        <span class="mock-live"><span class="dot"></span>即時連線</span>
-      </div>
-
-      <div class="mock-stats">
-        <div class="stat">
-          <span class="stat-label">⚡ 今日用電</span>
-          <span class="stat-value">12,480 <small>kWh</small></span>
-          <span class="stat-delta">▼ 6.2% 較昨日</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">💧 今日用水</span>
-          <span class="stat-value">328 <small>m³</small></span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">🔥 今日用氣</span>
-          <span class="stat-value">96 <small>m³</small></span>
-        </div>
-      </div>
-
-      <figure class="mock-chart">
-        <figcaption>本日用電趨勢（kW）</figcaption>
-        <svg viewBox="0 0 340 130" role="img" aria-label="本日用電趨勢示意圖">
-          <defs>
-            <linearGradient id="hero-area" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="var(--chart-1)" stop-opacity="0.22" />
-              <stop offset="1" stop-color="var(--chart-1)" stop-opacity="0" />
-            </linearGradient>
-          </defs>
-          <g stroke="var(--border)" stroke-width="1">
-            <line x1="10" y1="30" x2="330" y2="30" />
-            <line x1="10" y1="60" x2="330" y2="60" />
-            <line x1="10" y1="90" x2="330" y2="90" />
-            <line x1="10" y1="120" x2="330" y2="120" />
-          </g>
-          <path
-            d="M10,89 L50,91 L90,85 L130,49 L170,36 L210,28 L250,33 L290,53 L330,76 L330,120 L10,120 Z"
-            fill="url(#hero-area)"
-          />
-          <path
-            d="M10,89 L50,91 L90,85 L130,49 L170,36 L210,28 L250,33 L290,53 L330,76"
-            fill="none"
-            stroke="var(--chart-1)"
-            stroke-width="2"
-            stroke-linejoin="round"
-            stroke-linecap="round"
-          />
-          <circle cx="210" cy="28" r="4" fill="var(--chart-1)" stroke="var(--surface)" stroke-width="2" />
-          <text x="210" y="16" text-anchor="middle" class="chart-label">尖峰 1,842 kW</text>
-          <g class="chart-tick">
-            <text x="10" y="129">00:00</text>
-            <text x="170" y="129" text-anchor="middle">12:00</text>
-            <text x="330" y="129" text-anchor="end">24:00</text>
-          </g>
-        </svg>
-      </figure>
-      <p class="mock-note">＊示意畫面，為虛構示範資料</p>
+    <div class="hero-shot card">
+      <img
+        src="/ems-dashboard.png"
+        alt="JOULARIS EMS 能源管理系統即時總覽畫面"
+        width="2520"
+        height="1575"
+        loading="eager"
+        decoding="async"
+      />
     </div>
   </div>
 </section>
@@ -138,109 +88,19 @@
     flex-wrap: wrap;
   }
 
-  /* ---- 儀表板 mockup ---- */
+  /* ---- EMS 系統截圖 ---- */
 
-  .hero-mock {
-    padding: 20px 22px 14px;
+  .hero-shot {
+    padding: 10px;
+    overflow: hidden;
   }
 
-  .mock-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-
-  .mock-title {
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: var(--ink-2);
-  }
-
-  .mock-live {
-    font-size: 0.78rem;
-    color: var(--good);
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--good);
-  }
-
-  .mock-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .stat {
-    background: var(--bg);
+  .hero-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .stat-label {
-    font-size: 0.75rem;
-    color: var(--ink-3);
-  }
-
-  .stat-value {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .stat-value small {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--ink-3);
-  }
-
-  .stat-delta {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--good);
-  }
-
-  .mock-chart {
-    margin: 0;
-  }
-
-  .mock-chart figcaption {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--ink-2);
-    margin-bottom: 6px;
-  }
-
-  .chart-label {
-    font-size: 10px;
-    font-weight: 700;
-    fill: var(--ink-2);
-  }
-
-  .chart-tick text {
-    font-size: 8px;
-    fill: var(--ink-3);
-  }
-
-  .mock-note {
-    margin: 10px 0 0;
-    font-size: 0.7rem;
-    color: var(--ink-3);
-    text-align: right;
   }
 
   @media (max-width: 860px) {
