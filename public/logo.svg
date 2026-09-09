@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 510 120" role="img" aria-label="JOULARIS">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1E7E8C"/>
-      <stop offset="1" stop-color="#2BA6E0"/>
+      <stop offset="0" stop-color="#2E7D32"/>
+      <stop offset="1" stop-color="#4CAF50"/>
     </linearGradient>
     <linearGradient id="s" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2BA6E0"/>
-      <stop offset="1" stop-color="#5BC4F0"/>
+      <stop offset="0" stop-color="#4CAF50"/>
+      <stop offset="1" stop-color="#81C784"/>
     </linearGradient>
     <style>
-      .word { fill: #2b3a4a; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
-      @media (prefers-color-scheme: dark) { .word { fill: #e8eef3; } }
+      .word { fill: #24322a; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+      @media (prefers-color-scheme: dark) { .word { fill: #e8f3ea; } }
     </style>
   </defs>
   <!-- 指北星：北向長芒 -->

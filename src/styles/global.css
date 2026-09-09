@@ -1,48 +1,53 @@
 /* ============================================================
    JOULARIS 官網 設計系統
-   色票抽自品牌 Logo（藍綠漸層）：
-   - 主漸層 teal #1E7E8C → 亮藍 #2BA6E0
-   - 文字深藍海軍 #2B3A4A、背景近白 #F5F8FA、深色模式 #0C1116
-   圖表標記色（經 CVD/對比驗證）：#0E8FA8 / #1B72C0
+   色票對齊 EMS 產品介面（綠色系）：
+   - 深綠 #2E7D32（主色：連結、強調文字）
+   - 主綠 #4CAF50、亮綠 #81C784（漸層、裝飾）
+   - 背景淡綠 #F2F7F2、文字墨綠灰、深色模式 #0D1410
    ============================================================ */
 
 :root {
-  --c-teal: #1e7e8c;
-  --c-blue: #2ba6e0;
-  --c-navy: #2b3a4a;
+  --c-green-deep: #2e7d32;
+  --c-green: #4caf50;
+  --c-green-light: #81c784;
 
-  --bg: #f5f8fa;
+  --bg: #f2f7f2;
   --surface: #ffffff;
-  --border: #dde5ec;
+  --border: #dbe7db;
 
-  --ink: #22303d;
-  --ink-2: #4a5b6c;
-  --ink-3: #7a8a99;
+  --ink: #24322a;
+  --ink-2: #4c5d51;
+  --ink-3: #7c8d80;
 
-  --chart-1: #1b72c0;
-  --chart-2: #0e8fa8;
-  --good: #0f7b4d;
+  --chart-1: #388e3c;
+  --chart-2: #66bb6a;
+  --good: #2e7d32;
 
-  --grad: linear-gradient(120deg, var(--c-teal), var(--c-blue));
+  --grad: linear-gradient(120deg, var(--c-green-deep), var(--c-green));
   --radius: 14px;
-  --shadow: 0 8px 30px rgba(43, 58, 74, 0.1);
+  --shadow: 0 8px 30px rgba(36, 50, 42, 0.1);
   --maxw: 1080px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0c1116;
-    --surface: #151c24;
-    --border: #263240;
+    --c-green-deep: #66bb6a;
+    --c-green: #81c784;
+    --c-green-light: #a5d6a7;
 
-    --ink: #e8eef3;
-    --ink-2: #aebbc7;
-    --ink-3: #7a8a99;
+    --bg: #0d1410;
+    --surface: #16211a;
+    --border: #27392c;
 
-    --chart-1: #5aa4e6;
-    --chart-2: #3fb3cc;
+    --ink: #e8f3ea;
+    --ink-2: #b0c4b5;
+    --ink-3: #7c8d80;
+
+    --chart-1: #7bc67e;
+    --chart-2: #a5d6a7;
     --good: #4cc38a;
 
+    --grad: linear-gradient(120deg, #2e7d32, #4caf50);
     --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
   }
 }
@@ -87,7 +92,7 @@ p {
 }
 
 a {
-  color: var(--c-blue);
+  color: var(--c-green-deep);
   text-decoration: none;
 }
 
@@ -123,15 +128,9 @@ a {
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: var(--c-teal);
+  color: var(--c-green-deep);
   text-transform: uppercase;
   margin-bottom: 8px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .eyebrow {
-    color: var(--chart-2);
-  }
 }
 
 /* ---------- 導覽列 ---------- */
@@ -176,7 +175,7 @@ a {
 }
 
 .nav-links a:hover {
-  color: var(--c-blue);
+  color: var(--c-green-deep);
 }
 
 @media (max-width: 720px) {
@@ -203,12 +202,12 @@ a {
 .btn-primary {
   background: var(--grad);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(43, 166, 224, 0.35);
+  box-shadow: 0 6px 18px rgba(76, 175, 80, 0.35);
 }
 
 .btn-ghost {
-  border: 2px solid var(--c-blue);
-  color: var(--c-blue);
+  border: 2px solid var(--c-green-deep);
+  color: var(--c-green-deep);
 }
 
 /* ---------- 卡片 ---------- */
