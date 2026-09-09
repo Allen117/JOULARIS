@@ -197,10 +197,70 @@ a {
   color: var(--c-green-deep);
 }
 
+/* 漢堡選單按鈕：桌機隱藏，窄螢幕顯示 */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 0;
+  padding: 8px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.nav-toggle svg {
+  display: block;
+}
+
+.nav-toggle .icon-close {
+  display: none;
+}
+
+.menu-open .nav-toggle .icon-menu {
+  display: none;
+}
+
+.menu-open .nav-toggle .icon-close {
+  display: block;
+}
+
 @media (max-width: 720px) {
+  .nav-toggle {
+    display: block;
+  }
+
   .nav-links {
     display: none;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 8px 24px 20px;
   }
+
+  .menu-open .nav-links {
+    display: flex;
+  }
+
+  .nav-links a {
+    display: block;
+    padding: 12px 0;
+  }
+
+  .nav-links a.btn {
+    margin-top: 10px;
+    text-align: center;
+  }
+}
+
+/* sticky 導覽列高度，避免錨點跳轉時標題被蓋住 */
+section[id] {
+  scroll-margin-top: 76px;
 }
 
 /* ---------- 按鈕 ---------- */

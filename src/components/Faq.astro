@@ -1,0 +1,118 @@
+---
+// 常見問題：內容皆對應站內既有的產品說明，並輸出 FAQPage 結構化資料
+const faqs = [
+  {
+    q: '需要更換既有的電表或設備嗎？',
+    a: '不需要。JOULARIS 支援 Modbus、OPC UA 與資料庫介接，直接讀取既有電表與設備的數據，不用為了導入系統更換硬體。',
+  },
+  {
+    q: '可以先小規模導入試用嗎？',
+    a: '可以。系統採模組化設計，常見的做法是先從幾個重點電表開始，確認效益後再逐步擴充到全廠的電、水、氣監控。',
+  },
+  {
+    q: '電費計算支援時間電價（TOU）嗎？',
+    a: '支援。系統依時間電價與假日規則逐期自動結算電費，水費與氣費也能一併計算，免去人工對帳的工夫。',
+  },
+  {
+    q: '設備異常時會怎麼通知？',
+    a: '異常發生時，系統會透過 LINE、Email 與簡訊即時通知指定人員；警報規則修改後立即生效，不需重啟系統。',
+  },
+  {
+    q: '想進一步了解，該怎麼開始？',
+    a: '歡迎來信與我們聯繫，簡單描述廠區規模與想解決的問題，我們會安排產品展示與現場評估。',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
+---
+
+<section class="section" id="faq">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">FAQ</span>
+      <h2>常見問題</h2>
+    </div>
+    <div class="faq-list">
+      {
+        faqs.map((f) => (
+          <details class="card faq-item">
+            <summary>
+              {f.q}
+              <svg
+                class="faq-chevron"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </summary>
+            <p>{f.a}</p>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+<style>
+  .faq-list {
+    max-width: 760px;
+    margin: 0 auto;
+    display: grid;
+    gap: 14px;
+  }
+
+  .faq-item {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .faq-item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 24px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-chevron {
+    flex-shrink: 0;
+    color: var(--c-green-deep);
+    transition: transform 0.2s ease;
+  }
+
+  .faq-item[open] .faq-chevron {
+    transform: rotate(180deg);
+  }
+
+  .faq-item p {
+    margin: 0;
+    padding: 0 24px 20px;
+    font-size: 0.95rem;
+  }
+</style>

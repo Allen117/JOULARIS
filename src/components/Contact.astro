@@ -1,9 +1,8 @@
 ---
-// 聯絡我們：純靜態，只列 Email（不接第三方表單）
-const contact = {
-  company: 'JOULARIS 團隊',
-  email: 'Chen.Allen@itri.org.tw',
-};
+// 聯絡我們：純靜態，只提供 Email 洽詢（不接第三方表單）
+// Email 不以明文出現在頁面或 HTML 原始碼：以 Base64 存放，
+// 點擊時才由 JS 組出 mailto，避免被爬蟲蒐集
+const encodedEmail = Buffer.from('Chen.Allen@itri.org.tw', 'utf8').toString('base64');
 ---
 
 <section class="section section-alt" id="contact">
@@ -12,13 +11,53 @@ const contact = {
     <h2>聯絡我們</h2>
     <p>如果想進一步了解 JOULARIS，或希望安排產品展示，請來信與我們聯繫。</p>
     <div class="contact-cards">
-      <a class="card contact-card" href={`mailto:${contact.email}`}>
-        <span class="contact-icon">✉️</span>
-        <span class="contact-label">Email</span>
+      <a class="card contact-card" href="#contact" id="contact-mail" data-e={encodedEmail}>
+        <svg
+          class="contact-icon"
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+          <path d="M4.5 7.5L12 13l7.5-5.5" />
+        </svg>
+        <span class="contact-email">Email 洽詢</span>
+        <span class="contact-label">點擊開啟郵件，已為你帶入洽詢範本</span>
       </a>
     </div>
+    <p class="contact-hint">
+      來信時附上廠區規模與電表數量，我們能更快為你安排合適的展示與評估。
+    </p>
   </div>
 </section>
+
+<script>
+  const card = document.getElementById('contact-mail');
+  if (card) {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      const email = atob(card.dataset.e ?? '');
+      const subject = 'JOULARIS 產品展示洽詢';
+      const body = [
+        '您好，我想進一步了解 JOULARIS，以下是我們的基本資訊：',
+        '',
+        '公司／單位名稱：',
+        '產業別：',
+        '廠區規模（例如樓地板面積或主要設備）：',
+        '目前電表／水表／氣表數量：',
+        '想解決的問題（例如電費過高、缺乏即時監控）：',
+        '方便聯繫的時間：',
+      ].join('\n');
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    });
+  }
+</script>
 
 <style>
   .contact-wrap {
@@ -39,6 +78,7 @@ const contact = {
     gap: 4px;
     align-items: center;
     transition: transform 0.15s ease;
+    cursor: pointer;
   }
 
   .contact-card:hover {
@@ -46,11 +86,24 @@ const contact = {
   }
 
   .contact-icon {
-    font-size: 1.6rem;
+    display: block;
+    color: var(--c-green-deep);
+  }
+
+  .contact-email {
+    font-weight: 700;
+    color: var(--ink);
+    word-break: break-all;
   }
 
   .contact-label {
     font-size: 0.85rem;
+    color: var(--ink-3);
+  }
+
+  .contact-hint {
+    margin-top: 20px;
+    font-size: 0.9rem;
     color: var(--ink-3);
   }
 

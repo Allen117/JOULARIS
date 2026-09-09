@@ -1,0 +1,79 @@
+---
+// 導入流程：三步驟，強調不需更換硬體、可小規模起步
+const steps = [
+  {
+    n: '01',
+    title: '現場評估',
+    desc: '盤點既有電表、感測器與設備的通訊介面，一起確認監控範圍與最想解決的問題。',
+  },
+  {
+    n: '02',
+    title: '系統介接',
+    desc: '透過 Modbus、OPC UA 或資料庫介接既有設備，不需更換硬體，可以先從幾個重點電表開始。',
+  },
+  {
+    n: '03',
+    title: '上線監控與優化',
+    desc: '數據進入系統後即開始即時監控與警報；隨著數據累積，AI 分析會逐步指出最值得改善的節能空間。',
+  },
+];
+---
+
+<section class="section section-alt" id="onboarding">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Getting Started</span>
+      <h2>導入流程</h2>
+      <p>不需要打掉重練，從既有設備開始，三個步驟讓數據上線。</p>
+    </div>
+    <ol class="steps">
+      {
+        steps.map((s) => (
+          <li class="card step">
+            <span class="step-num">{s.n}</span>
+            <h3>{s.title}</h3>
+            <p>{s.desc}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .step-num {
+    display: inline-block;
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .step h3 {
+    font-size: 1.1rem;
+    margin: 10px 0 8px;
+  }
+
+  .step p {
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  @media (max-width: 860px) {
+    .steps {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -5,7 +5,19 @@ const year = new Date().getFullYear();
 <footer class="footer">
   <div class="container footer-inner">
     <img src="/logo.svg" alt="JOULARIS" width="160" height="38" />
-    <p>© {year} JOULARIS. All rights reserved.｜幫你找到節能的方向</p>
+    <div class="footer-meta">
+      <p>© {year} JOULARIS. All rights reserved.｜幫你找到節能的方向</p>
+      <a
+        class="powered-by"
+        href="https://www.itri.org.tw"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Powered by
+        <img src="/itri.png" alt="ITRI 工業技術研究院" width="20" height="20" />
+        ITRI
+      </a>
+    </div>
   </div>
 </footer>
 
@@ -27,5 +39,30 @@ const year = new Date().getFullYear();
     margin: 0;
     font-size: 0.85rem;
     color: var(--ink-3);
+  }
+
+  .footer-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .powered-by {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--ink-3);
+    text-decoration: none;
+  }
+
+  .powered-by:hover {
+    color: var(--ink-1);
+  }
+
+  .powered-by img {
+    display: block;
+    border-radius: 4px;
   }
 </style>

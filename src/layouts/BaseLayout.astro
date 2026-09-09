@@ -39,10 +39,21 @@ const ogImage = new URL('/logo.png', Astro.site ?? Astro.url);
           <img src="/logo.svg" alt="JOULARIS" width="200" height="47" />
         </a>
         <nav aria-label="主選單">
-          <ul class="nav-links">
+          <button
+            class="nav-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="nav-menu"
+            aria-label="開啟選單"
+          >
+            <svg class="icon-menu" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            <svg class="icon-close" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+          <ul class="nav-links" id="nav-menu">
             <li><a href="#features">產品特色</a></li>
             <li><a href="#use-cases">應用場景</a></li>
             <li><a href="#why-us">為什麼選我們</a></li>
+            <li><a href="#faq">常見問題</a></li>
             <li><a href="#contact" class="btn btn-soft" style="padding:8px 20px;">聯絡我們</a></li>
           </ul>
         </nav>
@@ -51,5 +62,22 @@ const ogImage = new URL('/logo.png', Astro.site ?? Astro.url);
     <main id="top">
       <slot />
     </main>
+    <script>
+      const nav = document.querySelector('.nav');
+      const toggle = document.querySelector('.nav-toggle');
+      if (nav && toggle) {
+        const close = () => {
+          nav.classList.remove('menu-open');
+          toggle.setAttribute('aria-expanded', 'false');
+          toggle.setAttribute('aria-label', '開啟選單');
+        };
+        toggle.addEventListener('click', () => {
+          const open = nav.classList.toggle('menu-open');
+          toggle.setAttribute('aria-expanded', String(open));
+          toggle.setAttribute('aria-label', open ? '關閉選單' : '開啟選單');
+        });
+        nav.querySelectorAll('.nav-links a').forEach((a) => a.addEventListener('click', close));
+      }
+    </script>
   </body>
 </html>
