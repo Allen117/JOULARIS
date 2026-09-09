@@ -156,6 +156,7 @@ a {
 .nav-logo img,
 .nav-logo svg {
   height: 36px;
+  width: auto;
   display: block;
 }
 

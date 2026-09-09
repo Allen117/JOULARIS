@@ -36,12 +36,13 @@ src/
 ├── components/              # Hero、BrandStory、Features、UseCases、WhyUs、Contact、Footer
 └── styles/global.css        # 設計系統（色票抽自 Logo：teal #1E7E8C → 亮藍 #2BA6E0）
 public/
-├── logo.png                 # 正式 Logo
-└── favicon.svg
+├── logo.svg                 # 能源指北星 Logo（頁面使用，支援深色模式）
+├── logo.png                 # 同款點陣版（og:image 社群分享預覽用）
+└── favicon.png              # 星形圖示的網站小圖示
 ```
 
 ## 待辦
 
-- [x] 以正式 Logo 圖檔覆蓋 `public/logo.png`（favicon.svg 待換）
+- [x] 以正式 Logo 圖檔覆蓋 `public/logo.png` / `public/favicon.png`
 - [ ] `src/components/Contact.astro` 內的 Email / 電話換成正式聯絡資訊
 - [ ] 產品示範畫面截圖（行銷 mockup + 虛構資料）替換 Hero 內建示意圖
