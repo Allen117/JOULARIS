@@ -1,0 +1,54 @@
+---
+// 為什麼選 JOULARIS
+const points = [
+  {
+    title: '在地開發・中文支援',
+    desc: '台灣團隊開發，介面與文件全中文，導入與售後溝通零時差。',
+  },
+  {
+    title: '工業級穩定',
+    desc: '7×24 背景服務長時間運轉，斷線自動重連、資料不漏接。',
+  },
+  {
+    title: '模組化擴充',
+    desc: '從單一電表到全廠電水氣，依需求逐步擴充，不必一次到位。',
+  },
+  {
+    title: '離線也可用',
+    desc: '簡訊盒告警走序列埠與電信網路，網路中斷時關鍵警報照樣送達。',
+  },
+];
+---
+
+<section class="section" id="why-us">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Why JOULARIS</span>
+      <h2>為什麼選 JOULARIS</h2>
+    </div>
+    <div class="grid grid-2">
+      {
+        points.map((p) => (
+          <div class="card why">
+            <h3>{p.title}</h3>
+            <p>{p.desc}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .why h3 {
+    font-size: 1.05rem;
+    margin-bottom: 6px;
+    padding-left: 14px;
+    border-left: 4px solid var(--c-blue);
+  }
+
+  .why p {
+    font-size: 0.95rem;
+    margin: 0;
+  }
+</style>

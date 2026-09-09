@@ -1,0 +1,31 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <img src="/logo.png" alt="JOULARIS" width="160" height="34" />
+    <p>© {year} JOULARIS. All rights reserved.｜幫你找到節能的方向</p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+  }
+
+  .footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .footer-inner p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--ink-3);
+  }
+</style>

@@ -1,0 +1,256 @@
+---
+// Hero：主標語 + CTA + 儀表板示範畫面（虛構 demo 數據，僅供行銷展示）
+---
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <h1>JOULARIS</h1>
+      <p class="tagline">幫你找到節能的方向</p>
+      <p class="lede">
+        整合電、水、氣即時監控與費用分析的工業能源管理系統，
+        讓每一度能源都<strong>看得見、算得清、省得下</strong>。
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#features">了解產品</a>
+        <a class="btn btn-ghost" href="#contact">聯絡我們</a>
+      </div>
+    </div>
+
+    <div class="hero-mock card" aria-label="JOULARIS 儀表板示範畫面（示意資料）">
+      <div class="mock-bar">
+        <span class="mock-title">JOULARIS EMS · 即時總覽</span>
+        <span class="mock-live"><span class="dot"></span>即時連線</span>
+      </div>
+
+      <div class="mock-stats">
+        <div class="stat">
+          <span class="stat-label">⚡ 今日用電</span>
+          <span class="stat-value">12,480 <small>kWh</small></span>
+          <span class="stat-delta">▼ 6.2% 較昨日</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">💧 今日用水</span>
+          <span class="stat-value">328 <small>m³</small></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">🔥 今日用氣</span>
+          <span class="stat-value">96 <small>m³</small></span>
+        </div>
+      </div>
+
+      <figure class="mock-chart">
+        <figcaption>本日用電趨勢（kW）</figcaption>
+        <svg viewBox="0 0 340 130" role="img" aria-label="本日用電趨勢示意圖">
+          <defs>
+            <linearGradient id="hero-area" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--chart-1)" stop-opacity="0.22" />
+              <stop offset="1" stop-color="var(--chart-1)" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <g stroke="var(--border)" stroke-width="1">
+            <line x1="10" y1="30" x2="330" y2="30" />
+            <line x1="10" y1="60" x2="330" y2="60" />
+            <line x1="10" y1="90" x2="330" y2="90" />
+            <line x1="10" y1="120" x2="330" y2="120" />
+          </g>
+          <path
+            d="M10,89 L50,91 L90,85 L130,49 L170,36 L210,28 L250,33 L290,53 L330,76 L330,120 L10,120 Z"
+            fill="url(#hero-area)"
+          />
+          <path
+            d="M10,89 L50,91 L90,85 L130,49 L170,36 L210,28 L250,33 L290,53 L330,76"
+            fill="none"
+            stroke="var(--chart-1)"
+            stroke-width="2"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+          />
+          <circle cx="210" cy="28" r="4" fill="var(--chart-1)" stroke="var(--surface)" stroke-width="2" />
+          <text x="210" y="16" text-anchor="middle" class="chart-label">尖峰 1,842 kW</text>
+          <g class="chart-tick">
+            <text x="10" y="129">00:00</text>
+            <text x="170" y="129" text-anchor="middle">12:00</text>
+            <text x="330" y="129" text-anchor="end">24:00</text>
+          </g>
+        </svg>
+      </figure>
+      <p class="mock-note">＊示意畫面，為虛構示範資料</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 96px 0 88px;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: -40% -20% auto auto;
+    width: 70%;
+    aspect-ratio: 1;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--c-blue) 18%, transparent),
+      transparent 65%
+    );
+    pointer-events: none;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 48px;
+    align-items: center;
+    position: relative;
+  }
+
+  h1 {
+    font-size: clamp(2.6rem, 6vw, 3.8rem);
+    letter-spacing: 0.08em;
+    margin-bottom: 0.15em;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .tagline {
+    font-size: clamp(1.3rem, 3vw, 1.7rem);
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 0.6em;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    max-width: 30em;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+
+  /* ---- 儀表板 mockup ---- */
+
+  .hero-mock {
+    padding: 20px 22px 14px;
+  }
+
+  .mock-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .mock-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--ink-2);
+  }
+
+  .mock-live {
+    font-size: 0.78rem;
+    color: var(--good);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--good);
+  }
+
+  .mock-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .stat {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--ink-3);
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-value small {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+
+  .stat-delta {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--good);
+  }
+
+  .mock-chart {
+    margin: 0;
+  }
+
+  .mock-chart figcaption {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-bottom: 6px;
+  }
+
+  .chart-label {
+    font-size: 10px;
+    font-weight: 700;
+    fill: var(--ink-2);
+  }
+
+  .chart-tick text {
+    font-size: 8px;
+    fill: var(--ink-3);
+  }
+
+  .mock-note {
+    margin: 10px 0 0;
+    font-size: 0.7rem;
+    color: var(--ink-3);
+    text-align: right;
+  }
+
+  @media (max-width: 860px) {
+    .hero {
+      padding: 64px 0;
+    }
+
+    .hero-grid {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+  }
+</style>

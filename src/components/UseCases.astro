@@ -1,0 +1,57 @@
+---
+// 應用場景
+const cases = [
+  {
+    icon: '🏭',
+    title: '製造工廠廠務能源管理',
+    desc: '整廠電水氣一站監控，設備異常即時告警，廠務團隊從救火轉為預防管理。',
+  },
+  {
+    icon: '⚡',
+    title: '用電大戶需量與電費最佳化',
+    desc: '時間電價（TOU）逐期結算與尖峰用電掌握，找出移峰填谷空間，電費省在刀口上。',
+  },
+  {
+    icon: '🌱',
+    title: '能源申報與節能減碳追蹤',
+    desc: '報表數據齊備，政府能源申報、ESG 揭露與節能績效追蹤一次到位。',
+  },
+];
+---
+
+<section class="section section-alt" id="use-cases">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Use Cases</span>
+      <h2>應用場景</h2>
+    </div>
+    <div class="grid grid-3">
+      {
+        cases.map((c) => (
+          <div class="card usecase">
+            <span class="usecase-icon">{c.icon}</span>
+            <h3>{c.title}</h3>
+            <p>{c.desc}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .usecase h3 {
+    font-size: 1.1rem;
+    margin: 12px 0 8px;
+  }
+
+  .usecase p {
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .usecase-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+</style>

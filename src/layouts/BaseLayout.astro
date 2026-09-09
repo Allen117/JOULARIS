@@ -1,0 +1,55 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'JOULARIS｜幫你找到節能的方向',
+  description =
+    'JOULARIS 整合電、水、氣即時監控與費用分析的工業能源管理系統，讓每一度能源都看得見、算得清、省得下。',
+} = Astro.props;
+
+const ogImage = new URL('/logo.png', Astro.site ?? Astro.url);
+---
+
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={Astro.site ?? Astro.url} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="zh_TW" />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body>
+    <header class="nav">
+      <div class="container nav-inner">
+        <a class="nav-logo" href="#top" aria-label="JOULARIS 回到頁首">
+          <img src="/logo.png" alt="JOULARIS" width="200" height="42" />
+        </a>
+        <nav aria-label="主選單">
+          <ul class="nav-links">
+            <li><a href="#features">產品特色</a></li>
+            <li><a href="#use-cases">應用場景</a></li>
+            <li><a href="#why-us">為什麼選我們</a></li>
+            <li><a href="#contact" class="btn btn-primary" style="padding:8px 20px;">聯絡我們</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <main id="top">
+      <slot />
+    </main>
+  </body>
+</html>

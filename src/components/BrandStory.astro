@@ -1,0 +1,76 @@
+---
+// 品牌命名故事：Joule × Polaris
+---
+
+<section class="section section-alt" id="brand-story">
+  <div class="container">
+    <div class="story-grid">
+      <div class="story-visual" aria-hidden="true">
+        <svg viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="story-g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--c-teal)" />
+              <stop offset="1" stop-color="var(--c-blue)" />
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="78" fill="none" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="3 6" />
+          <circle cx="100" cy="100" r="56" fill="none" stroke="var(--border)" stroke-width="1" />
+          <path d="M100 30 L112 88 L170 100 L112 112 L100 170 L88 112 L30 100 L88 88 Z" fill="url(#story-g)" opacity="0.92" />
+          <circle cx="100" cy="100" r="10" fill="var(--surface)" />
+          <path d="M104 92 97 103h5l-2 9 9-12h-5l2-8z" fill="var(--c-teal)" />
+        </svg>
+      </div>
+      <div>
+        <span class="eyebrow">Brand Story</span>
+        <h2>Joule × Polaris —— 能源的指北星</h2>
+        <p>
+          <strong>JOULARIS</strong> 由 <strong>Joule</strong>（焦耳，能量的單位）與
+          <strong>Polaris</strong>（北極星，指引方向）組成。
+        </p>
+        <p>
+          在複雜的用電、用水、用氣數據裡，JOULARIS
+          是能源管理的那顆指北星——替你指出真正該省的地方，讓節能不再靠猜測，而是有方向、有依據的持續改善。
+        </p>
+        <p class="en-tagline">Your compass to energy efficiency.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .story-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+
+  .story-visual svg {
+    width: 100%;
+    display: block;
+  }
+
+  .en-tagline {
+    font-style: italic;
+    font-weight: 600;
+    color: var(--c-teal);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .en-tagline {
+      color: var(--chart-2);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .story-grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .story-visual {
+      max-width: 200px;
+      margin: 0 auto;
+    }
+  }
+</style>

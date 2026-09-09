@@ -1,0 +1,76 @@
+---
+// 聯絡我們：純靜態，只列 Email / 電話（不接第三方表單）
+// TODO: 以下公司名 / Email / 電話為佔位，請換成正式聯絡資訊
+const contact = {
+  company: 'JOULARIS 團隊',
+  email: 'contact@joularis.com',
+  phone: '(03) 000-0000',
+};
+---
+
+<section class="section section-alt" id="contact">
+  <div class="container contact-wrap">
+    <span class="eyebrow">Contact</span>
+    <h2>聯絡我們</h2>
+    <p>想了解 JOULARIS 如何為您的廠區找到節能方向？歡迎與我們聯繫，安排產品展示。</p>
+    <div class="contact-cards">
+      <a class="card contact-card" href={`mailto:${contact.email}`}>
+        <span class="contact-icon">✉️</span>
+        <span class="contact-label">Email</span>
+        <span class="contact-value">{contact.email}</span>
+      </a>
+      <a class="card contact-card" href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`}>
+        <span class="contact-icon">📞</span>
+        <span class="contact-label">電話</span>
+        <span class="contact-value">{contact.phone}</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .contact-wrap {
+    text-align: center;
+    max-width: 720px;
+  }
+
+  .contact-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-top: 36px;
+  }
+
+  .contact-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+    transition: transform 0.15s ease;
+  }
+
+  .contact-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .contact-icon {
+    font-size: 1.6rem;
+  }
+
+  .contact-label {
+    font-size: 0.85rem;
+    color: var(--ink-3);
+  }
+
+  .contact-value {
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 1.05rem;
+  }
+
+  @media (max-width: 600px) {
+    .contact-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

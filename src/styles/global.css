@@ -1,0 +1,251 @@
+/* ============================================================
+   JOULARIS 官網 設計系統
+   色票抽自品牌 Logo（藍綠漸層）：
+   - 主漸層 teal #1E7E8C → 亮藍 #2BA6E0
+   - 文字深藍海軍 #2B3A4A、背景近白 #F5F8FA、深色模式 #0C1116
+   圖表標記色（經 CVD/對比驗證）：#0E8FA8 / #1B72C0
+   ============================================================ */
+
+:root {
+  --c-teal: #1e7e8c;
+  --c-blue: #2ba6e0;
+  --c-navy: #2b3a4a;
+
+  --bg: #f5f8fa;
+  --surface: #ffffff;
+  --border: #dde5ec;
+
+  --ink: #22303d;
+  --ink-2: #4a5b6c;
+  --ink-3: #7a8a99;
+
+  --chart-1: #1b72c0;
+  --chart-2: #0e8fa8;
+  --good: #0f7b4d;
+
+  --grad: linear-gradient(120deg, var(--c-teal), var(--c-blue));
+  --radius: 14px;
+  --shadow: 0 8px 30px rgba(43, 58, 74, 0.1);
+  --maxw: 1080px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c1116;
+    --surface: #151c24;
+    --border: #263240;
+
+    --ink: #e8eef3;
+    --ink-2: #aebbc7;
+    --ink-3: #7a8a99;
+
+    --chart-1: #5aa4e6;
+    --chart-2: #3fb3cc;
+    --good: #4cc38a;
+
+    --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC',
+    sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.3;
+  margin: 0 0 0.5em;
+  color: var(--ink);
+}
+
+p {
+  margin: 0 0 1em;
+  color: var(--ink-2);
+}
+
+a {
+  color: var(--c-blue);
+  text-decoration: none;
+}
+
+/* ---------- 版面容器 ---------- */
+
+.container {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.section {
+  padding: 80px 0;
+}
+
+.section-alt {
+  background: var(--surface);
+  border-block: 1px solid var(--border);
+}
+
+.section-head {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 48px;
+}
+
+.section-head h2 {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--c-teal);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .eyebrow {
+    color: var(--chart-2);
+  }
+}
+
+/* ---------- 導覽列 ---------- */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 64px;
+}
+
+.nav-logo img,
+.nav-logo svg {
+  height: 36px;
+  display: block;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links a {
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.nav-links a:hover {
+  color: var(--c-blue);
+}
+
+@media (max-width: 720px) {
+  .nav-links {
+    display: none;
+  }
+}
+
+/* ---------- 按鈕 ---------- */
+
+.btn {
+  display: inline-block;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background: var(--grad);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(43, 166, 224, 0.35);
+}
+
+.btn-ghost {
+  border: 2px solid var(--c-blue);
+  color: var(--c-blue);
+}
+
+/* ---------- 卡片 ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+.grid {
+  display: grid;
+  gap: 24px;
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 900px) {
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 56px 0;
+  }
+}

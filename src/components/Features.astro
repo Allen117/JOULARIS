@@ -1,0 +1,73 @@
+---
+// 產品特色六格卡片（對應實際產品能力）
+const features = [
+  {
+    icon: '🔌',
+    title: '多來源即時採集',
+    desc: 'Modbus、OPC UA、資料庫來源整合，工廠現場數據一站匯集，免改既有設備。',
+  },
+  {
+    icon: '📊',
+    title: '電・水・氣三表整合',
+    desc: '即時用量監控與歷史趨勢，一個平台看完所有能源，不必在系統間切換。',
+  },
+  {
+    icon: '🔔',
+    title: '智慧警報通知',
+    desc: '警報規則熱重載、免重啟生效；異常即時經 Line / Email / 簡訊三通道推播。',
+  },
+  {
+    icon: '💰',
+    title: '費用自動計算',
+    desc: '電費（含時間電價 TOU 與假日判定）、水費、氣費逐期自動結算，帳單看得懂。',
+  },
+  {
+    icon: '📈',
+    title: '能源報表與日報',
+    desc: '用電、用水、用氣報表與每日能源快照 Email，MTD 趨勢與異常摘要自動送達。',
+  },
+  {
+    icon: '🖥️',
+    title: '儀表板視覺化',
+    desc: '即時大盤與 EMS 狀態卡，管理者一眼掌握全廠能耗與設備狀態。',
+  },
+];
+---
+
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Features</span>
+      <h2>產品特色</h2>
+      <p>從現場採集到費用結算，JOULARIS 一站補齊能源管理的每個環節。</p>
+    </div>
+    <div class="grid grid-3">
+      {
+        features.map((f) => (
+          <div class="card feature">
+            <span class="feature-icon">{f.icon}</span>
+            <h3>{f.title}</h3>
+            <p>{f.desc}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .feature h3 {
+    font-size: 1.1rem;
+    margin: 12px 0 8px;
+  }
+
+  .feature p {
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .feature-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+</style>
