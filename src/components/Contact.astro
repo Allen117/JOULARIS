@@ -1,10 +1,8 @@
 ---
-// 聯絡我們：純靜態，只列 Email / 電話（不接第三方表單）
-// TODO: 以下公司名 / Email / 電話為佔位，請換成正式聯絡資訊
+// 聯絡我們：純靜態，只列 Email（不接第三方表單）
 const contact = {
   company: 'JOULARIS 團隊',
-  email: 'contact@joularis.com',
-  phone: '(03) 000-0000',
+  email: 'Chen.Allen@itri.org.tw',
 };
 ---
 
@@ -19,11 +17,6 @@ const contact = {
         <span class="contact-label">Email</span>
         <span class="contact-value">{contact.email}</span>
       </a>
-      <a class="card contact-card" href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`}>
-        <span class="contact-icon">📞</span>
-        <span class="contact-label">電話</span>
-        <span class="contact-value">{contact.phone}</span>
-      </a>
     </div>
   </div>
 </section>
@@ -36,9 +29,9 @@ const contact = {
 
   .contact-cards {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    margin-top: 36px;
+    grid-template-columns: 1fr;
+    max-width: 360px;
+    margin: 36px auto 0;
   }
 
   .contact-card {
@@ -68,9 +61,4 @@ const contact = {
     font-size: 1.05rem;
   }
 
-  @media (max-width: 600px) {
-    .contact-cards {
-      grid-template-columns: 1fr;
-    }
-  }
 </style>
