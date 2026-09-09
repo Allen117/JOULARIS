@@ -9,7 +9,7 @@
       <p class="tagline">幫你找到節能的方向</p>
       <p class="lede">
         整合電、水、氣即時監控與費用分析的工業能源管理系統，
-        讓每一度能源都<strong>看得見、算得清、省得下</strong>。
+        用數據告訴你能源花在哪裡、<strong>該從哪裡開始省</strong>。
       </p>
       <div class="cta-row">
         <a class="btn btn-primary" href="#features">了解產品</a>
@@ -17,15 +17,27 @@
       </div>
     </div>
 
-    <div class="hero-shot card">
-      <img
-        src="/ems-dashboard.png"
-        alt="JOULARIS EMS 能源管理系統即時總覽畫面"
-        width="2520"
-        height="1575"
-        loading="eager"
-        decoding="async"
-      />
+    <div class="hero-shots">
+      <div class="hero-shot hero-shot-main card">
+        <img
+          src="/ems-dashboard.png"
+          alt="JOULARIS EMS 能源管理系統即時總覽畫面"
+          width="2520"
+          height="1575"
+          loading="eager"
+          decoding="async"
+        />
+      </div>
+      <div class="hero-shot hero-shot-sub card">
+        <img
+          src="/logicflow-hvac-v5.png"
+          alt="JOULARIS EMS 流程圖控制（LogicFlow）空調最佳化畫面"
+          width="2520"
+          height="1575"
+          loading="eager"
+          decoding="async"
+        />
+      </div>
     </div>
   </div>
 </section>
@@ -46,6 +58,20 @@
     background: radial-gradient(
       circle,
       color-mix(in srgb, var(--c-green) 18%, transparent),
+      transparent 65%
+    );
+    pointer-events: none;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: auto auto -45% -15%;
+    width: 60%;
+    aspect-ratio: 1;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--c-blue) 14%, transparent),
       transparent 65%
     );
     pointer-events: none;
@@ -90,6 +116,10 @@
 
   /* ---- EMS 系統截圖 ---- */
 
+  .hero-shots {
+    position: relative;
+  }
+
   .hero-shot {
     padding: 10px;
     overflow: hidden;
@@ -103,6 +133,21 @@
     border: 1px solid var(--border);
   }
 
+  /* 主圖靠右、副圖略小靠左，上下稍微錯開重疊 */
+  .hero-shot-main {
+    width: 92%;
+    margin-left: auto;
+    position: relative;
+  }
+
+  .hero-shot-sub {
+    width: 85%;
+    margin: -14% 0 0 -4%;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 18px 44px rgb(16 46 58 / 0.22);
+  }
+
   @media (max-width: 860px) {
     .hero {
       padding: 64px 0;
@@ -111,6 +156,18 @@
     .hero-grid {
       grid-template-columns: 1fr;
       gap: 40px;
+    }
+
+    .hero-shots {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero-shot-main,
+    .hero-shot-sub {
+      width: 100%;
+      margin: 0;
+      box-shadow: none;
     }
   }
 </style>

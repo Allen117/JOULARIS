@@ -1,20 +1,21 @@
 ---
 // 應用場景
+// icon 為 24×24 線條圖示的 SVG 內容，線條樣式統一設定在模板的 <svg> 上
 const cases = [
   {
-    icon: '🏭',
+    icon: '<path d="M3.5 19.5a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9l-6 4.2V9l-6 4.2V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5Z"/><path stroke-width="2.4" d="M7.5 17h0M12 17h0M16.5 17h0"/>',
     title: '製造工廠廠務能源管理',
-    desc: '整廠電水氣一站監控，設備異常即時告警，廠務團隊從救火轉為預防管理。',
+    desc: '全廠電、水、氣集中監控，設備異常即時告警，廠務團隊能在小問題擴大之前先處理。',
   },
   {
-    icon: '⚡',
+    icon: '<path d="M3.5 7.5L9.2 13l3.9-3.9 7.4 7.4"/><path d="M20.5 12.4v4.1h-4.1"/>',
     title: '用電大戶需量與電費最佳化',
-    desc: '時間電價（TOU）逐期結算與尖峰用電掌握，找出移峰填谷空間，電費省在刀口上。',
+    desc: '逐期核算時間電價（TOU）並掌握尖峰用電情況，評估把負載移轉到離峰時段的空間，降低電費支出。',
   },
   {
-    icon: '🌱',
+    icon: '<path d="M9 4.5H7a2 2 0 0 0-2 2v12.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.8" width="6" height="3.4" rx="1"/><path d="M12.1 16.9c-.2-3.1 1.7-5.1 4.2-5.4.1 3.2-1.5 5.2-4.2 5.4z"/><path d="M9.6 17.6c1-2 2.4-3.6 4.5-4.7"/>',
     title: '能源申報與節能減碳追蹤',
-    desc: '報表數據齊備，政府能源申報、ESG 揭露與節能績效追蹤一次到位。',
+    desc: '系統累積的報表數據，可直接用於政府能源申報、ESG 揭露與節能績效追蹤。',
   },
 ];
 ---
@@ -29,7 +30,19 @@ const cases = [
       {
         cases.map((c) => (
           <div class="card usecase">
-            <span class="usecase-icon">{c.icon}</span>
+            <svg
+              class="usecase-icon"
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              set:html={c.icon}
+            />
             <h3>{c.title}</h3>
             <p>{c.desc}</p>
           </div>
@@ -51,7 +64,7 @@ const cases = [
   }
 
   .usecase-icon {
-    font-size: 1.8rem;
-    line-height: 1;
+    display: block;
+    color: var(--c-green-deep);
   }
 </style>

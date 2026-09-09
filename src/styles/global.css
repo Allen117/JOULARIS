@@ -1,9 +1,11 @@
 /* ============================================================
    JOULARIS 官網 設計系統
-   色票對齊 EMS 產品介面（綠色系）：
-   - 深綠 #2E7D32（主色：連結、強調文字）
-   - 主綠 #4CAF50、亮綠 #81C784（漸層、裝飾）
-   - 背景淡綠 #F2F7F2、文字墨綠灰、深色模式 #0D1410
+   色票融合兩套產品介面：EMS（綠）與 SCADA LogicFlow（藍），
+   以青色（teal）作為過渡橋接：
+   - 深綠 #2E7D32 / 主綠 #4CAF50（EMS 主色）
+   - 青 #26A69A（綠藍之間的橋接色）
+   - 藍 #1E88E5 / 亮藍 #64B5F6（SCADA 主色）
+   - 背景淡青綠 #F2F7F5、文字墨青灰、深色模式 #0C1312
    ============================================================ */
 
 :root {
@@ -11,21 +13,32 @@
   --c-green: #4caf50;
   --c-green-light: #81c784;
 
-  --bg: #f2f7f2;
-  --surface: #ffffff;
-  --border: #dbe7db;
+  --c-teal: #26a69a;
 
-  --ink: #24322a;
-  --ink-2: #4c5d51;
-  --ink-3: #7c8d80;
+  --c-blue-deep: #1565c0;
+  --c-blue: #1e88e5;
+  --c-blue-light: #64b5f6;
+
+  --bg: #f2f7f5;
+  --surface: #ffffff;
+  --border: #d9e7e2;
+
+  --ink: #243230;
+  --ink-2: #4c5d59;
+  --ink-3: #7c8d88;
 
   --chart-1: #388e3c;
-  --chart-2: #66bb6a;
+  --chart-2: #42a5f5;
   --good: #2e7d32;
 
-  --grad: linear-gradient(120deg, var(--c-green-deep), var(--c-green));
+  --grad: linear-gradient(
+    120deg,
+    var(--c-green-deep),
+    var(--c-teal),
+    var(--c-blue)
+  );
   --radius: 14px;
-  --shadow: 0 8px 30px rgba(36, 50, 42, 0.1);
+  --shadow: 0 8px 30px rgba(36, 50, 48, 0.1);
   --maxw: 1080px;
 }
 
@@ -35,19 +48,25 @@
     --c-green: #81c784;
     --c-green-light: #a5d6a7;
 
-    --bg: #0d1410;
-    --surface: #16211a;
-    --border: #27392c;
+    --c-teal: #4db6ac;
 
-    --ink: #e8f3ea;
-    --ink-2: #b0c4b5;
-    --ink-3: #7c8d80;
+    --c-blue-deep: #64b5f6;
+    --c-blue: #90caf9;
+    --c-blue-light: #bbdefb;
+
+    --bg: #0c1312;
+    --surface: #14201e;
+    --border: #253833;
+
+    --ink: #e8f3f0;
+    --ink-2: #b0c4bd;
+    --ink-3: #7c8d88;
 
     --chart-1: #7bc67e;
-    --chart-2: #a5d6a7;
+    --chart-2: #64b5f6;
     --good: #4cc38a;
 
-    --grad: linear-gradient(120deg, #2e7d32, #4caf50);
+    --grad: linear-gradient(120deg, #2e7d32, #26a69a, #1e88e5);
     --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
   }
 }
@@ -202,12 +221,23 @@ a {
 .btn-primary {
   background: var(--grad);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(76, 175, 80, 0.35);
+  box-shadow: 0 6px 18px rgba(38, 166, 154, 0.35);
 }
 
 .btn-ghost {
   border: 2px solid var(--c-green-deep);
   color: var(--c-green-deep);
+}
+
+/* 淡色按鈕：淡綠→淡藍漸層底、深色文字（導覽列用） */
+.btn-soft {
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--c-green) 16%, var(--surface)),
+    color-mix(in srgb, var(--c-blue) 16%, var(--surface))
+  );
+  color: var(--c-green-deep);
+  border: 1px solid color-mix(in srgb, var(--c-teal) 30%, var(--border));
 }
 
 /* ---------- 卡片 ---------- */
