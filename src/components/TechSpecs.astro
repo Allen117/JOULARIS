@@ -1,0 +1,174 @@
+---
+// 技術架構：給系統整合商（SI）與資訊部門看的規格總覽
+// 內容整理自產品實際架構：後端 Engine 背景服務 + 前端 Web 儀表板
+// null 表示該側不適用，畫面上以「—」呈現
+const rows = [
+  {
+    cat: '資料採集',
+    engine: 'Modbus TCP／OPC UA 輪詢採集，支援外部資料庫介接',
+    web: null,
+  },
+  {
+    cat: '資料傳輸',
+    engine: 'MQTT 即時發布（QoS1、Retain）',
+    web: 'MQTT 訂閱，即時串流更新',
+  },
+  {
+    cat: '資料儲存',
+    engine: '即時值與歷史資料持久化至 SQL Server',
+    web: null,
+  },
+  {
+    cat: '即時監控',
+    engine: null,
+    web: '設備樹狀導覽、即時值與通訊品質監視',
+  },
+  {
+    cat: '歷史趨勢',
+    engine: null,
+    web: '歷史趨勢曲線與 Min／Max／Avg 統計分析',
+  },
+  {
+    cat: '警報監控',
+    engine: '規則引擎即時比對量測值，自動觸發警報事件',
+    web: '警報規則組態與事件日誌查詢',
+  },
+  {
+    cat: '邏輯流程',
+    engine: '流程圖引擎週期性評估，條件成立即下發控制命令',
+    web: '拖曳式流程圖設計畫布',
+  },
+  {
+    cat: '排程管理',
+    engine: '排程引擎自動執行設備啟停',
+    web: '週間／交替模式排程組態',
+  },
+  {
+    cat: '演算法',
+    engine: 'C#（Roslyn 動態編譯）與 Python FastAPI 雙引擎',
+    web: '演算法模組掃描與評估呼叫',
+  },
+  {
+    cat: '畫面設計',
+    engine: null,
+    web: '拖曳式 SCADA 儀表板設計器（量表／開關／警報元件），發布後即時渲染',
+  },
+  {
+    cat: '帳號權限',
+    engine: null,
+    web: 'RBAC 角色權限控制與登入時效管理',
+  },
+];
+---
+
+<section class="section section-alt" id="tech-specs">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Architecture</span>
+      <h2>技術架構</h2>
+      <p>
+        後端 Engine 以 7×24 常駐服務執行採集、運算與控制邏輯，前端 Web
+        儀表板負責監控、組態與畫面設計；兩端以 MQTT 即時串接，歷史資料統一落地
+        SQL Server。
+      </p>
+    </div>
+
+    <div class="card spec-card">
+      <div class="spec-scroll">
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th scope="col">類別</th>
+              <th scope="col">後端 Engine（背景服務）</th>
+              <th scope="col">前端 Web 儀表板</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              rows.map((r) => (
+                <tr>
+                  <th scope="row">{r.cat}</th>
+                  <td class:list={{ empty: !r.engine }}>{r.engine ?? '—'}</td>
+                  <td class:list={{ empty: !r.web }}>{r.web ?? '—'}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="spec-note">
+      完整的系統架構與部署規格文件，歡迎<a href="#contact">來信索取</a>。
+    </p>
+  </div>
+</section>
+
+<style>
+  .spec-card {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .spec-scroll {
+    overflow-x: auto;
+  }
+
+  .spec-table {
+    width: 100%;
+    min-width: 680px;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+
+  .spec-table thead th {
+    background: color-mix(in srgb, var(--c-teal) 12%, var(--surface));
+    color: var(--ink);
+    font-size: 0.95rem;
+    text-align: left;
+    padding: 14px 20px;
+    border-bottom: 2px solid color-mix(in srgb, var(--c-teal) 35%, var(--border));
+    white-space: nowrap;
+  }
+
+  .spec-table tbody th {
+    text-align: left;
+    color: var(--ink);
+    white-space: nowrap;
+    font-weight: 700;
+  }
+
+  .spec-table tbody th,
+  .spec-table td {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .spec-table tbody tr:last-child th,
+  .spec-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .spec-table td {
+    color: var(--ink-2);
+  }
+
+  .spec-table td.empty {
+    color: var(--ink-3);
+    text-align: center;
+  }
+
+  .spec-note {
+    text-align: center;
+    margin: 24px 0 0;
+    font-size: 0.9rem;
+    color: var(--ink-3);
+  }
+
+  .spec-note a {
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>

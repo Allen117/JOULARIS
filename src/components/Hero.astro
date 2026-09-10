@@ -9,6 +9,15 @@ import logicflowHvac from '../assets/logicflow-hvac-v5.png';
 <section class="hero">
   <div class="container hero-grid">
     <div class="hero-copy">
+      <a
+        class="itri-badge"
+        href="https://www.itri.org.tw"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <img src="/itri.png" alt="ITRI 工業技術研究院" width="20" height="20" />
+        工研院 ITRI 技術研發
+      </a>
       <h1>JOULARIS</h1>
       <p class="tagline">幫你找到節能的方向</p>
       <p class="lede">
@@ -89,6 +98,33 @@ import logicflowHvac from '../assets/logicflow-hvac-v5.png';
     gap: 48px;
     align-items: center;
     position: relative;
+  }
+
+  /* 工研院技術研發徽章：放在主標上方，建立第一眼的信任感 */
+  .itri-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px 6px 8px;
+    margin-bottom: 20px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--ink-2);
+    box-shadow: 0 4px 14px rgb(36 50 48 / 0.08);
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .itri-badge:hover {
+    border-color: var(--c-teal);
+    color: var(--ink);
+  }
+
+  .itri-badge img {
+    display: block;
+    border-radius: 4px;
   }
 
   h1 {
