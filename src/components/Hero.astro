@@ -64,33 +64,7 @@ import logicflowHvac from '../assets/logicflow-hvac-v5.png';
     padding: 96px 0 88px;
   }
 
-  .hero::before {
-    content: '';
-    position: absolute;
-    inset: -40% -20% auto auto;
-    width: 70%;
-    aspect-ratio: 1;
-    background: radial-gradient(
-      circle,
-      color-mix(in srgb, var(--c-green) 18%, transparent),
-      transparent 65%
-    );
-    pointer-events: none;
-  }
-
-  .hero::after {
-    content: '';
-    position: absolute;
-    inset: auto auto -45% -15%;
-    width: 60%;
-    aspect-ratio: 1;
-    background: radial-gradient(
-      circle,
-      color-mix(in srgb, var(--c-blue) 14%, transparent),
-      transparent 65%
-    );
-    pointer-events: none;
-  }
+  /* 光暈背景改由全頁的 BgMotion 動畫層提供 */
 
   .hero-grid {
     display: grid;

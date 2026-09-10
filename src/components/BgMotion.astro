@@ -1,0 +1,216 @@
+---
+// 全頁背景動畫層：品牌色光暈 + 儀表環線條
+// 固定在視窗底層（z-index: -1），隨滾動產生視差位移與旋轉，
+// 平時另有緩慢漂浮動畫；prefers-reduced-motion 時完全靜止。
+---
+
+<div class="bg-motion" aria-hidden="true">
+  <div class="bg-glow bg-glow-a" data-depth="0.06"></div>
+  <div class="bg-glow bg-glow-b" data-depth="0.1"></div>
+
+  <div class="bg-ring bg-ring-a" data-spin="0.03">
+    <svg viewBox="0 0 600 600" fill="none">
+      <circle cx="300" cy="300" r="286" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 14" />
+      <circle cx="300" cy="300" r="238" stroke="currentColor" stroke-width="1" opacity="0.6" />
+      <g stroke="currentColor" stroke-width="2">
+        <path d="M300 8v26" />
+        <path d="M300 566v26" />
+        <path d="M8 300h26" />
+        <path d="M566 300h26" />
+      </g>
+      <circle cx="300" cy="14" r="5" fill="currentColor" stroke="none" />
+    </svg>
+  </div>
+
+  <!-- 羅盤／北極星：刻度環 + 四芒羅盤花，呼應「幫你找到節能的方向」 -->
+  <div class="bg-ring bg-ring-b" data-spin="-0.02">
+    <svg viewBox="0 0 600 600" fill="none">
+      <circle cx="300" cy="300" r="290" stroke="currentColor" stroke-width="1" />
+      <circle cx="300" cy="300" r="264" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 20" opacity="0.7" />
+      <!-- 東西南北基準刻度 -->
+      <g stroke="currentColor" stroke-width="2">
+        <path d="M300 10v34" />
+        <path d="M300 556v34" />
+        <path d="M10 300h34" />
+        <path d="M556 300h34" />
+      </g>
+      <!-- 斜向四芒（副方位），較短較淡 -->
+      <path
+        d="M300 158 L318 282 L442 300 L318 318 L300 442 L282 318 L158 300 L282 282 Z"
+        stroke="currentColor"
+        stroke-width="1"
+        opacity="0.45"
+        transform="rotate(45 300 300)"
+      />
+      <!-- 主四芒星：北極星／羅盤花 -->
+      <path
+        d="M300 78 L328 272 L522 300 L328 328 L300 522 L272 328 L78 300 L272 272 Z"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linejoin="round"
+      />
+      <circle cx="300" cy="300" r="7" stroke="currentColor" stroke-width="1.5" />
+      <!-- 指北點 -->
+      <circle cx="300" cy="78" r="5" fill="currentColor" stroke="none" />
+    </svg>
+  </div>
+</div>
+
+<style>
+  .bg-motion {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* ---- 光暈：漸層色塊，隨滾動以不同速率位移 ---- */
+
+  .bg-glow {
+    position: absolute;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    filter: blur(60px);
+    will-change: transform;
+  }
+
+  .bg-glow-a {
+    width: min(56vw, 720px);
+    top: -18%;
+    right: -14%;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--c-green) 22%, transparent),
+      color-mix(in srgb, var(--c-teal) 10%, transparent) 45%,
+      transparent 70%
+    );
+    animation: glow-drift 26s ease-in-out infinite alternate;
+  }
+
+  .bg-glow-b {
+    width: min(50vw, 640px);
+    bottom: -22%;
+    left: -12%;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--c-blue) 20%, transparent),
+      color-mix(in srgb, var(--c-teal) 8%, transparent) 45%,
+      transparent 70%
+    );
+    animation: glow-drift 32s ease-in-out infinite alternate-reverse;
+  }
+
+  /* ---- 儀表環：細線 SVG，隨滾動旋轉 ---- */
+
+  .bg-ring {
+    position: absolute;
+    will-change: transform;
+  }
+
+  .bg-ring svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    animation: ring-idle 90s linear infinite;
+  }
+
+  .bg-ring-a {
+    width: min(48vw, 620px);
+    aspect-ratio: 1;
+    top: -10%;
+    right: -8%;
+    color: color-mix(in srgb, var(--c-teal) 38%, transparent);
+  }
+
+  .bg-ring-b {
+    width: min(44vw, 560px);
+    aspect-ratio: 1;
+    bottom: -14%;
+    left: -10%;
+    color: color-mix(in srgb, var(--c-blue) 30%, transparent);
+  }
+
+  .bg-ring-b svg {
+    animation-direction: reverse;
+    animation-duration: 120s;
+  }
+
+  @keyframes glow-drift {
+    from {
+      translate: 0 0;
+      scale: 1;
+    }
+    to {
+      translate: -4% 5%;
+      scale: 1.12;
+    }
+  }
+
+  @keyframes ring-idle {
+    to {
+      rotate: 360deg;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .bg-ring-a {
+      width: 78vw;
+      right: -30%;
+    }
+
+    .bg-ring-b {
+      width: 72vw;
+      left: -32%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-glow,
+    .bg-ring svg {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  // 滾動視差：光暈依 data-depth 位移、儀表環依 data-spin 旋轉。
+  // 用 rAF 節流，且尊重 prefers-reduced-motion。
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const glows = document.querySelectorAll<HTMLElement>('.bg-glow');
+  const rings = document.querySelectorAll<HTMLElement>('.bg-ring');
+  let ticking = false;
+
+  const apply = () => {
+    ticking = false;
+    const y = window.scrollY;
+    glows.forEach((el) => {
+      const depth = Number(el.dataset.depth) || 0;
+      el.style.transform = `translateY(${-y * depth}px)`;
+    });
+    rings.forEach((el) => {
+      const spin = Number(el.dataset.spin) || 0;
+      el.style.transform = `rotate(${y * spin}deg)`;
+    });
+  };
+
+  const onScroll = () => {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(apply);
+    }
+  };
+
+  const enable = () => {
+    window.addEventListener('scroll', onScroll, { passive: true });
+    apply();
+  };
+
+  const disable = () => {
+    window.removeEventListener('scroll', onScroll);
+    [...glows, ...rings].forEach((el) => (el.style.transform = ''));
+  };
+
+  if (!reduced.matches) enable();
+  reduced.addEventListener('change', (e) => (e.matches ? disable() : enable()));
+</script>

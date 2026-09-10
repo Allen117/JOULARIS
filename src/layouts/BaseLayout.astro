@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import BgMotion from '../components/BgMotion.astro';
 
 interface Props {
   title?: string;
@@ -53,6 +54,7 @@ const orgJsonLd = {
     <script is:inline type="application/ld+json" set:html={JSON.stringify(orgJsonLd)} />
   </head>
   <body>
+    <BgMotion />
     <header class="nav">
       <div class="container nav-inner">
         <a class="nav-logo" href="#top" aria-label="JOULARIS 回到頁首">

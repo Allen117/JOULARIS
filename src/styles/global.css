@@ -141,7 +141,8 @@ a {
 }
 
 .section-alt {
-  background: var(--surface);
+  /* 微透明底色，讓背景動畫層在交錯區塊也能隱約透出 */
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
   border-block: 1px solid var(--border);
 }
 
