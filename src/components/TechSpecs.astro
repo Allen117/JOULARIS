@@ -116,7 +116,7 @@ const rows = [
 
   .spec-table {
     width: 100%;
-    min-width: 680px;
+    min-width: 760px;
     border-collapse: collapse;
     font-size: 0.92rem;
   }
@@ -125,7 +125,7 @@ const rows = [
     background: color-mix(in srgb, var(--c-teal) 12%, var(--surface));
     color: var(--ink);
     font-size: 0.95rem;
-    text-align: left;
+    text-align: center;
     padding: 14px 20px;
     border-bottom: 2px solid color-mix(in srgb, var(--c-teal) 35%, var(--border));
     white-space: nowrap;
@@ -152,6 +152,11 @@ const rows = [
 
   .spec-table td {
     color: var(--ink-2);
+  }
+
+  /* 後端 Engine 欄不換行，欄寬依內容撐開 */
+  .spec-table tbody td:first-of-type {
+    white-space: nowrap;
   }
 
   .spec-table td.empty {
