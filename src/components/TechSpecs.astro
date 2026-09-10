@@ -11,17 +11,17 @@ const rows = [
   {
     cat: '資料傳輸',
     engine: 'MQTT 即時發布（QoS1、Retain）',
-    web: 'MQTT 訂閱，即時串流更新',
+    web: 'MQTT 訂閱，資料串流更新',
   },
   {
     cat: '資料儲存',
-    engine: '即時值與歷史資料持久化至 SQL Server',
+    engine: '即時值與歷史資料寫入 SQL Server 保存',
     web: null,
   },
   {
     cat: '即時監控',
     engine: null,
-    web: '設備樹狀導覽、即時值與通訊品質監視',
+    web: '設備樹狀導覽、即時值與通訊品質監控',
   },
   {
     cat: '歷史趨勢',
@@ -35,23 +35,23 @@ const rows = [
   },
   {
     cat: '邏輯流程',
-    engine: '流程圖引擎週期性評估，條件成立即下發控制命令',
+    engine: '流程圖引擎週期性評估，條件成立即送出控制命令',
     web: '拖曳式流程圖設計畫布',
   },
   {
     cat: '排程管理',
-    engine: '排程引擎自動執行設備啟停',
+    engine: '排程引擎自動執行設備的啟動與停止',
     web: '週間／交替模式排程組態',
   },
   {
     cat: '演算法',
     engine: 'C#（Roslyn 動態編譯）與 Python FastAPI 雙引擎',
-    web: '演算法模組掃描與評估呼叫',
+    web: '自動掃描可用的演算法模組，供流程與排程呼叫執行',
   },
   {
     cat: '畫面設計',
     engine: null,
-    web: '拖曳式 SCADA 儀表板設計器（量表／開關／警報元件），發布後即時渲染',
+    web: '拖曳式 SCADA 儀表板編輯器（量表／開關／警報元件），發布後畫面立即生效',
   },
   {
     cat: '帳號權限',
@@ -67,9 +67,9 @@ const rows = [
       <span class="eyebrow">Architecture</span>
       <h2>技術架構</h2>
       <p>
-        後端 Engine 以 7×24 常駐服務執行採集、運算與控制邏輯，前端 Web
-        儀表板負責監控、組態與畫面設計；兩端以 MQTT 即時串接，歷史資料統一落地
-        SQL Server。
+        後端 Engine 是 7×24 常駐服務，負責資料採集、警報比對與自動控制；前端
+        Web 儀表板則用來監看即時狀態、設定規則與設計畫面。兩端透過 MQTT
+        即時串接，歷史資料統一寫入 SQL Server。
       </p>
     </div>
 
