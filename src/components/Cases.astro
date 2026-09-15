@@ -1,0 +1,200 @@
+---
+// 實際案場：分「商辦」與「廠辦」兩區塊，實績公司 icon 在固定範圍內緩緩漂浮。
+// 要新增實績：把 logo 放進 public/clients/，再於對應區塊的 clients 陣列加一筆即可。
+// 每筆 pos 為漂浮欄位中的初始落點（百分比），刻意錯開避免重疊。
+const zones = [
+  {
+    key: 'commercial',
+    label: '商辦',
+    desc: '辦公大樓的中央空調、公區照明與電梯等公共用電，導入後由系統統一監看與最佳化。',
+    clients: [
+      {
+        name: '工研院 ITRI',
+        logo: '/clients/itri.png',
+        url: 'https://www.itri.org.tw',
+        pos: { x: 50, y: 46 },
+      },
+    ],
+  },
+  {
+    key: 'factory',
+    label: '廠辦',
+    desc: '結合生產設備與廠務用電，掌握產線與空壓、冰水主機等高耗能設備的能耗分布。',
+    clients: [],
+  },
+];
+---
+
+<section class="section" id="cases">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Track Record</span>
+      <h2>實際案場</h2>
+      <p>從商業辦公到生產廠辦，JOULARIS 已在不同型態的建物落地服務。</p>
+    </div>
+
+    <div class="zones">
+      {
+        zones.map((zone) => (
+          <div class="card zone">
+            <div class="zone-head">
+              <span class={`zone-tag zone-tag-${zone.key}`}>{zone.label}</span>
+              <p class="zone-desc">{zone.desc}</p>
+            </div>
+
+            <div class="float-field">
+              {zone.clients.length > 0 ? (
+                zone.clients.map((c, i) => (
+                  <a
+                    class="chip"
+                    href={c.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={`left:${c.pos.x}%;top:${c.pos.y}%;--i:${i};--dur:${9 + (i % 4) * 1.5}s`}
+                  >
+                    <img src={c.logo} alt={c.name} width="40" height="40" loading="lazy" />
+                    <span>{c.name}</span>
+                  </a>
+                ))
+              ) : (
+                <p class="float-empty">實績持續累積中</p>
+              )}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .zones {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .zone {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 28px 28px 0;
+    overflow: hidden;
+  }
+
+  .zone-head {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* 區塊標籤：商辦偏綠、廠辦偏藍，沿用品牌雙色 */
+  .zone-tag {
+    align-self: flex-start;
+    padding: 5px 16px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .zone-tag-commercial {
+    background: linear-gradient(120deg, var(--c-green-deep), var(--c-teal));
+  }
+
+  .zone-tag-factory {
+    background: linear-gradient(120deg, var(--c-teal), var(--c-blue));
+  }
+
+  .zone-desc {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  /* 漂浮欄位：固定高度，chip 以絕對定位落點後在小範圍內漂浮 */
+  .float-field {
+    position: relative;
+    height: 220px;
+    margin: 0 -28px;
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg) 55%, transparent);
+  }
+
+  .chip {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px 8px 10px;
+    /* 以落點為中心，再套漂浮位移 */
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 22px rgb(36 50 48 / 0.12);
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    animation: float-chip var(--dur, 10s) ease-in-out calc(var(--i, 0) * -1.7s)
+      infinite;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  .chip:hover {
+    border-color: var(--c-teal);
+    box-shadow: 0 12px 30px rgb(36 50 48 / 0.2);
+  }
+
+  .chip img {
+    display: block;
+    border-radius: 6px;
+  }
+
+  /* 位移刻意控制在小範圍內，讓 chip 像懸浮而非四處游移 */
+  @keyframes float-chip {
+    0% {
+      transform: translate(-50%, -50%);
+    }
+    25% {
+      transform: translate(calc(-50% + 7px), calc(-50% - 11px));
+    }
+    50% {
+      transform: translate(calc(-50% - 9px), calc(-50% - 3px));
+    }
+    75% {
+      transform: translate(calc(-50% + 4px), calc(-50% + 9px));
+    }
+    100% {
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .float-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    color: var(--ink-3);
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+  }
+
+  @media (max-width: 720px) {
+    .zones {
+      grid-template-columns: 1fr;
+    }
+
+    .float-field {
+      height: 190px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chip {
+      animation: none;
+    }
+  }
+</style>
