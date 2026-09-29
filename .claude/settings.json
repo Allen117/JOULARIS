@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npx astro preview --port 4420)",
+      "Bash(npm run *)",
+      "Bash(node imgs.js __TRACKED_VAR__/after)"
+    ]
+  }
+}

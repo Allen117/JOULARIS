@@ -125,15 +125,18 @@ import energyBaseline from '../assets/energy-baseline.png';
     padding-bottom: 22%;
   }
 
-  .hero-main {
+  /* 兩張截圖寬度接近：總覽靠右上，ISO 50001 畫面疊在左下 */
+  .hero-shots :global(.hero-main) {
+    width: 80%;
+    margin-left: auto;
     box-shadow: 0 6px 16px rgb(16 46 40 / 0.1);
   }
 
   .hero-zoom {
     position: absolute;
-    left: -8%;
+    left: -6%;
     bottom: 0;
-    width: 60%;
+    width: 78%;
     margin: 0;
   }
 
@@ -155,11 +158,15 @@ import energyBaseline from '../assets/energy-baseline.png';
       padding-bottom: 0;
     }
 
+    .hero-shots :global(.hero-main) {
+      width: 90%;
+    }
+
     .hero-zoom {
       position: relative;
       left: auto;
-      width: 78%;
-      margin: -14% 0 0 auto;
+      width: 90%;
+      margin: -12% 0 0;
     }
   }
 </style>
