@@ -1,63 +1,57 @@
 ---
-// 全頁背景動畫層：品牌色光暈 + 儀表環線條
-// 固定在視窗底層（z-index: -1），隨滾動產生視差位移與旋轉，
-// 平時另有緩慢漂浮動畫；prefers-reduced-motion 時完全靜止。
+// 全頁背景動畫層：品牌色光暈 + 一天的用電曲線
+// 首屏是未控制的負載，尖峰超過契約容量（橘紅）；捲過「三件事」時，
+// 控制由左往右接手，尖峰被削平、部分移到清晨離峰，顏色轉成品牌綠，
+// 原本的曲線留成虛線殘影。捲動由 Lenis 平滑化、GSAP ScrollTrigger 驅動。
+// prefers-reduced-motion 時曲線不變形，只以淡入淡出呈現前後對比。
+import { AFTER, BEFORE, CONTRACT, VIEW_H, VIEW_W, areaPath, linePath, yOf } from '../scripts/loadCurve';
+
+const contractY = yOf(CONTRACT);
+const hours = ['00:00', '06:00', '12:00', '18:00', '24:00'];
 ---
 
 <div class="bg-motion" aria-hidden="true">
-  <div class="bg-glow bg-glow-a" data-depth="0.06"></div>
-  <div class="bg-glow bg-glow-b" data-depth="0.1"></div>
+  <div class="bg-glow bg-glow-a"></div>
+  <div class="bg-glow bg-glow-b"></div>
 
-  <div class="bg-ring bg-ring-a" data-spin="0.03">
-    <svg viewBox="0 0 600 600" fill="none">
-      <circle cx="300" cy="300" r="286" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 14" />
-      <circle cx="300" cy="300" r="238" stroke="currentColor" stroke-width="1" opacity="0.6" />
-      <g stroke="currentColor" stroke-width="2">
-        <path d="M300 8v26" />
-        <path d="M300 566v26" />
-        <path d="M8 300h26" />
-        <path d="M566 300h26" />
-      </g>
-      <circle cx="300" cy="14" r="5" fill="currentColor" stroke="none" />
-    </svg>
-  </div>
+  <div class="load-chart">
+    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="none" fill="none">
+      <defs>
+        <clipPath id="lc-over-clip">
+          <rect x="0" y="0" width={VIEW_W} height={contractY} />
+        </clipPath>
+        <linearGradient id="lc-fade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="currentColor" stop-opacity="0.16" />
+          <stop offset="1" stop-color="currentColor" stop-opacity="0" />
+        </linearGradient>
+      </defs>
 
-  <!-- 羅盤／北極星：刻度環 + 四芒羅盤花，呼應「幫你找到節能的方向」 -->
-  <div class="bg-ring bg-ring-b" data-spin="-0.02">
-    <svg viewBox="0 0 600 600" fill="none">
-      <circle cx="300" cy="300" r="290" stroke="currentColor" stroke-width="1" />
-      <circle cx="300" cy="300" r="264" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 20" opacity="0.7" />
-      <!-- 東西南北基準刻度 -->
-      <g stroke="currentColor" stroke-width="2">
-        <path d="M300 10v34" />
-        <path d="M300 556v34" />
-        <path d="M10 300h34" />
-        <path d="M556 300h34" />
+      <!-- 淡格線：讓它讀起來是一張圖表 -->
+      <g class="lc-grid">
+        {[0.25, 0.5, 0.75].map((f) => <line x1={VIEW_W * f} y1="0" x2={VIEW_W * f} y2={VIEW_H} />)}
       </g>
-      <!-- 斜向四芒（副方位），較短較淡 -->
-      <path
-        d="M300 158 L318 282 L442 300 L318 318 L300 442 L282 318 L158 300 L282 282 Z"
-        stroke="currentColor"
-        stroke-width="1"
-        opacity="0.45"
-        transform="rotate(45 300 300)"
-      />
-      <!-- 主四芒星：北極星／羅盤花 -->
-      <path
-        d="M300 78 L328 272 L522 300 L328 328 L300 522 L272 328 L78 300 L272 272 Z"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linejoin="round"
-      />
-      <circle cx="300" cy="300" r="7" stroke="currentColor" stroke-width="1.5" />
-      <!-- 指北點 -->
-      <circle cx="300" cy="78" r="5" fill="currentColor" stroke="none" />
+
+      <path class="lc-area" d={areaPath(BEFORE)} fill="url(#lc-fade)" />
+      <path class="lc-over" d={areaPath(BEFORE)} clip-path="url(#lc-over-clip)" />
+      <path class="lc-ghost" d={linePath(BEFORE)} />
+      <path class="lc-after" d={linePath(AFTER)} />
+      <path class="lc-line" d={linePath(BEFORE)} />
+
+      <line class="lc-contract" x1="0" y1={contractY} x2={VIEW_W} y2={contractY} />
     </svg>
+
+    <span class="lc-label" style={`top: ${(contractY / VIEW_H) * 100}%`}>契約容量</span>
+    <div class="lc-hours">
+      {hours.map((h) => <span>{h}</span>)}
+    </div>
   </div>
 </div>
 
 <style>
   .bg-motion {
+    --p: 0;
+    --lc-color: color-mix(in oklab, var(--c-green) calc(var(--p) * 100%), var(--c-warn));
+
     position: fixed;
     inset: 0;
     z-index: -1;
@@ -101,41 +95,6 @@
     animation: glow-drift 32s ease-in-out infinite alternate-reverse;
   }
 
-  /* ---- 儀表環：細線 SVG，隨滾動旋轉 ---- */
-
-  .bg-ring {
-    position: absolute;
-    will-change: transform;
-  }
-
-  .bg-ring svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    animation: ring-idle 90s linear infinite;
-  }
-
-  .bg-ring-a {
-    width: min(48vw, 620px);
-    aspect-ratio: 1;
-    top: -10%;
-    right: -8%;
-    color: color-mix(in srgb, var(--c-teal) 38%, transparent);
-  }
-
-  .bg-ring-b {
-    width: min(44vw, 560px);
-    aspect-ratio: 1;
-    bottom: -14%;
-    left: -10%;
-    color: color-mix(in srgb, var(--c-blue) 30%, transparent);
-  }
-
-  .bg-ring-b svg {
-    animation-direction: reverse;
-    animation-duration: 120s;
-  }
-
   @keyframes glow-drift {
     from {
       translate: 0 0;
@@ -147,70 +106,204 @@
     }
   }
 
-  @keyframes ring-idle {
-    to {
-      rotate: 360deg;
-    }
+  /* ---- 用電曲線 ---- */
+
+  .load-chart {
+    position: absolute;
+    inset: auto 0 0;
+    height: 44vh;
+    min-height: 240px;
+    color: var(--lc-color);
+  }
+
+  .load-chart svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .load-chart path,
+  .load-chart line {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .lc-grid line {
+    stroke: var(--border);
+    stroke-width: 1;
+    opacity: 0.7;
+  }
+
+  .lc-line {
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linejoin: round;
+    opacity: 0.75;
+  }
+
+  /* 超過契約容量的部分：跟著尖峰一起被削掉 */
+  .lc-over {
+    fill: var(--c-warn);
+    opacity: 0.28;
+  }
+
+  /* 原本的曲線：控制接手後才浮現，當作對照 */
+  .lc-ghost {
+    stroke: var(--c-warn);
+    stroke-width: 1;
+    stroke-dasharray: 3 5;
+    opacity: calc(var(--p) * 0.55);
+  }
+
+  /* 只在減少動態效果模式使用 */
+  .lc-after {
+    display: none;
+  }
+
+  .lc-contract {
+    stroke: var(--ink-3);
+    stroke-width: 1;
+    stroke-dasharray: 8 6;
+    opacity: 0.5;
+  }
+
+  .lc-label,
+  .lc-hours {
+    position: absolute;
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+    opacity: 0.75;
+  }
+
+  .lc-label {
+    right: 16px;
+    translate: 0 calc(-100% - 4px);
+  }
+
+  .lc-hours {
+    inset: auto 16px 10px;
+    display: flex;
+    justify-content: space-between;
   }
 
   @media (max-width: 720px) {
-    .bg-ring-a {
-      width: 78vw;
-      right: -30%;
+    .load-chart {
+      height: 34vh;
+      min-height: 200px;
     }
 
-    .bg-ring-b {
-      width: 72vw;
-      left: -32%;
+    .lc-hours span:nth-child(even) {
+      visibility: hidden;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .bg-glow,
-    .bg-ring svg {
+    .bg-glow {
       animation: none;
+    }
+
+    /* 不變形：未控制曲線淡出、控制後曲線淡入 */
+    .lc-line,
+    .lc-area {
+      opacity: calc(0.75 - var(--p) * 0.45);
+    }
+
+    .lc-over {
+      opacity: calc(0.28 - var(--p) * 0.28);
+    }
+
+    .lc-ghost {
+      display: none;
+    }
+
+    .lc-after {
+      display: block;
+      stroke: var(--c-green);
+      stroke-width: 1.75;
+      opacity: calc(var(--p) * 0.85);
     }
   }
 </style>
 
 <script>
-  // 滾動視差：光暈依 data-depth 位移、儀表環依 data-spin 旋轉。
-  // 用 rAF 節流，且尊重 prefers-reduced-motion。
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const glows = document.querySelectorAll<HTMLElement>('.bg-glow');
-  const rings = document.querySelectorAll<HTMLElement>('.bg-ring');
-  let ticking = false;
+  import 'lenis/dist/lenis.css';
+  import Lenis from 'lenis';
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  import { areaPath, linePath, mix } from '../scripts/loadCurve';
 
-  const apply = () => {
-    ticking = false;
-    const y = window.scrollY;
-    glows.forEach((el) => {
-      const depth = Number(el.dataset.depth) || 0;
-      el.style.transform = `translateY(${-y * depth}px)`;
+  gsap.registerPlugin(ScrollTrigger);
+
+  const root = document.querySelector<HTMLElement>('.bg-motion');
+  const chart = root?.querySelector<HTMLElement>('.load-chart');
+  const line = root?.querySelector('.lc-line');
+  const area = root?.querySelector('.lc-area');
+  const over = root?.querySelector('.lc-over');
+
+  // 從首屏捲到「三件事」的最後一項完整出現為止，完成整段削峰；之後維持平穩
+  const journey = {
+    trigger: '#top',
+    start: 'top top',
+    endTrigger: '#features .core-list',
+    end: 'bottom bottom',
+  };
+
+  const mm = gsap.matchMedia();
+
+  if (root && chart && line && area && over) {
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      // ---- 平滑捲動：Lenis 交給 GSAP ticker 驅動，與 ScrollTrigger 同步 ----
+      const lenis = new Lenis({ anchors: true, lerp: 0.09 });
+      lenis.on('scroll', ScrollTrigger.update);
+      const lenisRaf = (time: number) => lenis.raf(time * 1000);
+      gsap.ticker.add(lenisRaf);
+      gsap.ticker.lagSmoothing(0);
+
+      // ---- 削峰進度：scrub 帶慣性，停手後曲線還會再收一小段 ----
+      const state = { p: 0 };
+      gsap.to(state, { p: 1, ease: 'none', scrollTrigger: { ...journey, scrub: 1.4 } });
+
+      // ---- 每幀重畫曲線，加上微小起伏，像即時電表在跳 ----
+      const draw = (time: number) => {
+        const amp = 0.012 * (1 - state.p * 0.6);
+        const vals = mix(state.p, (i) => Math.sin(time * 1.6 + i * 0.55) * amp);
+        const d = linePath(vals);
+        line.setAttribute('d', d);
+        area.setAttribute('d', areaPath(vals));
+        over.setAttribute('d', areaPath(vals));
+        root.style.setProperty('--p', state.p.toFixed(3));
+      };
+      gsap.ticker.add(draw);
+
+      // ---- 開場：曲線像示波器一樣由左往右掃出來 ----
+      gsap.from(chart, {
+        clipPath: 'inset(0 100% 0 0)',
+        duration: 2,
+        ease: 'expo.out',
+        delay: 0.15,
+        clearProps: 'clipPath',
+      });
+
+      // ---- 光暈：不同深度的視差 ----
+      gsap.to('.bg-glow-a', { yPercent: -18, ease: 'none', scrollTrigger: { start: 0, end: 'max', scrub: 1.4 } });
+      gsap.to('.bg-glow-b', { yPercent: -30, ease: 'none', scrollTrigger: { start: 0, end: 'max', scrub: 1.4 } });
+
+      return () => {
+        gsap.ticker.remove(draw);
+        gsap.ticker.remove(lenisRaf);
+        lenis.destroy();
+      };
     });
-    rings.forEach((el) => {
-      const spin = Number(el.dataset.spin) || 0;
-      el.style.transform = `rotate(${y * spin}deg)`;
+
+    // 減少動態效果：曲線不變形，只把捲動進度交給 CSS 做淡入淡出
+    mm.add('(prefers-reduced-motion: reduce)', () => {
+      ScrollTrigger.create({
+        ...journey,
+        onUpdate: (self) => root.style.setProperty('--p', self.progress.toFixed(3)),
+      });
+      return () => root.style.setProperty('--p', '0');
     });
-  };
-
-  const onScroll = () => {
-    if (!ticking) {
-      ticking = true;
-      requestAnimationFrame(apply);
-    }
-  };
-
-  const enable = () => {
-    window.addEventListener('scroll', onScroll, { passive: true });
-    apply();
-  };
-
-  const disable = () => {
-    window.removeEventListener('scroll', onScroll);
-    [...glows, ...rings].forEach((el) => (el.style.transform = ''));
-  };
-
-  if (!reduced.matches) enable();
-  reduced.addEventListener('change', (e) => (e.matches ? disable() : enable()));
+  }
 </script>

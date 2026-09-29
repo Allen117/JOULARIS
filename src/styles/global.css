@@ -19,6 +19,9 @@
   --c-blue: #1e88e5;
   --c-blue-light: #64b5f6;
 
+  /* 警示橘紅：超約尖峰，只用在背景用電曲線 */
+  --c-warn: #e0662f;
+
   --bg: #f2f7f5;
   --surface: #ffffff;
   --border: #d9e7e2;
@@ -58,6 +61,8 @@
     --c-blue: #90caf9;
     --c-blue-light: #bbdefb;
 
+    --c-warn: #ff8a50;
+
     --bg: #0c1312;
     --surface: #14201e;
     --border: #253833;
@@ -83,6 +88,11 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Lenis 啟用時由它負責平滑捲動，關掉原生 smooth 避免兩者互相拉扯 */
+html.lenis {
+  scroll-behavior: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
