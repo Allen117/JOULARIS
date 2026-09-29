@@ -1,56 +1,50 @@
 ---
-// Hero：主標語 + CTA + EMS 系統實際畫面截圖
-// 截圖交給 astro:assets 產生 WebP 與響應式尺寸，減少首屏載入量
-import { Image } from 'astro:assets';
+// Hero：價值主張 + 預約展示 CTA + EMS 實際畫面（總覽 + ISO 50001 能源基準）
+import ShotCrop from './ShotCrop.astro';
 import emsDashboard from '../assets/ems-dashboard.png';
-import logicflowHvac from '../assets/logicflow-hvac-v5.png';
+import energyBaseline from '../assets/energy-baseline.png';
 ---
 
 <section class="hero">
   <div class="container hero-grid">
     <div class="hero-copy">
+      <h1>看清能源花在哪，<br />知道該從哪裡省</h1>
+      <p class="lede">
+        JOULARIS 是應用於商辦、廠房與校園的能源管理系統：空調自動控制、需量與電費即時追蹤、報表自動產出。
+      </p>
+      <p class="lede lede-key">
+        <strong>直接讀取你現有的電表和設備，不用換硬體。</strong>
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#contact">預約產品展示</a>
+        <a class="text-link" href="#features">先看它能做什麼</a>
+      </div>
       <a
         class="itri-badge"
         href="https://www.itri.org.tw"
         target="_blank"
         rel="noopener noreferrer"
       >
-        <img src="/itri.png" alt="ITRI 工業技術研究院" width="20" height="20" />
+        <img src="/itri.png" alt="" width="20" height="20" />
         工研院 ITRI 技術研發
       </a>
-      <h1>JOULARIS</h1>
-      <p class="tagline">幫你找到節能的方向</p>
-      <p class="lede">
-        空調控制、能源監控與費用分析的工商能源管理系統，
-        用數據告訴你能源花在哪裡、<strong>該從哪裡開始省</strong>。
-      </p>
-      <div class="cta-row">
-        <a class="btn btn-primary" href="#features">了解產品</a>
-        <a class="btn btn-ghost" href="#contact">聯絡我們</a>
-      </div>
     </div>
 
     <div class="hero-shots">
-      <div class="hero-shot hero-shot-main card">
-        <Image
-          src={emsDashboard}
-          alt="JOULARIS EMS 能源管理系統即時總覽畫面"
-          widths={[640, 960, 1400]}
-          sizes="(max-width: 860px) 100vw, 45vw"
-          format="webp"
-          loading="eager"
-          decoding="async"
-        />
-      </div>
-      <div class="hero-shot hero-shot-sub card">
-        <Image
-          src={logicflowHvac}
-          alt="JOULARIS EMS 流程圖控制（LogicFlow）空調最佳化畫面"
-          widths={[640, 960, 1400]}
-          sizes="(max-width: 860px) 100vw, 42vw"
-          format="webp"
-          loading="eager"
-          decoding="async"
+      <ShotCrop
+        class="hero-main"
+        src={emsDashboard}
+        box={[0, 0, 2000, 1030]}
+        alt="JOULARIS EMS 能源管理總覽：主要電表資訊、今日即時需量、逐時用電與去年同期比較"
+        eager
+      />
+      <div class="hero-zoom">
+        <ShotCrop
+          src={energyBaseline}
+          base={[1685, 949]}
+          box={[0, 50, 1685, 899]}
+          alt="ISO 50001 能源基準畫面：基線模型清單、模型定義與回歸結果（R² 0.9121、係數表、實際對預測散布圖）"
+          eager
         />
       </div>
     </div>
@@ -61,38 +55,61 @@ import logicflowHvac from '../assets/logicflow-hvac-v5.png';
   .hero {
     position: relative;
     overflow: hidden;
-    padding: 96px 0 88px;
+    padding: 88px 0 40px;
   }
-
-  /* 光暈背景改由全頁的 BgMotion 動畫層提供 */
 
   .hero-grid {
     display: grid;
-    grid-template-columns: 1.05fr 1fr;
-    gap: 48px;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 56px;
     align-items: center;
     position: relative;
   }
 
-  /* 工研院技術研發徽章：放在主標上方，建立第一眼的信任感 */
+  h1 {
+    font-size: clamp(2.1rem, 4.4vw, 3.3rem);
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.55em;
+    text-wrap: balance;
+  }
+
+  .lede {
+    font-size: 1.08rem;
+    max-width: 30em;
+    margin-bottom: 0.6em;
+  }
+
+  .lede-key {
+    word-break: keep-all;
+  }
+
+  .lede-key strong {
+    color: var(--ink);
+  }
+
+  .cta-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+
+  /* 工研院徽章：放在行動按鈕之後，作為信任補充而不是第一眼 */
   .itri-badge {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 16px 6px 8px;
-    margin-bottom: 20px;
-    border-radius: 999px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    margin-top: 32px;
     font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--ink-2);
-    box-shadow: 0 4px 14px rgb(36 50 48 / 0.08);
-    transition: border-color 0.15s ease, color 0.15s ease;
+    font-weight: 600;
+    color: var(--ink-3);
+    transition: color 0.15s ease;
   }
 
   .itri-badge:hover {
-    border-color: var(--c-teal);
     color: var(--ink);
   }
 
@@ -101,72 +118,32 @@ import logicflowHvac from '../assets/logicflow-hvac-v5.png';
     border-radius: 4px;
   }
 
-  h1 {
-    font-size: clamp(2.6rem, 6vw, 3.8rem);
-    letter-spacing: 0.08em;
-    margin-bottom: 0.15em;
-    background: var(--grad);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .tagline {
-    font-size: clamp(1.3rem, 3vw, 1.7rem);
-    font-weight: 700;
-    color: var(--ink);
-    margin-bottom: 0.6em;
-  }
-
-  .lede {
-    font-size: 1.05rem;
-    max-width: 30em;
-  }
-
-  .cta-row {
-    display: flex;
-    gap: 16px;
-    margin-top: 28px;
-    flex-wrap: wrap;
-  }
-
-  /* ---- EMS 系統截圖 ---- */
+  /* ---- EMS 截圖：總覽在後、ISO 50001 能源基準畫面疊在左下 ---- */
 
   .hero-shots {
     position: relative;
+    padding-bottom: 22%;
   }
 
-  .hero-shot {
-    padding: 10px;
-    overflow: hidden;
+  .hero-main {
+    box-shadow: 0 6px 16px rgb(16 46 40 / 0.1);
   }
 
-  .hero-shot img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: 8px;
-    border: 1px solid var(--border);
+  .hero-zoom {
+    position: absolute;
+    left: -8%;
+    bottom: 0;
+    width: 60%;
+    margin: 0;
   }
 
-  /* 主圖靠右、副圖略小靠左，上下稍微錯開重疊 */
-  .hero-shot-main {
-    width: 92%;
-    margin-left: auto;
-    position: relative;
-  }
-
-  .hero-shot-sub {
-    width: 85%;
-    margin: -14% 0 0 -4%;
-    position: relative;
-    z-index: 2;
-    box-shadow: 0 18px 44px rgb(16 46 58 / 0.22);
+  .hero-zoom :global(.shot-crop) {
+    box-shadow: 0 10px 20px rgb(16 46 40 / 0.18);
   }
 
   @media (max-width: 860px) {
     .hero {
-      padding: 64px 0;
+      padding: 56px 0 64px;
     }
 
     .hero-grid {
@@ -175,15 +152,14 @@ import logicflowHvac from '../assets/logicflow-hvac-v5.png';
     }
 
     .hero-shots {
-      display: grid;
-      gap: 16px;
+      padding-bottom: 0;
     }
 
-    .hero-shot-main,
-    .hero-shot-sub {
-      width: 100%;
-      margin: 0;
-      box-shadow: none;
+    .hero-zoom {
+      position: relative;
+      left: auto;
+      width: 78%;
+      margin: -14% 0 0 auto;
     }
   }
 </style>

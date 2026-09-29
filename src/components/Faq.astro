@@ -20,6 +20,7 @@ const faqs = [
   {
     q: '想進一步了解，該怎麼開始？',
     a: '歡迎來信與我們聯繫，簡單描述建物規模與想解決的問題，我們會安排產品展示與現場評估。',
+    link: { href: '#contact', label: '前往聯絡我們' },
   },
 ];
 
@@ -37,7 +38,6 @@ const jsonLd = {
 <section class="section section-alt" id="faq">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">FAQ</span>
       <h2>常見問題</h2>
     </div>
     <div class="faq-list">
@@ -61,7 +61,14 @@ const jsonLd = {
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </summary>
-            <p>{f.a}</p>
+            <p>
+              {f.a}
+              {f.link && (
+                <a class="faq-link" href={f.link.href}>
+                  {f.link.label}
+                </a>
+              )}
+            </p>
           </details>
         ))
       }
@@ -114,5 +121,17 @@ const jsonLd = {
     margin: 0;
     padding: 0 24px 20px;
     font-size: 0.95rem;
+  }
+
+  .faq-link {
+    display: inline-block;
+    margin-left: 6px;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .faq-list {
+    margin-left: 0;
   }
 </style>

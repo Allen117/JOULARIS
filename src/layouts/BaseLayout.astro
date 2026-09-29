@@ -72,12 +72,12 @@ const orgJsonLd = {
             <svg class="icon-close" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
           <ul class="nav-links" id="nav-menu">
-            <li><a href="#features">產品特色</a></li>
-            <li><a href="#use-cases">應用場景</a></li>
-            <li><a href="#why-us">為什麼選我們</a></li>
-            <li><a href="#tech-specs">技術架構</a></li>
+            <li><a href="#features">產品功能</a></li>
+            <li><a href="#use-cases">適用場景</a></li>
+            <li><a href="#onboarding">導入流程</a></li>
             <li><a href="#faq">常見問題</a></li>
-            <li><a href="#contact" class="btn btn-soft" style="padding:8px 20px;">聯絡我們</a></li>
+            <li><a href="#tech-specs">技術規格</a></li>
+            <li><a href="#contact" class="btn btn-soft nav-cta">聯絡我們</a></li>
           </ul>
         </nav>
       </div>
@@ -85,6 +85,7 @@ const orgJsonLd = {
     <main id="top">
       <slot />
     </main>
+    <a class="float-cta" href="#contact" aria-hidden="true" tabindex="-1">預約產品展示</a>
     <script>
       const nav = document.querySelector('.nav');
       const toggle = document.querySelector('.nav-toggle');
@@ -100,6 +101,65 @@ const orgJsonLd = {
           toggle.setAttribute('aria-label', open ? '關閉選單' : '開啟選單');
         });
         nav.querySelectorAll('.nav-links a').forEach((a) => a.addEventListener('click', close));
+      }
+
+      // 導覽列標示目前所在區塊
+      const links = new Map(
+        [...document.querySelectorAll<HTMLAnchorElement>('.nav-links a[href^="#"]')].map((a) => [
+          a.getAttribute('href')!.slice(1),
+          a,
+        ]),
+      );
+      const sectionObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            links.forEach((a) => a.removeAttribute('aria-current'));
+            links.get(entry.target.id)?.setAttribute('aria-current', 'location');
+          });
+        },
+        { rootMargin: '-45% 0px -50% 0px' },
+      );
+      links.forEach((_, id) => {
+        const el = document.getElementById(id);
+        if (el) sectionObserver.observe(el);
+      });
+      // 回到首屏時清除標示
+      const heroEl = document.querySelector('.hero');
+      if (heroEl) {
+        new IntersectionObserver(([e]) => {
+          if (e.isIntersecting) links.forEach((a) => a.removeAttribute('aria-current'));
+        }, { rootMargin: '-45% 0px -50% 0px' }).observe(heroEl);
+      }
+
+      // 手機版浮動 CTA：離開首屏後出現；畫面上已有其他預約按鈕或進入聯絡區塊時收起
+      const floatCta = document.querySelector<HTMLAnchorElement>('.float-cta');
+      const hero = document.querySelector('.hero');
+      const contact = document.getElementById('contact');
+      if (floatCta && hero && contact) {
+        let pastHero = false;
+        let atContact = false;
+        const inlineVisible = new Set<Element>();
+        document.querySelectorAll('.onboard-cta').forEach((el) =>
+          new IntersectionObserver(([e]) => {
+            e.isIntersecting ? inlineVisible.add(el) : inlineVisible.delete(el);
+            update();
+          }).observe(el),
+        );
+        const update = () => {
+          const show = pastHero && !atContact && inlineVisible.size === 0;
+          floatCta.classList.toggle('is-visible', show);
+          floatCta.setAttribute('aria-hidden', String(!show));
+          floatCta.tabIndex = show ? 0 : -1;
+        };
+        new IntersectionObserver(([e]) => {
+          pastHero = !e.isIntersecting;
+          update();
+        }).observe(hero);
+        new IntersectionObserver(([e]) => {
+          atContact = e.isIntersecting;
+          update();
+        }).observe(contact);
       }
     </script>
   </body>

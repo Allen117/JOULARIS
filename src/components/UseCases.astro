@@ -1,70 +1,81 @@
 ---
-// 應用場景
-// icon 為 24×24 線條圖示的 SVG 內容，線條樣式統一設定在模板的 <svg> 上
+// 應用場景：左側標題、右側以細線分隔的清單，不用卡片
 const cases = [
   {
-    icon: '<path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/><path d="M15 9h2a2 2 0 0 1 2 2v10"/><path d="M3 21h18"/><path stroke-width="2.4" d="M8.5 7h0M11.5 7h0M8.5 11h0M11.5 11h0M8.5 15h0M11.5 15h0"/>',
-    title: '建物能源管理',
-    desc: '商辦、廠房、校園等各類建物的空調與能源監控，設備異常即時告警，管理團隊能在小問題擴大之前先處理。',
+    title: '商辦、廠房、校園的日常能源管理',
+    desc: '空調與能源監控集中在一套系統，設備異常即時告警，管理團隊能在小問題擴大之前先處理。',
   },
   {
-    icon: '<path d="M3.5 7.5L9.2 13l3.9-3.9 7.4 7.4"/><path d="M20.5 12.4v4.1h-4.1"/>',
-    title: '用電大戶需量與電費最佳化',
-    desc: '逐期核算時間電價（TOU）並掌握尖峰用電情況，評估把負載移轉到離峰時段的空間，降低電費支出。',
+    title: '用電大戶的需量與電費控制',
+    desc: '逐期核算時間電價（TOU）並掌握尖峰用電，評估把負載移到離峰時段的空間，降低電費支出。',
   },
   {
-    icon: '<path d="M9 4.5H7a2 2 0 0 0-2 2v12.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.8" width="6" height="3.4" rx="1"/><path d="M12.1 16.9c-.2-3.1 1.7-5.1 4.2-5.4.1 3.2-1.5 5.2-4.2 5.4z"/><path d="M9.6 17.6c1-2 2.4-3.6 4.5-4.7"/>',
     title: '能源申報與節能減碳追蹤',
-    desc: '系統累積的報表數據，可直接用於政府能源申報、ESG 揭露與節能績效追蹤。',
+    desc: '系統累積的報表數據，可以直接用於政府能源申報、ESG 揭露與節能績效追蹤。',
   },
 ];
 ---
 
 <section class="section section-alt" id="use-cases">
-  <div class="container">
-    <div class="section-head">
-      <span class="eyebrow">Use Cases</span>
-      <h2>應用場景</h2>
+  <div class="container uc-grid">
+    <div class="uc-head">
+      <h2>適用場景</h2>
+      <p>三種常見的導入情境。</p>
     </div>
-    <div class="grid grid-3">
+    <ul class="uc-list">
       {
         cases.map((c) => (
-          <div class="card usecase">
-            <svg
-              class="usecase-icon"
-              width="30"
-              height="30"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.7"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-              set:html={c.icon}
-            />
+          <li>
             <h3>{c.title}</h3>
             <p>{c.desc}</p>
-          </div>
+          </li>
         ))
       }
-    </div>
+    </ul>
   </div>
 </section>
 
 <style>
-  .usecase h3 {
-    font-size: 1.1rem;
-    margin: 12px 0 8px;
+  .uc-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 56px;
   }
 
-  .usecase p {
-    font-size: 0.95rem;
+  .uc-head h2 {
+    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  }
+
+  .uc-list {
+    list-style: none;
     margin: 0;
+    padding: 0;
   }
 
-  .usecase-icon {
-    display: block;
-    color: var(--c-green-deep);
+  .uc-list li {
+    padding: 24px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .uc-list li:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .uc-list h3 {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+
+  .uc-list p {
+    margin: 0;
+    font-size: 0.97rem;
+  }
+
+  @media (max-width: 760px) {
+    .uc-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
   }
 </style>

@@ -64,42 +64,60 @@ const rows = [
 <section class="section section-alt" id="tech-specs">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Architecture</span>
-      <h2>技術架構</h2>
+      <h2>給系統整合商與資訊部門</h2>
       <p>
-        後端 Engine 是 7×24 常駐服務，負責資料採集、警報比對與自動控制；前端
-        Web 儀表板則用來監看即時狀態、設定規則與設計畫面。兩端透過 MQTT
-        即時串接，歷史資料統一寫入 SQL Server。
+        後端 Engine 是 7×24 常駐服務，負責資料採集、警報比對與自動控制；前端 Web
+        儀表板用來監看即時狀態、設定規則與設計畫面。兩端透過 MQTT 即時串接，歷史資料統一寫入
+        SQL Server。
       </p>
     </div>
 
-    <div class="card spec-card">
-      <div class="spec-scroll">
-        <table class="spec-table">
-          <thead>
-            <tr>
-              <th scope="col">類別</th>
-              <th scope="col">後端 Engine（背景服務）</th>
-              <th scope="col">前端 Web 儀表板</th>
-            </tr>
-          </thead>
-          <tbody>
-            {
-              rows.map((r) => (
-                <tr>
-                  <th scope="row">{r.cat}</th>
-                  <td class:list={{ empty: !r.engine }}>{r.engine ?? '—'}</td>
-                  <td class:list={{ empty: !r.web }}>{r.web ?? '—'}</td>
-                </tr>
-              ))
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <details class="card spec-card">
+      <summary>
+        展開完整規格表（{rows.length} 項）
+        <svg
+          class="spec-chevron"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </summary>
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th scope="col">類別</th>
+            <th scope="col">後端 Engine（背景服務）</th>
+            <th scope="col">前端 Web 儀表板</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            rows.map((r) => (
+              <tr>
+                <th scope="row">{r.cat}</th>
+                <td class:list={{ empty: !r.engine }} data-label="後端 Engine">
+                  {r.engine ?? <><span aria-hidden="true">—</span><span class="sr-only">不適用</span></>}
+                </td>
+                <td class:list={{ empty: !r.web }} data-label="Web 儀表板">
+                  {r.web ?? <><span aria-hidden="true">—</span><span class="sr-only">不適用</span></>}
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </details>
 
     <p class="spec-note">
-      完整的系統架構與部署規格文件，歡迎<a href="#contact">來信索取</a>。
+      需要完整的系統架構與部署規格文件？<a href="#contact">來信索取</a>
     </p>
   </div>
 </section>
@@ -107,27 +125,48 @@ const rows = [
 <style>
   .spec-card {
     padding: 0;
-    overflow: hidden;
   }
 
-  .spec-scroll {
-    overflow-x: auto;
+  .spec-card summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 24px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .spec-card summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .spec-chevron {
+    flex-shrink: 0;
+    color: var(--c-green-deep);
+    transition: transform 0.2s ease;
+  }
+
+  .spec-card[open] .spec-chevron {
+    transform: rotate(180deg);
   }
 
   .spec-table {
     width: 100%;
-    min-width: 760px;
     border-collapse: collapse;
     font-size: 0.92rem;
+    border-top: 1px solid var(--border);
   }
 
   .spec-table thead th {
-    background: color-mix(in srgb, var(--c-teal) 12%, var(--surface));
+    background: color-mix(in srgb, var(--c-teal) 10%, var(--surface));
     color: var(--ink);
     font-size: 0.95rem;
-    text-align: center;
+    text-align: left;
     padding: 14px 20px;
-    border-bottom: 2px solid color-mix(in srgb, var(--c-teal) 35%, var(--border));
+    border-bottom: 1px solid color-mix(in srgb, var(--c-teal) 35%, var(--border));
     white-space: nowrap;
   }
 
@@ -154,26 +193,68 @@ const rows = [
     color: var(--ink-2);
   }
 
-  /* 後端 Engine 欄不換行，欄寬依內容撐開 */
-  .spec-table tbody td:first-of-type {
-    white-space: nowrap;
-  }
-
   .spec-table td.empty {
     color: var(--ink-3);
-    text-align: center;
   }
 
   .spec-note {
-    text-align: center;
-    margin: 24px 0 0;
-    font-size: 0.9rem;
-    color: var(--ink-3);
+    margin: 20px 0 0;
+    font-size: 0.95rem;
+    color: var(--ink-2);
   }
 
   .spec-note a {
     font-weight: 700;
     text-decoration: underline;
     text-underline-offset: 3px;
+  }
+
+  /* 窄螢幕：每一列改成直式區塊，不需要橫向捲動；不適用的欄位直接隱藏 */
+  @media (max-width: 700px) {
+    .spec-table thead {
+      display: none;
+    }
+
+    .spec-table,
+    .spec-table tbody,
+    .spec-table tr,
+    .spec-table th,
+    .spec-table td {
+      display: block;
+    }
+
+    .spec-table tr {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .spec-table tbody tr:last-child {
+      border-bottom: 0;
+    }
+
+    .spec-table tbody th,
+    .spec-table td {
+      padding: 0;
+      border: 0;
+      white-space: normal;
+    }
+
+    .spec-table tbody th {
+      margin-bottom: 6px;
+    }
+
+    .spec-table td + td {
+      margin-top: 6px;
+    }
+
+    .spec-table td::before {
+      content: attr(data-label) '：';
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .spec-table td.empty {
+      display: none;
+    }
   }
 </style>

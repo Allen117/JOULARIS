@@ -1,46 +1,56 @@
 ---
-// 產品特色八格卡片（對應實際產品能力）
-// icon 為 24×24 線條圖示的 SVG 內容，線條樣式統一設定在模板的 <svg> 上
-const features = [
+// 產品能力：三個核心能力搭配實際畫面特寫，其餘能力收成短清單
+// 原「為什麼選 JOULARIS」的穩定性與擴充性併入此處與導入流程
+import ShotCrop from './ShotCrop.astro';
+import emsDashboard from '../assets/ems-dashboard.png';
+import logicflowHvac from '../assets/logicflow-hvac-v5.png';
+import enpiReport from '../assets/enpi-report.png';
+
+const core = [
   {
-    icon: '<path d="M4 6h7.2M16.8 6H20M9.8 12H20M4 18h9.2M18.8 18H20"/><circle cx="14" cy="6" r="2.4"/><circle cx="7" cy="12" r="2.4"/><circle cx="16" cy="18" r="2.4"/>',
-    title: '自動化控制',
-    desc: '排程與演算法依現場條件自動啟停、調節設備，值班人員不用整天盯著畫面手動操作。',
+    title: '需量快超約之前，先通知你',
+    desc: '持續監看即時需量，逼近契約容量上限就發出警報，避免超約附加費。電費依時間電價（TOU）與假日規則逐期自動結算，水費、氣費一併計算，不用再人工對帳。',
+    src: emsDashboard,
+    box: [14, 257, 644, 318] as [number, number, number, number],
+    small: true,
+    alt: '今日即時需量畫面：目前 825 kW，今日最高需量 918.4 kW（11:20）',
+    caption: '今日即時需量：目前值與今日最高需量隨時看得到',
   },
   {
-    icon: '<path d="M3.5 18.5l4.3-5 3.4 2.9 4.4-5.7"/><path d="M18.6 3.2l.9 2.7 2.7.9-2.7.9-.9 2.7-.9-2.7-2.7-.9 2.7-.9z"/><path stroke-width="2.4" d="M13.9 5.2h0"/>',
-    title: '節能分析報告',
-    desc: 'AI 分析歷史用能模式，指出浪費集中的設備與時段，並提出具體的改善建議。',
+    title: '設備跟著現場條件自己調整',
+    desc: '依室內外溫度、冰水主機用電等即時數據，自動調整冰水泵與冷卻水泵的變頻頻率，設備啟停交給排程。控制邏輯用流程圖拖拉設定，值班人員不用整天盯著畫面手動操作。',
+    src: logicflowHvac,
+    box: [0, 67, 2000, 1183] as [number, number, number, number],
+    alt: '空調最佳化流程圖：室內外溫度與用電數據輸入，輸出冰水泵 46.5 Hz、冷卻水泵 42 Hz',
+    caption: '空調最佳化流程：溫度與用電進，泵浦頻率出',
   },
   {
-    icon: '<rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M9 7.5h6"/><path stroke-width="2.4" d="M9 12.5h0M12 12.5h0M15 12.5h0M9 16.5h0M12 16.5h0M15 16.5h0"/>',
-    title: '費用自動計算',
-    desc: '電費依時間電價（TOU）與假日規則逐期自動結算，水費、氣費也一併計算，免去人工對帳。',
+    title: 'ISO 50001 要的數據，系統自己彙整',
+    desc: '對應 ISO 50001 能源管理系統要求，能源基線、績效指標（EnPI）與查核紀錄都由系統彙整，各迴路用電也能直接和去年同期比較。稽核或政府能源申報前，不用再翻資料拼報表。',
+    src: enpiReport,
+    base: [1499, 949] as [number, number],
+    box: [0, 46, 1499, 903] as [number, number, number, number],
+    alt: 'ISO 50001 節能量報告：逐月實際能耗與基線預測的長條圖，以及累計節能量曲線',
+    caption: '節能量報告：實際用電對照基線預測，累計節能量逐月累加',
   },
+];
+
+const more = [
   {
-    icon: '<path d="M4.5 16.5a7.5 7.5 0 0 1 15 0"/><path d="M17.3 11.2l-1.3 1.3"/><path d="M12 16.5L9.3 10.4"/><path stroke-width="2.4" d="M12 16.5h0"/>',
-    title: '需量即時追蹤',
-    desc: '持續監看即時需量，逼近契約容量上限就發出警報，避免超約附加費。',
-  },
-  {
-    icon: '<circle cx="5.5" cy="5" r="2.1"/><circle cx="5.5" cy="12" r="2.1"/><circle cx="5.5" cy="19" r="2.1"/><circle cx="18" cy="12" r="2.9"/><path d="M7.6 5.6c3.6.9 4.6 4.1 7.3 5.4M7.7 12h7.3M7.6 18.4c3.6-.9 4.6-4.1 7.3-5.4"/>',
-    title: '多來源即時採集',
-    desc: '支援 Modbus、OPC UA 與資料庫介接，直接讀取既有電表與設備的數據，不需要更換硬體。',
-  },
-  {
-    icon: '<path d="M6 7.4c1.5 1.9 2.3 3.2 2.3 4.5a2.3 2.3 0 1 1-4.6 0C3.7 10.6 4.5 9.3 6 7.4z"/><path d="M13.4 3.5l-3.7 8.9h2.9l-1.8 8.1 4.9-10h-3l2.4-7z"/><path d="M18.9 7.4c.2 1.1.7 1.8 1.3 2.5.6.8 1 1.5 1 2.4a2.6 2.6 0 1 1-5.2 0c0-.7.2-1.3.6-1.8.3.4.7.7 1.2.8-.3-1.4 0-2.6 1.1-3.9z"/>',
     title: '電、水、氣三表整合',
-    desc: '三種能源的即時用量與歷史趨勢集中在同一套系統，不用分別登入三套系統查數據。',
+    desc: '三種能源的即時用量與歷史趨勢放在同一套系統，不用分別登入查數據。',
   },
   {
-    icon: '<circle cx="12" cy="9" r="5.5"/><path d="M9.7 9.2l1.6 1.6 3-3.1"/><path d="M9.1 13.6l-1.4 6.9 4.3-2.4 4.3 2.4-1.4-6.9"/>',
-    title: 'ISO 50001 能源管理',
-    desc: '對應 ISO 50001 能源管理系統要求，能源基線、績效指標與查核紀錄由系統彙整，稽核前不用再翻資料拼報表。',
+    title: '異常即時通知',
+    desc: '透過 LINE、Email 與簡訊通知指定人員，警報規則修改後立即生效。',
   },
   {
-    icon: '<path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5"/><path d="M8.5 16l2.3-2.6 1.7 1.5 2.6-3.1"/>',
-    title: '能源報表與日報',
-    desc: '每日自動寄送能源概況 Email，包含當月累計趨勢與異常摘要；用電、用水、用氣報表也能定期產出。',
+    title: '每日能源日報',
+    desc: '每天寄出能源概況 Email，附當月累計趨勢與異常摘要。',
+  },
+  {
+    title: '7×24 穩定運轉',
+    desc: '背景服務長期運轉，連線中斷會自動重連，資料不會漏接。',
   },
 ];
 ---
@@ -48,49 +58,163 @@ const features = [
 <section class="section" id="features">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Features</span>
-      <h2>產品特色</h2>
-      <p>涵蓋現場數據採集、監控警報、費用計算到報表產出。</p>
+      <h2>每天幫你盯著的三件事</h2>
+      <p>下面都是系統的實際畫面。</p>
     </div>
-    <div class="grid grid-4">
+
+    <div class="core-list">
       {
-        features.map((f) => (
-          <div class="card feature">
-            <svg
-              class="feature-icon"
-              width="30"
-              height="30"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.7"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-              set:html={f.icon}
-            />
-            <h3>{f.title}</h3>
-            <p>{f.desc}</p>
-          </div>
+        core.map((c, i) => (
+          <article class:list={['core', { flip: i % 2 === 1 }]}>
+            <div class="core-copy">
+              <h3>{c.title}</h3>
+              <p>{c.desc}</p>
+            </div>
+            <figure class:list={['core-shot', { small: c.small }]}>
+              <ShotCrop src={c.src} base={c.base} box={c.box} alt={c.alt} />
+              <figcaption>{c.caption}</figcaption>
+            </figure>
+          </article>
         ))
       }
     </div>
+
+    <div class="more">
+      <h3 class="more-head">其他也都在裡面</h3>
+      <dl class="more-list">
+        {
+          more.map((m) => (
+            <div class="more-item">
+              <dt>{m.title}</dt>
+              <dd>{m.desc}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+
+    <p class="inline-cta">
+      想看這些畫面接上你的電表會是什麼樣子？<a href="#contact">預約產品展示</a>
+    </p>
   </div>
 </section>
 
 <style>
-  .feature h3 {
-    font-size: 1.1rem;
-    margin: 12px 0 8px;
+  .core-list {
+    display: grid;
+    gap: 88px;
   }
 
-  .feature p {
-    font-size: 0.95rem;
+  .core {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 56px;
+    align-items: center;
+  }
+
+  .core.flip {
+    grid-template-columns: 7fr 5fr;
+  }
+
+  .core.flip .core-copy {
+    order: 2;
+  }
+
+  .core-copy h3 {
+    font-size: clamp(1.3rem, 2.4vw, 1.6rem);
+    line-height: 1.35;
+    margin-bottom: 0.6em;
+    word-break: keep-all;
+  }
+
+  .core-copy p {
+    margin: 0;
+    max-width: 34em;
+  }
+
+  .core-shot {
     margin: 0;
   }
 
-  .feature-icon {
-    display: block;
-    color: var(--c-green-deep);
+  .core-shot.small {
+    width: 72%;
+    justify-self: center;
+  }
+
+  .core-shot :global(.shot-crop) {
+    box-shadow: 0 6px 16px rgb(16 46 40 / 0.1);
+  }
+
+  .core-shot figcaption {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+
+  /* ---- 其他能力：不用卡片，以細線分隔的清單呈現 ---- */
+
+  .more {
+    margin-top: 96px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    gap: 40px;
+  }
+
+  .more-head {
+    font-size: 1.1rem;
+    margin: 0;
+  }
+
+  .more-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px 40px;
+    margin: 0;
+  }
+
+  .more-item dt {
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .more-item dd {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--ink-2);
+  }
+
+  @media (max-width: 860px) {
+    .core-list {
+      gap: 56px;
+    }
+
+    .core,
+    .core.flip {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .core.flip .core-copy {
+      order: 0;
+    }
+
+    .core-shot.small {
+      width: 100%;
+    }
+
+    .more {
+      margin-top: 64px;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .more-list {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
   }
 </style>

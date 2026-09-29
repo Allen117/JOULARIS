@@ -1,110 +1,224 @@
 ---
-// 聯絡我們：純靜態，只提供 Email 洽詢（不接第三方表單）
-// Email 不以明文出現在頁面或 HTML 原始碼：以 Base64 存放，
-// 點擊時才由 JS 組出 mailto，避免被爬蟲蒐集
+// 聯絡我們：頁面收尾區塊，純靜態，只提供 Email 洽詢（不接第三方表單）
+// Email 不以明文出現在 HTML 原始碼：以 Base64 存放，
+// 頁面載入後才由 JS 組出 mailto 與可複製的地址，避免被爬蟲蒐集
 const encodedEmail = Buffer.from('Chen.Allen@itri.org.tw', 'utf8').toString('base64');
 ---
 
-<section class="section" id="contact">
-  <div class="container contact-wrap">
-    <span class="eyebrow">Contact</span>
-    <h2>聯絡我們</h2>
-    <p>如果想進一步了解 JOULARIS，或希望安排產品展示，請來信與我們聯繫。</p>
-    <div class="contact-cards">
-      <a class="card contact-card" href="#contact" id="contact-mail" data-e={encodedEmail}>
-        <svg
-          class="contact-icon"
-          width="30"
-          height="30"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.7"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
-          <path d="M4.5 7.5L12 13l7.5-5.5" />
-        </svg>
-        <span class="contact-email">Email 洽詢</span>
-        <span class="contact-label">點擊開啟郵件，已為你帶入洽詢範本</span>
+<section class="contact" id="contact">
+  <div class="container contact-grid">
+    <div class="contact-main">
+      <h2>從一次產品展示開始</h2>
+      <p class="contact-lede">
+        告訴我們建物規模和想解決的問題，我們會安排產品展示與現場評估。
+      </p>
+      <a class="btn btn-invert" href="#contact" id="contact-mail" data-e={encodedEmail}>
+        寄信預約展示
       </a>
+      <p class="contact-direct" id="contact-direct" hidden>
+        或直接寫信到
+        <span class="contact-address" id="contact-address"></span>
+        <button type="button" class="copy-btn" id="contact-copy">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="8.5" y="8.5" width="12" height="12" rx="2" />
+            <path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3" />
+          </svg>
+          <span class="copy-text">複製地址</span>
+        </button>
+        <span class="copy-status" id="contact-copy-status" role="status" aria-live="polite"></span>
+      </p>
     </div>
-    <p class="contact-hint">
-      來信時附上建物規模與電表數量，我們能更快為你安排合適的展示與評估。
-    </p>
+
+    <div class="contact-side">
+      <h3>來信附上這些，我們能更快安排</h3>
+      <ul>
+        <li>公司／單位名稱與產業別</li>
+        <li>建物規模，例如樓地板面積或主要設備</li>
+        <li>目前電表、水表、氣表的數量</li>
+        <li>最想解決的問題，例如電費過高、缺乏即時監控</li>
+      </ul>
+      <p>點「寄信預約展示」會開啟郵件程式，這些欄位已經幫你列好。</p>
+    </div>
   </div>
 </section>
 
 <script>
-  const card = document.getElementById('contact-mail');
+  const card = document.getElementById('contact-mail') as HTMLAnchorElement | null;
+  const direct = document.getElementById('contact-direct');
+  const address = document.getElementById('contact-address');
+  const copyBtn = document.getElementById('contact-copy');
+  const status = document.getElementById('contact-copy-status');
+
   if (card) {
-    card.addEventListener('click', (e) => {
-      e.preventDefault();
-      const email = atob(card.dataset.e ?? '');
-      const subject = 'JOULARIS 產品展示洽詢';
-      const body = [
-        '您好，我想進一步了解 JOULARIS，以下是我們的基本資訊：',
-        '',
-        '公司／單位名稱：',
-        '產業別：',
-        '建物規模（例如樓地板面積或主要設備）：',
-        '目前電表／水表／氣表數量：',
-        '想解決的問題（例如電費過高、缺乏即時監控）：',
-        '方便聯繫的時間：',
-      ].join('\n');
-      window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    });
+    const email = atob(card.dataset.e ?? '');
+    const subject = 'JOULARIS 產品展示洽詢';
+    const body = [
+      '您好，我想進一步了解 JOULARIS，以下是我們的基本資訊：',
+      '',
+      '公司／單位名稱：',
+      '產業別：',
+      '建物規模（例如樓地板面積或主要設備）：',
+      '目前電表／水表／氣表數量：',
+      '想解決的問題（例如電費過高、缺乏即時監控）：',
+      '方便聯繫的時間：',
+    ].join('\n');
+    card.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    // 沒有設定郵件程式的人，可以直接複製地址到 webmail 使用
+    if (direct && address && copyBtn && status) {
+      address.textContent = email;
+      direct.hidden = false;
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(email);
+          status.textContent = '已複製';
+        } catch {
+          const range = document.createRange();
+          range.selectNodeContents(address);
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+          status.textContent = '已選取地址，請按 Ctrl+C 複製';
+        }
+        window.setTimeout(() => (status.textContent = ''), 3000);
+      });
+    }
   }
 </script>
 
 <style>
-  .contact-wrap {
-    text-align: center;
-    max-width: 720px;
+  /* 收尾區塊固定使用深綠底，淺色與深色模式一致 */
+  .contact {
+    --contact-bg: #17362c;
+    --contact-ink: #f1f8f5;
+    --contact-ink-2: #c3d9d0;
+    --contact-line: rgb(241 248 245 / 0.18);
+
+    background: var(--contact-bg);
+    color: var(--contact-ink);
+    padding: 96px 0;
   }
 
-  .contact-cards {
+  .contact-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    max-width: 360px;
-    margin: 36px auto 0;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 64px;
+    align-items: start;
   }
 
-  .contact-card {
+  .contact h2 {
+    color: var(--contact-ink);
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    text-wrap: balance;
+  }
+
+  .contact h3 {
+    color: var(--contact-ink);
+    font-size: 1.05rem;
+    margin-bottom: 14px;
+  }
+
+  .contact p {
+    color: var(--contact-ink-2);
+  }
+
+  .contact-lede {
+    font-size: 1.1rem;
+    max-width: 28em;
+    margin-bottom: 32px;
+  }
+
+  .btn-invert {
+    background: var(--contact-ink);
+    color: var(--contact-bg);
+    font-size: 1.08rem;
+    padding: 15px 36px;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.25);
+  }
+
+  .contact-direct {
+    margin: 24px 0 0;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
     align-items: center;
-    transition: transform 0.15s ease;
-    cursor: pointer;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    font-size: 0.95rem;
   }
 
-  .contact-card:hover {
-    transform: translateY(-3px);
+  .contact-direct[hidden] {
+    display: none;
   }
 
-  .contact-icon {
-    display: block;
-    color: var(--c-green-deep);
-  }
-
-  .contact-email {
+  .contact-address {
     font-weight: 700;
-    color: var(--ink);
+    color: var(--contact-ink);
     word-break: break-all;
+    user-select: all;
   }
 
-  .contact-label {
-    font-size: 0.85rem;
-    color: var(--ink-3);
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--contact-line);
+    background: transparent;
+    color: var(--contact-ink);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
   }
 
-  .contact-hint {
-    margin-top: 20px;
+  .copy-btn:hover {
+    background: rgb(241 248 245 / 0.1);
+  }
+
+  .copy-status {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #9fe0b3;
+  }
+
+  .contact-side {
+    padding: 28px;
+    border: 1px solid var(--contact-line);
+    border-radius: var(--radius);
+  }
+
+  .contact-side ul {
+    margin: 0 0 16px;
+    padding-left: 1.2em;
+    color: var(--contact-ink);
+  }
+
+  .contact-side li {
+    margin-bottom: 6px;
+  }
+
+  .contact-side li::marker {
+    color: #9fe0b3;
+  }
+
+  .contact-side p {
+    margin: 0;
     font-size: 0.9rem;
-    color: var(--ink-3);
   }
 
+  .contact :focus-visible {
+    outline-color: #9fe0b3;
+  }
+
+  @media (max-width: 860px) {
+    .contact {
+      padding: 72px 0;
+    }
+
+    .contact-grid {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+  }
 </style>

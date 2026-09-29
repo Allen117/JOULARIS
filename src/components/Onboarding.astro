@@ -1,20 +1,17 @@
 ---
-// 導入流程：三步驟，強調不需更換硬體、可小規模起步
+// 導入流程：主打不需更換硬體、可小規模起步，並在此放置中段 CTA
 const steps = [
   {
-    n: '01',
     title: '現場評估',
     desc: '盤點既有電表、感測器與設備的通訊介面，一起確認監控範圍與最想解決的問題。',
   },
   {
-    n: '02',
-    title: '系統介接',
-    desc: '透過 Modbus、OPC UA 或資料庫介接既有設備，不需更換硬體，可以先從幾個重點電表開始。',
+    title: '接上既有設備',
+    desc: '透過 Modbus、OPC UA 或資料庫介接，數據直接進入系統。可以先從幾個重點電表開始。',
   },
   {
-    n: '03',
-    title: '上線監控與優化',
-    desc: '數據進入系統後即開始即時監控與警報；隨著數據累積，AI 分析會逐步指出最值得改善的節能空間。',
+    title: '上線監控，逐步優化',
+    desc: '即時監控與警報馬上啟用；數據累積後，系統會指出最值得先改善的節能空間。',
   },
 ];
 ---
@@ -22,21 +19,25 @@ const steps = [
 <section class="section" id="onboarding">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Getting Started</span>
-      <h2>導入流程</h2>
-      <p>不需要打掉重練，從既有設備開始，三個步驟讓數據上線。</p>
+      <h2>不用換硬體，從現有電表開始</h2>
+      <p>先接幾個重點電表，確認效益之後，再擴充到整棟建物的空調與能源監控。</p>
     </div>
     <ol class="steps">
       {
-        steps.map((s) => (
-          <li class="card step">
-            <span class="step-num">{s.n}</span>
+        steps.map((s, i) => (
+          <li class="step">
+            <span class="step-num" aria-hidden="true">{i + 1}</span>
             <h3>{s.title}</h3>
             <p>{s.desc}</p>
           </li>
         ))
       }
     </ol>
+
+    <div class="onboard-cta">
+      <p>想知道你的建物可以從哪裡開始？</p>
+      <a class="btn btn-primary" href="#contact">預約現場評估</a>
+    </div>
   </div>
 </section>
 
@@ -44,36 +45,100 @@ const steps = [
   .steps {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
+    gap: 40px;
     list-style: none;
     margin: 0;
     padding: 0;
+    counter-reset: none;
+  }
+
+  .step {
+    position: relative;
+    padding-top: 56px;
+  }
+
+  /* 步驟之間的連接線 */
+  .step::before {
+    content: '';
+    position: absolute;
+    top: 17px;
+    left: 44px;
+    right: -32px;
+    height: 2px;
+    background: var(--border);
+  }
+
+  .step:last-child::before {
+    display: none;
   }
 
   .step-num {
-    display: inline-block;
-    font-size: 0.9rem;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--c-green-deep);
+    color: var(--c-green-deep);
     font-weight: 800;
-    letter-spacing: 0.12em;
-    background: var(--grad);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    font-variant-numeric: tabular-nums;
   }
 
   .step h3 {
-    font-size: 1.1rem;
-    margin: 10px 0 8px;
+    font-size: 1.15rem;
+    margin-bottom: 8px;
   }
 
   .step p {
-    font-size: 0.95rem;
+    font-size: 0.97rem;
     margin: 0;
+  }
+
+  .onboard-cta {
+    margin-top: 64px;
+    padding: 28px 32px;
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--c-green) 10%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--c-green) 25%, var(--border));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .onboard-cta p {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ink);
   }
 
   @media (max-width: 860px) {
     .steps {
       grid-template-columns: 1fr;
+      gap: 32px;
+    }
+
+    .step {
+      padding: 4px 0 0 56px;
+    }
+
+    .step::before {
+      top: 44px;
+      left: 17px;
+      right: auto;
+      bottom: -28px;
+      width: 2px;
+      height: auto;
+    }
+
+    .onboard-cta {
+      padding: 24px;
     }
   }
 </style>
