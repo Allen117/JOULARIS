@@ -3,6 +3,7 @@
 // 要新增實績：把 logo 放進 public/clients/，再於對應區塊的 clients 陣列加一筆即可。
 // chip 以 flex 置中排列、超出寬度會自動換行，因此不會超出框框；
 // 每筆 dy 為垂直錯落的位移（px），正值往下、負值往上，用來避免排成一直線。
+// 暫時不想露出的實績，加上 hidden: true 即可，資料保留、之後拿掉就會重新顯示。
 const zones = [
   {
     key: 'commercial',
@@ -27,16 +28,20 @@ const zones = [
         logo: '/clients/Taiwan_Glass.svg',
         url: 'https://www.taiwanglass.com',
         dy: -18,
+        hidden: true,
       },
       {
         name: '喜美包裝',
         logo: '/clients/AllPacking.png',
         url: 'https://www.allpack.com.tw/',
-        dy: 18,
+        dy: 0,
       },
     ],
   },
-];
+].map((zone) => ({
+  ...zone,
+  clients: zone.clients.filter((c) => !('hidden' in c && c.hidden)),
+}));
 ---
 
 <section class="section" id="cases">
