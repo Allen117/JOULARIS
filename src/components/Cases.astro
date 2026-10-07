@@ -1,7 +1,8 @@
 ---
 // 實際案場：分「商辦」與「廠辦」兩區塊，實績公司 icon 在固定範圍內緩緩漂浮。
 // 要新增實績：把 logo 放進 public/clients/，再於對應區塊的 clients 陣列加一筆即可。
-// 每筆 pos 為漂浮欄位中的初始落點（百分比），刻意錯開避免重疊。
+// chip 以 flex 置中排列、超出寬度會自動換行，因此不會超出框框；
+// 每筆 dy 為垂直錯落的位移（px），正值往下、負值往上，用來避免排成一直線。
 const zones = [
   {
     key: 'commercial',
@@ -12,7 +13,7 @@ const zones = [
         name: '工業技術研究院',
         logo: '/clients/itri.png',
         url: 'https://www.itri.org.tw',
-        pos: { x: 50, y: 46 },
+        dy: 0,
       },
     ],
   },
@@ -25,13 +26,13 @@ const zones = [
         name: '台灣玻璃',
         logo: '/clients/Taiwan_Glass.svg',
         url: 'https://www.taiwanglass.com',
-        pos: { x: 32, y: 40 },
+        dy: -18,
       },
       {
         name: '喜美包裝',
         logo: '/clients/AllPacking.png',
         url: 'https://www.allpack.com.tw/',
-        pos: { x: 66, y: 60 },
+        dy: 18,
       },
     ],
   },
@@ -62,9 +63,9 @@ const zones = [
                     href={c.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={`left:${c.pos.x}%;top:${c.pos.y}%;--i:${i};--dur:${9 + (i % 4) * 1.5}s`}
+                    style={`--dy:${c.dy}px;--i:${i};--dur:${9 + (i % 4) * 1.5}s`}
                   >
-                    <img src={c.logo} alt={c.name} width="40" height="40" loading="lazy" />
+                    <img src={c.logo} alt="" width="40" height="40" loading="lazy" />
                     <span>{c.name}</span>
                   </a>
                 ))
@@ -123,30 +124,38 @@ const zones = [
     font-size: 0.95rem;
   }
 
-  /* 漂浮欄位：固定高度，chip 以絕對定位落點後在小範圍內漂浮 */
+  /* 漂浮欄位：chip 以 flex 置中排列，寬度不夠會自動換行，不會超出框框 */
   .float-field {
     position: relative;
-    height: 220px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    gap: 18px 32px;
+    min-height: 220px;
     margin: 0 -28px;
+    padding: 28px 24px;
     border-top: 1px solid var(--border);
     background: color-mix(in srgb, var(--bg) 55%, transparent);
   }
 
   .chip {
-    position: absolute;
     display: inline-flex;
     align-items: center;
     gap: 10px;
+    max-width: 100%;
     padding: 8px 16px 8px 10px;
-    /* 以落點為中心，再套漂浮位移 */
-    transform: translate(-50%, -50%);
+    /* 先套垂直錯落，再由動畫疊加小幅漂浮 */
+    transform: translate(0, var(--dy, 0px));
     border-radius: 999px;
     background: var(--surface);
     border: 1px solid var(--border);
     box-shadow: 0 8px 22px rgb(36 50 48 / 0.12);
     color: var(--ink);
     font-weight: 700;
-    font-size: 0.95rem;
+    /* 視窗越窄字級越小，最小 0.82rem，最大維持原本的 0.95rem */
+    font-size: clamp(0.82rem, 0.6rem + 1vw, 0.95rem);
     white-space: nowrap;
     animation: float-chip var(--dur, 10s) ease-in-out calc(var(--i, 0) * -1.7s)
       infinite;
@@ -160,34 +169,39 @@ const zones = [
 
   .chip img {
     display: block;
+    flex: none;
+    width: 40px;
+    height: 40px;
     border-radius: 6px;
+  }
+
+  /* 名稱過長時以刪節號收尾，確保 chip 永遠在框內 */
+  .chip span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* 位移刻意控制在小範圍內，讓 chip 像懸浮而非四處游移 */
   @keyframes float-chip {
     0% {
-      transform: translate(-50%, -50%);
+      transform: translate(0, var(--dy, 0px));
     }
     25% {
-      transform: translate(calc(-50% + 7px), calc(-50% - 11px));
+      transform: translate(7px, calc(var(--dy, 0px) - 11px));
     }
     50% {
-      transform: translate(calc(-50% - 9px), calc(-50% - 3px));
+      transform: translate(-9px, calc(var(--dy, 0px) - 3px));
     }
     75% {
-      transform: translate(calc(-50% + 4px), calc(-50% + 9px));
+      transform: translate(4px, calc(var(--dy, 0px) + 9px));
     }
     100% {
-      transform: translate(-50%, -50%);
+      transform: translate(0, var(--dy, 0px));
     }
   }
 
   .float-empty {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     margin: 0;
     color: var(--ink-3);
     font-size: 0.95rem;
@@ -200,7 +214,19 @@ const zones = [
     }
 
     .float-field {
-      height: 190px;
+      min-height: 190px;
+      gap: 16px 20px;
+      padding: 24px 20px;
+    }
+
+    .chip {
+      gap: 8px;
+      padding: 7px 14px 7px 8px;
+    }
+
+    .chip img {
+      width: 34px;
+      height: 34px;
     }
   }
 
