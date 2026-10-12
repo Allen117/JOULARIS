@@ -577,15 +577,17 @@ public class SqlServerDataRepository : IDataRepository, IDisposable
             using var connection = new SqlConnection(_szConnectionString);
             await connection.OpenAsync();
 
-            const string szSql = "SELECT COUNT(*) FROM Users WHERE Role = 'Admin' AND IsActive = 1";
+            // Admin 或 Engineer 任一存在即視為「已有管理者」：install-db.ps1 建的 engineer bootstrap 帳號
+            // 可直接登入並在帳號設定頁建 Admin，不必再被 first-run /Setup 擋住
+            const string szSql = "SELECT COUNT(*) FROM Users WHERE Role IN ('Admin', 'Engineer') AND IsActive = 1";
             var result = await connection.QuerySingleAsync<int>(szSql);
 
-            _logger.LogDebug("Users 表中共有 {AdminCount} 位啟用的 Admin 使用者", result);
+            _logger.LogDebug("Users 表中共有 {AdminCount} 位啟用的 Admin / Engineer 使用者", result);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "查詢 Admin 使用者數量時發生錯誤");
+            _logger.LogError(ex, "查詢 Admin / Engineer 使用者數量時發生錯誤");
             return 0;
         }
     }

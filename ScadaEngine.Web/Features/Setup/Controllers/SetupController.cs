@@ -11,8 +11,9 @@ using System.Security.Claims;
 namespace ScadaEngine.Web.Features.Setup.Controllers;
 
 /// <summary>
-/// First-run 初始化：DB 尚無管理者、setup 未完成、且來源為本機時，引導建立第一組 Admin。
-/// 三重守衛：adminCount==0 && !setupCompleted && loopback。完成後寫 SystemSettings 旗標永久關閉。
+/// First-run 初始化：DB 尚無管理者（Admin / Engineer 皆無）、setup 未完成、且來源為本機時，引導建立第一組 Admin。
+/// 三重守衛：adminOrEngineerCount==0 && !setupCompleted && loopback。完成後寫 SystemSettings 旗標永久關閉。
+/// install-db.ps1 建的 engineer bootstrap 帳號存在時不觸發：直接以 engineer 登入、再於帳號設定頁建 Admin。
 /// 取代舊有的 admin/admin 硬編碼後門（SEC-08）。
 /// </summary>
 [AllowAnonymous]
@@ -41,7 +42,7 @@ public class SetupController : Controller
         return IPAddress.IsLoopback(ip);
     }
 
-    /// <summary>三重守衛：未完成 setup、DB 無 Admin、且來自本機才允許進入</summary>
+    /// <summary>三重守衛：未完成 setup、DB 無 Admin / Engineer、且來自本機才允許進入</summary>
     private async Task<bool> IsSetupAllowedAsync()
     {
         if (await _repository.IsSetupCompletedAsync()) return false;

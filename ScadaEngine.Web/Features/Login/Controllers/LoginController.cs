@@ -42,7 +42,8 @@ public class LoginController : Controller
         if (User.Identity?.IsAuthenticated == true)
             return Redirect("/ScadaPage");
 
-        // First-run：DB 尚無 Admin 且 setup 未完成 → 本機導向初始化頁，遠端則顯示指引
+        // First-run：DB 尚無 Admin / Engineer 且 setup 未完成 → 本機導向初始化頁，遠端則顯示指引
+        // （engineer bootstrap 帳號存在時可直接用它登入，再視需要於帳號設定頁建 Admin）
         if (!await _dataRepository.IsSetupCompletedAsync()
             && await _dataRepository.GetAdminCountAsync() == 0)
         {
@@ -130,8 +131,8 @@ public class LoginController : Controller
         // 更新最後登入時間至 DB
         await _dataRepository.UpdateLastLoginAsync(loginModel.szUserName!);
 
-        // 既有安裝適配：首次有 Admin 成功登入即鎖定 first-run setup（一次性、不自動重開）
-        if (szRole == "Admin" && !await _dataRepository.IsSetupCompletedAsync())
+        // 既有安裝適配：首次有 Admin / Engineer 成功登入即鎖定 first-run setup（一次性、不自動重開）
+        if ((szRole == "Admin" || szRole == "Engineer") && !await _dataRepository.IsSetupCompletedAsync())
         {
             await _dataRepository.MarkSetupCompletedAsync();
         }

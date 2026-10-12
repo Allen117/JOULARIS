@@ -552,7 +552,8 @@ echo.
 echo ========================================
 echo   Installation Complete!  JOULARIS v$AppVersion
 echo   Web URL: http://localhost:5038
-echo   Default login: ITRI / ITRI
+echo   First login: use the engineer account set during install, or open
+echo   http://localhost:5038 on this server to create the first Admin.
 echo ========================================
 echo.
 if "%_IS_UPGRADE%"=="1" (

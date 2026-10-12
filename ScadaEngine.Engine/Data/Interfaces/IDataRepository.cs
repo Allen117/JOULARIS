@@ -78,9 +78,9 @@ public interface IDataRepository
     Task<int> GetUserCountAsync();
 
     /// <summary>
-    /// 取得 Users 資料表中 Admin 角色的使用者數量
+    /// 取得 Users 資料表中啟用的 Admin 或 Engineer 角色使用者數量（first-run /Setup 守衛用：任一存在即不再引導建立 Admin）
     /// </summary>
-    /// <returns>Admin 角色使用者總數</returns>
+    /// <returns>啟用的 Admin + Engineer 使用者總數</returns>
     Task<int> GetAdminCountAsync();
 
     /// <summary>
