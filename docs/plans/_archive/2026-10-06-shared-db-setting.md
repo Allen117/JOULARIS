@@ -1,9 +1,9 @@
 # dbSetting.json 單一真相來源：Engine / Web / ModbusServer 共用一份
 
-**狀態**: 進行中 <!-- 進行中 | 已完成 | 廢棄 -->
+**狀態**: 已完成 <!-- 進行中 | 已完成 | 廢棄 -->
 **建立**: 2026-10-06
 **最後更新**: 2026-10-12
-**相關 commit**: <!-- 完成後回填 commit hash -->
+**相關 commit**: `0bf89e4`（主要變更 + 26.4.0）、歸檔 commit 見 git log（含補上 Web/SQLSetting 刪除）
 
 ---
 
@@ -173,6 +173,8 @@
 - 期間另一 session 推進 26.3.2、26.3.3 兩個 commit（Setup 守衛 / 登入版型），本 plan 的檔案與其無交集；commit 時只挑本 plan 檔案
 - **14:17 使用者親自執行 Install.bat 升級成功**（install-log RESULT: SUCCESS）：`C:\SCADA\Shared\dbSetting.json` 出現且 md5 = 升級前現場那份（55764c06…，非包內範本）、`Engine\App\Setting` 與 `Web\App\Setting` 的 dbSetting.json 已刪、三服務 Running、Engine log 與新出現的 `Web\App\Log\Web-20261012.log` 都印 `資料庫設定檔路徑: C:\SCADA\Shared\dbSetting.json（來源: Shared）`
 - 使用者確認「成功了可以 commit & push」；版號 26.3.3 → 26.4.0（新增共用設定檔機制 + Web 日誌 sink，屬功能版）
+- commit `0bf89e4` 已 push。`Web/SQLSetting/dbSetting.json` 的刪除原已 `git rm` 暫存，但在並行 session 的操作後退回未暫存、沒進該 commit，於歸檔 commit 一併補上
+- 回填成本、搬進 `_archive/`。後續：Email / Sms / Line（Web 寫 Web\App\Setting、Engine 讀 Engine\App\Setting，同類分家風險）另開 plan
 
 ## 討論過程與成本記錄
 
@@ -188,14 +190,16 @@
 | 階段 | 模型 | Input | Output | Cache Read | Cache Write | 備註 |
 |------|------|-------|--------|------------|-------------|------|
 | Plan 撰寫 | claude-fable-5-1 | 228 | 15,994 | 587,765 | 57,162 | 寫完 plan 時填（含前段調查討論） |
-| 實作（2026-10-12 本對話，步驟 1–7、9 + 開發模式驗證 + 打包；commit 前） | claude-fable-5-1 | 2,082 | 96,984 | 11,945,429 | 234,317 | 由 transcript 依 message.id 去重加總（66 則）；步驟 8 待使用者執行，commit 後再追記 |
+| 實作（2026-10-12 本對話全程：步驟 1–9、驗證、打包、commit、push、歸檔） | claude-fable-5-1 | 2,568 | 125,743 | 17,322,815 | 311,411 | 由 transcript 依 message.id 去重加總（84 則，含歸檔前最後一次統計） |
 
 ### Archive 總結（搬進 _archive 前回填）
 
-- **總 token**：input __ / output __ / cache read __ / cache write __
-- **模型**：
-- **API 費用（當下牌價，附計算式）**：牌價查詢日 YYYY-MM-DD，來源 __
-  - 計算式：
+- **總 token**：input 2,796 / output 141,737 / cache read 17,910,580 / cache write 368,573（plan 撰寫 session + 實作 session 兩列相加）
+- **模型**：claude-fable-5-1（兩個 session 皆同）
+- **API 費用（當下牌價，附計算式）**：牌價查詢日 2026-10-12，來源 https://platform.claude.com/docs/en/about-claude/pricing（Claude Fable 5.1：input $10 / 5m cache write $12.50 / 1h cache write $20 / cache hit $0.25 / output $50，每 MTok）
+  - 本 session 的 prompt cache 為 1 小時 TTL（harness 標示），cache write 以 $20 計
+  - 計算式：input 2,796 × $10 / 1M = $0.03；output 141,737 × $50 / 1M = $7.09；cache read 17,910,580 × $0.25 / 1M = $4.48；cache write 368,573 × $20 / 1M = $7.37
+  - **合計 ≈ $18.96 USD**（若 cache write 以 5 分鐘牌價 $12.50 計則為 $16.20 USD）
 
 ## 完成後補充
 
