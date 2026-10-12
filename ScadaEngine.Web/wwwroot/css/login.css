@@ -17,6 +17,9 @@ body {
         linear-gradient(135deg, #f0f9ff 0%, #ecfeff 45%, #ecfdf5 100%);
     background-size: 240px 240px, auto;
     font-family: 'Microsoft JhengHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* site.css 對 body 設 margin-bottom: 60px（給主站 footer 用），
+       登入版型是 100vh 滿版置中，保留會讓文件高度恆大於視窗而多出一條捲軸，故歸零 */
+    margin: 0;
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -50,9 +53,17 @@ body {
     z-index: 10;
 }
 
+/* 品牌標題：登入頁內容是 Logo 圖、Setup 兩頁是純文字 "JOULARIS 智慧能源管理平台"。
+   文字版壓到一行放得下 440px 容器的字級並禁止換行；不可用 line-height: 0（純文字換行會疊字），
+   Logo 圖靠 .login-brand-logo 的 display: block 消除行內空隙即可 */
 .login-brand-title {
     margin: 0;
-    line-height: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 1px;
+    color: var(--login-text);
+    white-space: nowrap;
 }
 
 /* 品牌 Logo 圖（images/joularis-logo.png，透明底 882×240） */
@@ -239,6 +250,11 @@ body {
 
     .login-brand-logo {
         max-width: 240px;
+    }
+
+    .login-brand-title {
+        font-size: 1.3rem;
+        letter-spacing: 0.5px;
     }
 
     .login-brand-subtitle {
