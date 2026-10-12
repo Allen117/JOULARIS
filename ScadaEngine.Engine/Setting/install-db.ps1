@@ -219,13 +219,31 @@ try {
             Write-Host "SQL login $AppLogin 已存在，跳過建立"
         }
 
-        Invoke-Sql @"
+        # 以 SID 判斷 login 是否已對應到庫內使用者（名稱可能不同）：
+        # 若 DB 由此 login 建立/擁有，它在庫內就是 dbo，CREATE USER 會報 Msg 15063
+        # 「登入已經具有一個不同使用者名稱之下的帳戶」；dbo 權限已是最高，直接略過。
+        $mappedUser = Get-SqlScalar @"
+SELECT dp.name FROM [$safeDb].sys.database_principals dp
+WHERE dp.sid = SUSER_SID(N'$quotedLogin')
+"@
+        if ($mappedUser -is [System.DBNull] -or [string]::IsNullOrEmpty($mappedUser)) {
+            Invoke-Sql @"
 USE [$safeDb];
-IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'$quotedLogin')
-    CREATE USER [$safeLogin] FOR LOGIN [$safeLogin];
+CREATE USER [$safeLogin] FOR LOGIN [$safeLogin];
 ALTER ROLE db_owner ADD MEMBER [$safeLogin];
 "@
-        Write-Host "已確認 $AppLogin 為 $DatabaseName 的 db_owner" -ForegroundColor Green
+            Write-Host "已建立使用者 $AppLogin 並加入 $DatabaseName 的 db_owner" -ForegroundColor Green
+        } elseif ($mappedUser -eq 'dbo') {
+            Write-Host "login $AppLogin 已是 $DatabaseName 的 dbo（資料庫擁有者），略過使用者/角色設定"
+        } else {
+            $safeUser = ([string]$mappedUser).Replace(']', ']]')
+            Invoke-Sql @"
+USE [$safeDb];
+IF IS_ROLEMEMBER('db_owner', N'$(([string]$mappedUser).Replace("'", "''"))') <> 1
+    ALTER ROLE db_owner ADD MEMBER [$safeUser];
+"@
+            Write-Host "已確認 $AppLogin（庫內使用者 $mappedUser）為 $DatabaseName 的 db_owner" -ForegroundColor Green
+        }
     }
 
     # ─── 6. 工程師模式 bootstrap 帳號 engineer ──────────────────────────
