@@ -26,6 +26,8 @@ public class AlarmSettingController : Controller
     private readonly SmsTestSendService _smsTestSendService;
     private readonly SmsCommandPublisher _smsCommandPublisher;
     private readonly SmsStatusCache _smsStatusCache;
+    private readonly NotifySettingReloadPublisher _notifyReloadPublisher;
+    private readonly NotifyReloadStatusCache _notifyReloadStatusCache;
     private readonly IDataRepository _dataRepository;
     private readonly ILogger<AlarmSettingController> _logger;
     private readonly IStringLocalizer<AlarmSettingController> _l;
@@ -42,6 +44,8 @@ public class AlarmSettingController : Controller
         SmsTestSendService smsTestSendService,
         SmsCommandPublisher smsCommandPublisher,
         SmsStatusCache smsStatusCache,
+        NotifySettingReloadPublisher notifyReloadPublisher,
+        NotifyReloadStatusCache notifyReloadStatusCache,
         IDataRepository dataRepository,
         ILogger<AlarmSettingController> logger,
         IStringLocalizer<AlarmSettingController> localizer)
@@ -57,6 +61,8 @@ public class AlarmSettingController : Controller
         _smsTestSendService = smsTestSendService;
         _smsCommandPublisher = smsCommandPublisher;
         _smsStatusCache = smsStatusCache;
+        _notifyReloadPublisher = notifyReloadPublisher;
+        _notifyReloadStatusCache = notifyReloadStatusCache;
         _dataRepository = dataRepository;
         _logger = logger;
         _l = localizer;
@@ -362,7 +368,7 @@ public class AlarmSettingController : Controller
     }
 
     [HttpPost("~/api/email-config")]
-    public IActionResult SaveEmailConfig([FromBody] EmailSenderConfigDto dto)
+    public async Task<IActionResult> SaveEmailConfig([FromBody] EmailSenderConfigDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.smtpHost))
             return BadRequest(new { success = false, message = _l["alarm.error.smtp_host_required"].Value });
@@ -370,9 +376,11 @@ public class AlarmSettingController : Controller
             return BadRequest(new { success = false, message = _l["alarm.error.from_address_required"].Value });
 
         var isSuccess = _emailSenderConfigService.Save(dto);
-        if (isSuccess)
-            return Ok(new { success = true, message = _l["alarm.success.saved"].Value });
-        return StatusCode(500, new { success = false, message = _l["alarm.error.save_failed"].Value });
+        if (!isSuccess)
+            return StatusCode(500, new { success = false, message = _l["alarm.error.save_failed"].Value });
+
+        var (szReload, szMessage) = await ReloadEngineNotifySettingAsync(EmailSenderConfigService.FileName);
+        return Ok(new { success = true, reload = szReload, message = szMessage });
     }
 
     // ── Email 群組 CRUD ──
@@ -539,12 +547,42 @@ public class AlarmSettingController : Controller
     }
 
     [HttpPost("~/api/sms-config")]
-    public IActionResult SaveSmsConfig([FromBody] SmsSenderConfigDto dto)
+    public async Task<IActionResult> SaveSmsConfig([FromBody] SmsSenderConfigDto dto)
     {
         var isSuccess = _smsSenderConfigService.Save(dto);
-        if (isSuccess)
-            return Ok(new { success = true, message = _l["alarm.success.saved_restart_engine"].Value });
-        return StatusCode(500, new { success = false, message = _l["alarm.error.save_failed"].Value });
+        if (!isSuccess)
+            return StatusCode(500, new { success = false, message = _l["alarm.error.save_failed"].Value });
+
+        var (szReload, szMessage) = await ReloadEngineNotifySettingAsync(SmsSenderConfigService.FileName);
+        return Ok(new { success = true, reload = szReload, message = szMessage });
+    }
+
+    /// <summary>
+    /// 存檔後請 Engine 熱重載該設定檔（MQTT SCADA/Sys/Notify/Reload → 等 SCADA/Sys/Notify/Status）。
+    /// 回傳 (reload 狀態碼, 使用者訊息)：ok = Engine 已套用；failed = Engine 回報失敗（保留舊設定）；
+    /// timeout = MQTT 未連或 Engine 離線（Engine 下次啟動本就會讀 Shared 新檔，結果一致）。
+    /// </summary>
+    private async Task<(string szReload, string szMessage)> ReloadEngineNotifySettingAsync(string szFileName)
+    {
+        var szRequestId = Guid.NewGuid().ToString("N");
+        _notifyReloadStatusCache.Register(szRequestId);
+
+        var isPublished = await _notifyReloadPublisher.PublishReloadAsync(szFileName, szRequestId);
+        if (!isPublished)
+        {
+            await _notifyReloadStatusCache.WaitAsync(szRequestId, TimeSpan.Zero);   // 只為移除登記
+            return ("timeout", _l["alarm.warn.saved_engine_no_response"].Value);
+        }
+
+        var result = await _notifyReloadStatusCache.WaitAsync(szRequestId, TimeSpan.FromSeconds(8));
+        if (result == null)
+            return ("timeout", _l["alarm.warn.saved_engine_no_response"].Value);
+        if (!result.isSuccess)
+        {
+            _logger.LogWarning("Engine 回報 {File} 重載失敗: {Message}", szFileName, result.szMessage);
+            return ("failed", _l["alarm.warn.saved_engine_reload_failed", result.szMessage].Value);
+        }
+        return ("ok", _l["alarm.success.saved_reloaded"].Value);
     }
 
     // ── 簡訊盒狀態（來自 SCADA/Sys/Sms/Status retained，Engine 每 60 秒與狀態變化時更新）──

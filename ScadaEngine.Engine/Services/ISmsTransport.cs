@@ -17,6 +17,12 @@ public interface ISmsTransport
     /// <summary>強制重新掃描/連線簡訊盒（MQTT rescan 命令用）</summary>
     Task<bool> RescanAsync();
 
+    /// <summary>
+    /// 執行期換設定（Web 存 SmsSetting.json 後經 MQTT 熱重載）：關閉舊 port → 依新設定重新偵測；
+    /// 新設定為停用則只關 port、停健康檢查。與 <see cref="RescanAsync"/> 共用同一把 lock，不會跟發送中途打架。
+    /// </summary>
+    Task<bool> ReloadAsync(SmsSettingModel setting);
+
     SmsModemStatus GetStatus();
 
     /// <summary>狀態變化時觸發（連線/斷線/訊號更新），供 MQTT 狀態發布</summary>

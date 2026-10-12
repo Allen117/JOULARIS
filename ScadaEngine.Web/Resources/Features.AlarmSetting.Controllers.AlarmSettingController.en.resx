@@ -68,7 +68,9 @@
   <data name="alarm.error.phone_invalid" xml:space="preserve"><value>Invalid phone number (digits with optional leading +, 8-15 digits)</value></data>
   <data name="alarm.error.target_not_found" xml:space="preserve"><value>Number not found</value></data>
   <data name="alarm.error.mqtt_not_connected" xml:space="preserve"><value>MQTT not connected; command cannot reach Engine</value></data>
-  <data name="alarm.success.saved_restart_engine" xml:space="preserve"><value>Saved. Restart Engine to take effect.</value></data>
+  <data name="alarm.success.saved_reloaded" xml:space="preserve"><value>Saved. Engine has applied the new settings.</value></data>
+  <data name="alarm.warn.saved_engine_no_response" xml:space="preserve"><value>Saved, but Engine did not respond (offline or MQTT disconnected); it will apply on next Engine start.</value></data>
+  <data name="alarm.warn.saved_engine_reload_failed" xml:space="preserve"><value>Saved, but Engine failed to apply: {0}</value></data>
   <data name="alarm.success.sms_rescan_sent" xml:space="preserve"><value>Rescan command sent; check the status card shortly.</value></data>
   <data name="alarm.demand.point_suffix" xml:space="preserve"><value>Demand</value></data>
   <data name="alarm.nrg.daily_suffix" xml:space="preserve"><value>Daily kWh</value></data>

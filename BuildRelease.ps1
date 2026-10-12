@@ -1,4 +1,4 @@
-# SCADA 一鍵打包腳本 — 在開發機執行，產出可直接部署的資料夾
+﻿# SCADA 一鍵打包腳本 — 在開發機執行，產出可直接部署的資料夾
 # 用法: .\BuildRelease.ps1            （完整包，含 Python 基礎包）
 #       .\BuildRelease.ps1 -NoPython  （app-only 更新包，不含 Python；目標機沿用現有 Python）
 # 產出: .\Release\SCADA_Release_yyyyMMdd_HHmm_vYY.A.B\
@@ -72,16 +72,33 @@ foreach ($dir in $engineConfigs) {
     }
 }
 
-# dbSetting.json → 包根 Shared\（Install.bat 鋪到 C:\SCADA\Shared\dbSetting.json，Engine / Web / Gateway 共用一份）。
-# Engine\App\Setting 不再帶複本：DbSettingLocator 第 2 層（..\..\Shared）本就贏過第 3 層（本機 Setting），
-# 留複本只會讓現場改到一份永遠不被讀的檔。見 docs/架構.md §dbSetting.json 解析順序
+# 機器層級共用設定 → 包根 Shared\（Install.bat 鋪到 C:\SCADA\Shared\，Engine / Web 共用一份；dbSetting 另含 Gateway）。
+# 四檔皆由 Common SharedSettingLocator 解析：第 2 層（..\..\Shared）本就贏過第 3 層（本機 Setting），
+# Engine\App\Setting / Web\App\Setting 不再帶複本，留複本只會讓現場改到一份永遠不被讀的檔。
+# 見 docs/架構.md §共用設定檔解析順序
+#   dbSetting / EmailSetting / SmsSetting：repo 的 Engine\Setting 正本（無機密、進 git）
+#   LineSetting：正式檔含 token 不進 git，repo 無則用 example 補（placeholder token 會被程式視為未設定、安全停用）
 $sharedDir = "$ReleasePath\Shared"
 if (-not (Test-Path $sharedDir)) { New-Item -ItemType Directory -Path $sharedDir -Force | Out-Null }
-$dbSettingSrc = Join-Path $engineProject "Setting\dbSetting.json"
-if (-not (Test-Path $dbSettingSrc)) { Write-Host "Engine Setting\dbSetting.json missing (needed as Shared template)" -ForegroundColor Red; exit 1 }
-Copy-Item $dbSettingSrc -Destination "$sharedDir\dbSetting.json" -Force
-Remove-Item "$ReleasePath\Engine\App\Setting\dbSetting.json" -Force -ErrorAction SilentlyContinue
-Write-Host "  dbSetting.json -> package root Shared\ (installs to C:\SCADA\Shared, shared by Engine/Web/Gateway)" -ForegroundColor Gray
+foreach ($sharedName in @("dbSetting.json", "EmailSetting.json", "SmsSetting.json")) {
+    $sharedSrc = Join-Path $engineProject "Setting\$sharedName"
+    if (-not (Test-Path $sharedSrc)) { Write-Host "Engine Setting\$sharedName missing (needed as Shared template)" -ForegroundColor Red; exit 1 }
+    Copy-Item $sharedSrc -Destination "$sharedDir\$sharedName" -Force
+}
+$lineSettingSrc = Join-Path $engineProject "Setting\LineSetting.json"
+$lineSettingExample = Join-Path $engineProject "Setting\LineSetting.example.json"
+if (Test-Path $lineSettingSrc) {
+    Copy-Item $lineSettingSrc -Destination "$sharedDir\LineSetting.json" -Force
+} elseif (Test-Path $lineSettingExample) {
+    Copy-Item $lineSettingExample -Destination "$sharedDir\LineSetting.json" -Force
+    Write-Host "  LineSetting.json created from example (fill token on-site to enable Line notify)" -ForegroundColor Gray
+} else {
+    Write-Host "Engine Setting\LineSetting.example.json missing (needed as Shared template)" -ForegroundColor Red; exit 1
+}
+foreach ($sharedName in @("dbSetting.json", "EmailSetting.json", "SmsSetting.json", "LineSetting.json")) {
+    Remove-Item "$ReleasePath\Engine\App\Setting\$sharedName" -Force -ErrorAction SilentlyContinue
+}
+Write-Host "  dbSetting / EmailSetting / SmsSetting / LineSetting -> package root Shared\ (installs to C:\SCADA\Shared, shared by Engine/Web)" -ForegroundColor Gray
 
 # 現場資料夾（Modbus / DBPoint / OpcUaPoint）：dotnet publish 會依 Engine csproj 的
 # CopyToOutputDirectory 把 repo 的 dev 裝置定義（*.json）與範例（*.json.example）帶進 Engine\App。
@@ -149,14 +166,6 @@ if ($NoPython) {
     Write-Host "  PythonRuntime base bundle OK (VERSION=$pyVerStr)" -ForegroundColor Green
 }
 
-# LineSetting.json：正式檔含 token 不進 git，打包時若缺就用範本補上（placeholder token 會被程式視為未設定、安全停用）
-$lineSettingDst = "$ReleasePath\Engine\App\Setting\LineSetting.json"
-$lineSettingExample = Join-Path $engineProject "Setting\LineSetting.example.json"
-if (-not (Test-Path $lineSettingDst) -and (Test-Path $lineSettingExample)) {
-    Copy-Item $lineSettingExample -Destination $lineSettingDst -Force
-    Write-Host "  LineSetting.json created from example (fill token on-site to enable Line notify)" -ForegroundColor Gray
-}
-
 Write-Host "  Engine OK" -ForegroundColor Green
 
 # ──────────────────────────────────────
@@ -200,9 +209,12 @@ $webMqttDst = "$ReleasePath\Web\App\MqttSetting"
 if (-not (Test-Path $webMqttDst)) { New-Item -ItemType Directory -Path $webMqttDst -Force | Out-Null }
 if (Test-Path $webMqtt) { Copy-Item $webMqtt -Destination "$webMqttDst\MqttSetting.json" -Force }
 
-# dbSetting.json 不進 Web\App\Setting — Web 改讀 C:\SCADA\Shared\dbSetting.json（與 Engine 同一份，見上方 Engine 段）。
-# 以前這裡從 Engine 複製一份給 Web，升級時兩份各自備份/還原，一旦分家就永久分家（2026-10-06 現場即如此）。
-Remove-Item "$ReleasePath\Web\App\Setting\dbSetting.json" -Force -ErrorAction SilentlyContinue
+# dbSetting / EmailSetting / SmsSetting / LineSetting 不進 Web\App\Setting — Web 改讀寫 C:\SCADA\Shared\（與 Engine 同一份，見上方 Engine 段）。
+# 以前這裡從 Engine 複製一份給 Web，升級時兩份各自備份/還原，一旦分家就永久分家（2026-10-06 現場即如此）；
+# 通知三檔更糟：Web UI 存 SMTP 寫進 Web 複本，Engine 永遠看不到。
+foreach ($sharedName in @("dbSetting.json", "EmailSetting.json", "SmsSetting.json", "LineSetting.json")) {
+    Remove-Item "$ReleasePath\Web\App\Setting\$sharedName" -Force -ErrorAction SilentlyContinue
+}
 
 # Copy DatabaseSchema from Engine
 $schemaFile = Join-Path $engineProject "DatabaseSchema\DatabaseSchema.json"
@@ -509,28 +521,58 @@ if "%_IS_UPGRADE%"=="1" (
     echo.
 )
 
-:: -- dbSetting.json: ONE machine-wide copy at C:\SCADA\Shared (read by Engine, Web and Modbus Gateway) --
-:: All three apps resolve it the same way (DbSettingLocator): env JOULARIS_DBSETTING -> <App>\..\..\Shared
-:: -> <App>\Setting -> dev repo. Shared lives OUTSIDE every <App>\App folder, so upgrades never touch it
-:: and it no longer needs the backup/restore dance.
-::   upgrade from the old layout : MOVE the site's Engine copy (just restored above) to Shared
-::   fresh install               : write the package template
+:: -- Machine-wide shared configs: ONE copy each at C:\SCADA\Shared --
+::    dbSetting.json      (DB connection; Engine + Web + Modbus Gateway)
+::    EmailSetting.json   (SMTP;          Engine sends, Web UI edits)
+::    SmsSetting.json     (SMS modem;     Engine sends, Web UI edits)
+::    LineSetting.json    (Line token;    Engine sends, Web test-send reads)
+:: All apps resolve them the same way (SharedSettingLocator): [env JOULARIS_DBSETTING, dbSetting only]
+:: -> <App>\..\..\Shared -> <App>\Setting -> dev repo. Shared lives OUTSIDE every <App>\App folder,
+:: so upgrades never touch it and it needs no backup/restore dance. Per file:
 ::   Shared already present      : leave it alone
+::   upgrade from the old layout : MOVE the site's Engine copy (just restored above) to Shared.
+::                                 If the Web copy differs (someone edited SMTP/SMS in the Web UI, which
+::                                 used to write the Web copy) keep it as Shared\<file>.web-backup to merge by hand.
+::   fresh install               : write the package template
 :: Afterwards delete the per-app copies so nobody edits a file that is no longer read.
 if not exist "C:\SCADA\Shared" mkdir "C:\SCADA\Shared"
-if exist "C:\SCADA\Shared\dbSetting.json" goto DBSETTING_DONE
-if exist "C:\SCADA\Engine\App\Setting\dbSetting.json" (
-    echo [MIGRATE] Moving Engine\App\Setting\dbSetting.json to C:\SCADA\Shared\dbSetting.json ...
-    move /Y "C:\SCADA\Engine\App\Setting\dbSetting.json" "C:\SCADA\Shared\dbSetting.json" >nul
-    goto DBSETTING_DONE
-)
-echo [INFO] First install - writing DB connection template to C:\SCADA\Shared\dbSetting.json
-copy /Y "%~dp0Shared\dbSetting.json" "C:\SCADA\Shared\dbSetting.json" >nul
-:DBSETTING_DONE
-if exist "C:\SCADA\Engine\App\Setting\dbSetting.json" del /Q "C:\SCADA\Engine\App\Setting\dbSetting.json"
-if exist "C:\SCADA\Web\App\Setting\dbSetting.json" del /Q "C:\SCADA\Web\App\Setting\dbSetting.json"
-echo [OK] DB connection file: C:\SCADA\Shared\dbSetting.json
+for %%F in (dbSetting.json EmailSetting.json SmsSetting.json LineSetting.json) do call :MIGRATE_SHARED %%F
+echo [OK] Shared config folder: C:\SCADA\Shared ^(dbSetting / EmailSetting / SmsSetting / LineSetting^)
 echo.
+goto SHARED_DONE
+
+:MIGRATE_SHARED
+set "_F=%~1"
+set "_ENG=C:\SCADA\Engine\App\Setting\%_F%"
+set "_WEB=C:\SCADA\Web\App\Setting\%_F%"
+set "_SHD=C:\SCADA\Shared\%_F%"
+if exist "%_SHD%" goto MIGRATE_SHARED_CLEAN
+if exist "%_ENG%" (
+    echo [MIGRATE] Moving Engine\App\Setting\%_F% to C:\SCADA\Shared\%_F% ...
+    if exist "%_WEB%" (
+        fc /B "%_ENG%" "%_WEB%" >nul 2>&1
+        if errorlevel 1 (
+            echo [WARN] Web\App\Setting\%_F% differs from the Engine copy ^(edited in the Web UI?^).
+            echo        Engine copy wins; Web copy kept as C:\SCADA\Shared\%_F%.web-backup - merge by hand if needed.
+            copy /Y "%_WEB%" "%_SHD%.web-backup" >nul
+        )
+    )
+    move /Y "%_ENG%" "%_SHD%" >nul
+    goto MIGRATE_SHARED_CLEAN
+)
+if exist "%_WEB%" (
+    echo [MIGRATE] No Engine copy of %_F%; moving Web\App\Setting\%_F% to C:\SCADA\Shared\%_F% ...
+    move /Y "%_WEB%" "%_SHD%" >nul
+    goto MIGRATE_SHARED_CLEAN
+)
+echo [INFO] First install - writing template C:\SCADA\Shared\%_F%
+copy /Y "%~dp0Shared\%_F%" "%_SHD%" >nul
+:MIGRATE_SHARED_CLEAN
+if exist "%_ENG%" del /Q "%_ENG%"
+if exist "%_WEB%" del /Q "%_WEB%"
+exit /b 0
+
+:SHARED_DONE
 
 :: ── Database setup: create DB if missing + backup folder ACL + app login ──
 :: idempotent; runs AFTER the dbSetting migration above so it reads C:\SCADA\Shared\dbSetting.json
@@ -593,10 +635,13 @@ echo ========================================
 echo.
 if "%_IS_UPGRADE%"=="1" (
     echo [OK] Site config was PRESERVED ^(Modbus, Setting, MqttSetting, DBPoint, OpcUaPoint^).
-    echo      DB connection file is C:\SCADA\Shared\dbSetting.json ^(shared by Engine/Web/Gateway^).
+    echo      Shared configs are in C:\SCADA\Shared ^(dbSetting / EmailSetting / SmsSetting / LineSetting - ONE copy for Engine+Web^).
 ) else (
     echo [NOTE] First install — edit config files as needed:
     echo   C:\SCADA\Shared\dbSetting.json                  ^(DB connection - ONE file for Engine/Web/Gateway^)
+    echo   C:\SCADA\Shared\EmailSetting.json               ^(SMTP - or edit in Web: Alarm Setting / Email tab^)
+    echo   C:\SCADA\Shared\SmsSetting.json                 ^(SMS modem - or edit in Web: Alarm Setting / SMS tab^)
+    echo   C:\SCADA\Shared\LineSetting.json                ^(Line channel access token^)
     echo   C:\SCADA\Engine\App\Modbus\*.json                ^(Modbus devices^)
     echo   C:\SCADA\Engine\App\MqttSetting\MqttSetting.json ^(MQTT broker^)
     echo   C:\SCADA\Engine\App\DBPoint\*.json               ^(DB source points^)
@@ -843,7 +888,7 @@ Write-Host "Folder structure:"
 Write-Host "  SCADA_Release_${DateTag}_v$AppVersion\"
 Write-Host "  +-- Install.bat              <- On-site: right-click Run as Admin (Engine + Web only)"
 Write-Host "  +-- InstallModbusServer.bat  <- Optional Modbus gateway (standalone, run separately)"
-Write-Host "  +-- Shared\                  <- dbSetting.json template -> C:\SCADA\Shared (ONE DB config for Engine/Web/Gateway)"
+Write-Host "  +-- Shared\                  <- dbSetting/EmailSetting/SmsSetting/LineSetting templates -> C:\SCADA\Shared (ONE copy for Engine/Web)"
 if (-not $NoPython) {
 Write-Host "  +-- PythonRuntime\           <- Python base bundle (version-gated; Install.bat deploys to Engine\App)"
 }

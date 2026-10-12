@@ -67,6 +67,31 @@ public class SmsModemClient : ISmsTransport, IDisposable
         finally { _lock.Release(); }
     }
 
+    public async Task<bool> ReloadAsync(SmsSettingModel setting)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            _setting = setting ?? new SmsSettingModel();
+            ClosePortLocked();
+
+            if (!_setting.EnableNotification)
+            {
+                _healthTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                UpdateStatus(s => { s.isConnected = false; s.szPort = string.Empty; s.szLastError = string.Empty; });
+                _logger.LogInformation("簡訊設定重載：通知已停用，簡訊盒 port 已關閉");
+                return true;
+            }
+
+            var isConnected = ConnectLocked();
+            _healthTimer.Change(TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+            _logger.LogInformation("簡訊設定重載：ComPort={Port}, BaudRate={Baud}, 連線={Connected}",
+                _setting.ComPort, _setting.BaudRate, isConnected);
+            return isConnected;
+        }
+        finally { _lock.Release(); }
+    }
+
     public async Task<SmsSendResult> SendAsync(string szPhoneNumber, string szText)
     {
         if (string.IsNullOrWhiteSpace(szPhoneNumber))

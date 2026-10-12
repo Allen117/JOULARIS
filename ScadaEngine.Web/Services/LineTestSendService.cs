@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using ScadaEngine.Common.Data.Models;
+using ScadaEngine.Common.Data.Services;
 
 namespace ScadaEngine.Web.Services
 {
@@ -20,13 +21,21 @@ namespace ScadaEngine.Web.Services
         private readonly IHttpClientFactory _httpClientFactory;
 
         private readonly ConcurrentDictionary<string, DateTime> _lastTestAt = new();
+        public const string FileName = "LineSetting.json";
+
         private LineSettingModel? _setting;
+        private string? _szCachedPath;
+        private DateTime _dtCachedWrite;
         private readonly object _settingLock = new();
 
         public LineTestSendService(ILogger<LineTestSendService> logger, IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+
+            var location = SharedSettingLocator.Resolve(FileName);
+            _logger.LogInformation("通知設定檔路徑: {Path}（來源: {Source}）",
+                location.szPath ?? $"(未找到 {FileName})", location.szSourceLabel);
         }
 
         public TestSendResult CheckThrottle(string szGroupId)
@@ -115,37 +124,45 @@ namespace ScadaEngine.Web.Services
             }
         }
 
+        /// <summary>
+        /// 讀 LineSetting.json — 路徑由 SharedSettingLocator 解析（..\..\Shared → 本機 Setting → 開發 repo），
+        /// 與 Engine 讀的是同一份（生產機 C:\SCADA\Shared\LineSetting.json）。
+        /// 以檔案 LastWriteTime 當快取鍵：現場手改 token 後下一次測試發送即生效，不必重啟 Web。
+        /// </summary>
         private LineSettingModel LoadSetting()
         {
-            // 雙重檢查鎖：避免每次測試都重讀檔案，但允許設定變更後下次重新載入
-            if (_setting != null) return _setting;
             lock (_settingLock)
             {
-                if (_setting != null) return _setting;
+                var location = SharedSettingLocator.Resolve(FileName);
 
-                var szLocal = Path.Combine(AppContext.BaseDirectory, "Setting", "LineSetting.json");
-                var szEngine = Path.Combine("..", "ScadaEngine.Engine", "Setting", "LineSetting.json");
-                var szPath = File.Exists(szLocal) ? szLocal : szEngine;
-
-                if (!File.Exists(szPath))
+                if (location.szPath == null)
                 {
-                    _logger.LogWarning("找不到 LineSetting.json，測試發送功能將回報未設定: {Path}", szPath);
+                    if (_setting == null)
+                        _logger.LogWarning("找不到 {File}，測試發送功能將回報未設定；依序找過: {Searched}",
+                            FileName, string.Join(" | ", location.szSearchedPaths));
                     _setting = new LineSettingModel { EnableNotification = false };
+                    _szCachedPath = null;
                     return _setting;
                 }
 
+                var dtWrite = File.GetLastWriteTimeUtc(location.szPath);
+                if (_setting != null && _szCachedPath == location.szPath && _dtCachedWrite == dtWrite)
+                    return _setting;
+
                 try
                 {
-                    var szJson = File.ReadAllText(szPath);
+                    var szJson = File.ReadAllText(location.szPath);
                     _setting = JsonSerializer.Deserialize<LineSettingModel>(
                         szJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                         ?? new LineSettingModel();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "解析 LineSetting.json 失敗");
+                    _logger.LogError(ex, "解析 {File} 失敗: {Path}", FileName, location.szPath);
                     _setting = new LineSettingModel { EnableNotification = false };
                 }
+                _szCachedPath = location.szPath;
+                _dtCachedWrite = dtWrite;
                 return _setting;
             }
         }

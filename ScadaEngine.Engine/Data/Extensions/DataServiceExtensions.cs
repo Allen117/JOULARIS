@@ -177,6 +177,13 @@ public static class DataServiceExtensions
         services.AddSingleton<ISmsTransport>(provider => provider.GetRequiredService<SmsModemClient>());
         services.AddSingleton<SmsNotificationService>();
 
+        // 通知設定檔熱重載（Web 存 Email / Sms / Line 設定 → MQTT SCADA/Sys/Notify/Reload → 重讀 Shared 檔套用到上面三個服務）
+        services.AddSingleton<INotifySettingApplier, NotifyServicesSettingApplier>();
+        services.AddSingleton<NotifySettingReloader>(sp => new NotifySettingReloader(
+            sp.GetRequiredService<ILogger<NotifySettingReloader>>(),
+            sp.GetRequiredService<INotifySettingApplier>(),
+            sp.GetRequiredService<DatabaseConfigService>()));
+
         // 註冊 LogicFlow 資料存取服務為單例
         services.AddSingleton<LogicFlowRepository>();
 
@@ -256,19 +263,26 @@ public static class DataServiceExtensions
             await alarmMonitorService.InitializeAsync();
             logger.LogInformation("警報監控服務已初始化");
 
-            // 5. 初始化 Line 通知服務（讀取 LineSetting.json）
+            // 5. 初始化 Line / Email / 簡訊通知服務 — 三檔路徑皆由 SharedSettingLocator 解析
+            //    （..\..\Shared → 本機 Setting → 開發 repo，與 Web 同一套，見 docs/架構.md §共用設定檔解析順序）；
+            //    之後 Web 存檔會發 MQTT SCADA/Sys/Notify/Reload 由 NotifySettingReloadSubscriber 熱重載，不必重啟
             var lineService = serviceProvider.GetRequiredService<LineNotificationService>();
-            var lineSetting = LoadLineSetting(logger);
+            var lineSetting = LoadNotifySettingOrDisable<ScadaEngine.Common.Data.Models.LineSettingModel>(
+                NotifySettingLoader.LineFileName, "Line", logger,
+                () => new ScadaEngine.Common.Data.Models.LineSettingModel { EnableNotification = false });
             await lineService.InitializeAsync(lineSetting);
 
-            // 5b. 初始化 Email 通知服務（讀取 EmailSetting.json）
             var emailService = serviceProvider.GetRequiredService<EmailNotificationService>();
-            var emailSetting = LoadEmailSetting(logger);
+            var emailSetting = LoadNotifySettingOrDisable<ScadaEngine.Common.Data.Models.EmailSettingModel>(
+                NotifySettingLoader.EmailFileName, "Email", logger,
+                () => new ScadaEngine.Common.Data.Models.EmailSettingModel { EnableNotification = false });
             await emailService.InitializeAsync(emailSetting);
 
-            // 5c. 初始化簡訊通知服務（讀取 SmsSetting.json；含簡訊盒 COM port 自動偵測）
+            // 簡訊：含簡訊盒 COM port 自動偵測
             var smsService = serviceProvider.GetRequiredService<SmsNotificationService>();
-            var smsSetting = LoadSmsSetting(logger);
+            var smsSetting = LoadNotifySettingOrDisable<ScadaEngine.Common.Data.Models.SmsSettingModel>(
+                NotifySettingLoader.SmsFileName, "簡訊", logger,
+                () => new ScadaEngine.Common.Data.Models.SmsSettingModel { EnableNotification = false });
             await smsService.InitializeAsync(smsSetting);
 
             // 6. 初始化計算點位服務（載入公式設定）
@@ -284,116 +298,19 @@ public static class DataServiceExtensions
     }
 
     /// <summary>
-    /// 載入 LineSetting.json — 路徑偵測與 dbSetting 同邏輯
-    /// 檔案不存在時回傳預設物件（EnableNotification=false 由 LineNotificationService 內處理）
+    /// 啟動時載入通知設定檔；找不到或解析失敗 → 回傳停用版預設物件（警報流程不受影響，只是該通道不發）。
+    /// 路徑解析與讀檔細節在 <see cref="NotifySettingLoader"/>（與 MQTT 熱重載共用）。
     /// </summary>
-    private static ScadaEngine.Common.Data.Models.LineSettingModel LoadLineSetting(ILogger logger)
+    private static T LoadNotifySettingOrDisable<T>(string szFileName, string szChannelLabel, ILogger logger, Func<T> disabledFactory)
+        where T : class
     {
-        var szBasePath = AppDomain.CurrentDomain.BaseDirectory;
-        var szPath = Path.Combine(szBasePath, "Setting", "LineSetting.json");
-
-        if (!File.Exists(szPath))
+        var result = NotifySettingLoader.Load<T>(szFileName, logger);
+        if (result.isSuccess)
         {
-            var szFallback1 = Path.Combine(Directory.GetCurrentDirectory(), "Setting", "LineSetting.json");
-            if (File.Exists(szFallback1)) szPath = szFallback1;
+            return result.setting!;
         }
 
-        if (!File.Exists(szPath))
-        {
-            logger.LogWarning("找不到 LineSetting.json，Line 通知功能將停用 (路徑: {Path})", szPath);
-            return new ScadaEngine.Common.Data.Models.LineSettingModel
-            {
-                EnableNotification = false
-            };
-        }
-
-        try
-        {
-            var szJson = File.ReadAllText(szPath);
-            var setting = System.Text.Json.JsonSerializer.Deserialize<ScadaEngine.Common.Data.Models.LineSettingModel>(
-                szJson,
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            logger.LogInformation("LineSetting.json 已載入: {Path}", szPath);
-            return setting ?? new ScadaEngine.Common.Data.Models.LineSettingModel { EnableNotification = false };
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "解析 LineSetting.json 失敗，Line 通知功能將停用");
-            return new ScadaEngine.Common.Data.Models.LineSettingModel { EnableNotification = false };
-        }
-    }
-
-    /// <summary>
-    /// 載入 SmsSetting.json — 路徑偵測與 LineSetting 同邏輯
-    /// 檔案不存在或解析失敗時回傳預設物件（EnableNotification=false）
-    /// </summary>
-    private static ScadaEngine.Common.Data.Models.SmsSettingModel LoadSmsSetting(ILogger logger)
-    {
-        var szBasePath = AppDomain.CurrentDomain.BaseDirectory;
-        var szPath = Path.Combine(szBasePath, "Setting", "SmsSetting.json");
-
-        if (!File.Exists(szPath))
-        {
-            var szFallback1 = Path.Combine(Directory.GetCurrentDirectory(), "Setting", "SmsSetting.json");
-            if (File.Exists(szFallback1)) szPath = szFallback1;
-        }
-
-        if (!File.Exists(szPath))
-        {
-            logger.LogWarning("找不到 SmsSetting.json，簡訊通知功能將停用 (路徑: {Path})", szPath);
-            return new ScadaEngine.Common.Data.Models.SmsSettingModel { EnableNotification = false };
-        }
-
-        try
-        {
-            var szJson = File.ReadAllText(szPath);
-            var setting = System.Text.Json.JsonSerializer.Deserialize<ScadaEngine.Common.Data.Models.SmsSettingModel>(
-                szJson,
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            logger.LogInformation("SmsSetting.json 已載入: {Path}", szPath);
-            return setting ?? new ScadaEngine.Common.Data.Models.SmsSettingModel { EnableNotification = false };
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "解析 SmsSetting.json 失敗，簡訊通知功能將停用");
-            return new ScadaEngine.Common.Data.Models.SmsSettingModel { EnableNotification = false };
-        }
-    }
-
-    /// <summary>
-    /// 載入 EmailSetting.json — 路徑偵測與 LineSetting 同邏輯
-    /// 檔案不存在或解析失敗時回傳預設物件（EnableNotification=false）
-    /// </summary>
-    private static ScadaEngine.Common.Data.Models.EmailSettingModel LoadEmailSetting(ILogger logger)
-    {
-        var szBasePath = AppDomain.CurrentDomain.BaseDirectory;
-        var szPath = Path.Combine(szBasePath, "Setting", "EmailSetting.json");
-
-        if (!File.Exists(szPath))
-        {
-            var szFallback1 = Path.Combine(Directory.GetCurrentDirectory(), "Setting", "EmailSetting.json");
-            if (File.Exists(szFallback1)) szPath = szFallback1;
-        }
-
-        if (!File.Exists(szPath))
-        {
-            logger.LogWarning("找不到 EmailSetting.json，Email 通知功能將停用 (路徑: {Path})", szPath);
-            return new ScadaEngine.Common.Data.Models.EmailSettingModel { EnableNotification = false };
-        }
-
-        try
-        {
-            var szJson = File.ReadAllText(szPath);
-            var setting = System.Text.Json.JsonSerializer.Deserialize<ScadaEngine.Common.Data.Models.EmailSettingModel>(
-                szJson,
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            logger.LogInformation("EmailSetting.json 已載入: {Path}", szPath);
-            return setting ?? new ScadaEngine.Common.Data.Models.EmailSettingModel { EnableNotification = false };
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "解析 EmailSetting.json 失敗，Email 通知功能將停用");
-            return new ScadaEngine.Common.Data.Models.EmailSettingModel { EnableNotification = false };
-        }
+        logger.LogWarning("{File} 無法使用（{Error}），{Channel} 通知功能將停用", szFileName, result.szError, szChannelLabel);
+        return disabledFactory();
     }
 }

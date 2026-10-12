@@ -132,7 +132,7 @@ ScadaEngine.sln
 
 - **資料流**：Modbus / DB 來源 / OPC UA 來源 → HistoryData / LatestData / MQTT → Web；對外 Modbus TCP Gateway 分支（ScadaEngine.ModbusServer，append-only 位址對照 `AddressMap.json`）→ docs/功能說明書_ModbusServerGateway.md
 - **警報系統**：Alarm MQTT 推播 + 規則熱重載（Engine ↔ Web）
-- **通知系統**：Line / Email / 簡訊三通道推播（每群組/號碼可選 zh-TW / en，觸發 + 恢復皆通知；寄送結果寫 EventLog 摘要，EventType=3）。Engine 端訊息字典 `Resources/notification.{zh-TW,en}.json`，Web UI 在 `AlarmSetting` 第三 tab 管理 Email 群組與規則路由、第四 tab 管理簡訊號碼。SMTP 走 **MailKit**；簡訊走序列埠簡訊盒（**System.IO.Ports** + 標準 AT 指令、UCS2 70 字、COM 自動偵測，無網路可用；Web 測試發送/重掃經 MQTT `SCADA/Sys/Sms/Cmd|Status` 由 Engine 代執行）→ docs/功能說明書_簡訊通知.md
+- **通知系統**：Line / Email / 簡訊三通道推播（每群組/號碼可選 zh-TW / en，觸發 + 恢復皆通知；寄送結果寫 EventLog 摘要，EventType=3）。Engine 端訊息字典 `Resources/notification.{zh-TW,en}.json`，Web UI 在 `AlarmSetting` 第三 tab 管理 Email 群組與規則路由、第四 tab 管理簡訊號碼。SMTP 走 **MailKit**；簡訊走序列埠簡訊盒（**System.IO.Ports** + 標準 AT 指令、UCS2 70 字、COM 自動偵測，無網路可用；Web 測試發送/重掃經 MQTT `SCADA/Sys/Sms/Cmd|Status` 由 Engine 代執行）→ docs/功能說明書_簡訊通知.md。三檔設定（Email / Sms / Line）生產機在 `C:\SCADA\Shared\`，Engine 讀、Web 讀寫同一份；Web 存檔後發 `SCADA/Sys/Notify/Reload|Status` 熱重載，不重啟 Engine → docs/架構.md §共用設定檔解析順序
 - **用電報表**：On-demand 計算 + 葉子層 Hourly 預聚合 + Staleness Window
 - **電費計算**：Web 逐時計價（EnergyLeafHourly → ElectricityCostHourly，XX:05 觸發）+ EMS 電費狀態卡 + /HolidaySetting 假日（TOU 落 sun_offday）
 - **用水報表與水費**：累積式水表 `WaterMeter*` 體系（boundary 相減 + MaxVolume 溢位 + UnitScale 換算 m³）+ 台水流動水費分段累進 on-demand（無逐時表）；與冷凍噸 WaterCircuit 無關
@@ -150,16 +150,16 @@ ScadaEngine.sln
 
 | File | Purpose |
 |------|---------|
-| `dbSetting.json`（開發 `ScadaEngine.Engine/Setting/`；生產機 **`C:\SCADA\Shared\`**） | SQL Server connection，Engine / Web / ModbusServer **共用一份**。三者皆由 Common `DbSettingLocator` 四層解析（環境變數 `JOULARIS_DBSETTING` → `..\..\Shared` → 本機 `Setting` → 開發 repo），啟動 log 印實際路徑與來源；升級由 Install.bat 自動從舊佈局搬移 → docs/架構.md §dbSetting.json 解析順序 |
+| `dbSetting.json`（開發 `ScadaEngine.Engine/Setting/`；生產機 **`C:\SCADA\Shared\`**） | SQL Server connection，Engine / Web / ModbusServer **共用一份**。三者皆由 Common `DbSettingLocator`（`SharedSettingLocator` 薄包裝）四層解析（環境變數 `JOULARIS_DBSETTING` → `..\..\Shared` → 本機 `Setting` → 開發 repo），啟動 log 印實際路徑與來源；升級由 Install.bat 自動從舊佈局搬移 → docs/架構.md §共用設定檔解析順序 |
 | `ScadaEngine.Engine/MqttSetting/MqttSetting.json` | MQTT broker IP/port/topic/retain |
 | `ScadaEngine.Engine/Modbus/Modbus.json` | Modbus device definitions (IP, port, tags) |
 | `ScadaEngine.Engine/DatabaseSchema/DatabaseSchema.json` | 建表 + 欄位自動同步的**唯一真相來源** — 加欄位只改此檔，Engine 與 Web 啟動時自動補缺欄位（只加不減不改，詳見 docs/架構.md §資料庫結構初始化與欄位同步） |
 | `ScadaEngine.Engine/DBPoint/*.json` | DB 來源 Coordinator 點位定義（由 Web「DB 來源」頁**匯入 Excel** 產生，範本 `DB來源範本.xlsx`；Name/Unit 可在頁面熱編輯回寫）。Modbus 同理走「Modbus 來源」頁匯入 `Modbus範本.xlsx`，共用 `ScadaEngine.Web/Services/SourceExcel/`。細節見 docs/架構.md §資料流 + docs/功能說明書_DB來源管理.md §8.4 / _Modbus來源管理.md §4.1 |
 | `ScadaEngine.Engine/OpcUaPoint/*.json` | OPC UA 來源定義（一檔一 Server 含 Devices 分組；Web「OPC UA 來源」頁全欄位動態編輯回寫，免重啟）。細節見 docs/架構.md §資料流 + docs/功能說明書_OPCUA通訊.md |
 | `ScadaEngine.Engine/Setting/DbMaintenanceSetting.json` | 自動建 DB 路徑 + 每週備份排程。同資料夾 `install-db.ps1` 為安裝腳本（idempotent，已綁入部署流程）。細節見 docs/架構.md §資料庫自動建立與每週備份 |
-| `ScadaEngine.Engine/Setting/LineSetting.json` | Line Messaging API token + rate limit |
-| `ScadaEngine.Engine/Setting/EmailSetting.json` | SMTP host/port/帳密 + rate limit（MailKit）|
-| `ScadaEngine.Engine/Setting/SmsSetting.json` | 簡訊盒設定（ComPort auto/手動、BaudRate、SimPin、限流、每日上限、恢復通知開關）— **僅啟動載入**，改後需重啟 Engine。細節見 docs/功能說明書_簡訊通知.md |
+| `LineSetting.json`（開發 `ScadaEngine.Engine/Setting/`；生產機 **`C:\SCADA\Shared\`**） | Line Messaging API token + rate limit。Engine / Web 共用一份，`SharedSettingLocator` 解析（同 dbSetting 但無環境變數層） |
+| `EmailSetting.json`（同上） | SMTP host/port/帳密 + rate limit（MailKit）。Web「警報設定 → Email」存檔寫同一份，之後發 MQTT `SCADA/Sys/Notify/Reload` 由 Engine 熱重載，不重啟 |
+| `SmsSetting.json`（同上） | 簡訊盒設定（ComPort auto/手動、BaudRate、SimPin、限流、每日上限、恢復通知開關）。Web 存檔後 MQTT 熱重載 + 重掃序列埠。細節見 docs/功能說明書_簡訊通知.md |
 | `ScadaEngine.Engine/Resources/notification.{zh-TW,en}.json` | Engine 通知訊息字典（Line + Email + 簡訊共用，依群組/號碼 Language 切換）|
 | `ScadaEngine.ModbusServer/Setting/ModbusServerSetting.json` | 對外 Modbus Gateway：監聽埠(502)/UnitId/WordOrder/NaN 或 HoldLast/網頁埠(5041，刻意避開 CDPSvc 的 5040)/位址段界 — **僅啟動載入**。同專案 `AddressMap.json`（執行期自動產生）為位址對照持久化，**升級必保留、勿刪**。細節見 docs/功能說明書_ModbusServerGateway.md |
 

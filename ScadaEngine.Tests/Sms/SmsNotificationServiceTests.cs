@@ -22,6 +22,7 @@ public class SmsNotificationServiceTests
         public event Action<SmsModemStatus>? StatusChanged { add { } remove { } }
         public Task InitializeAsync(SmsSettingModel setting) => Task.CompletedTask;
         public Task<bool> RescanAsync() => Task.FromResult(true);
+        public Task<bool> ReloadAsync(SmsSettingModel setting) => Task.FromResult(true);
         public SmsModemStatus GetStatus() => new();
         public Task<SmsSendResult> SendAsync(string szPhoneNumber, string szText)
         {

@@ -1,23 +1,31 @@
 using System.Text.Json;
 using ScadaEngine.Common.Data.Models;
+using ScadaEngine.Common.Data.Services;
 using ScadaEngine.Web.Features.AlarmSetting.Models;
 
 namespace ScadaEngine.Web.Services
 {
     /// <summary>
     /// SmsSetting.json 讀寫服務 — Web UI 編輯簡訊盒設定時直接寫 JSON 檔
-    /// 與 Engine 共用同一份 JSON（透過相對路徑 ../ScadaEngine.Engine/Setting/）
-    /// 注意：Engine 僅啟動時載入此檔，改 COM port / 啟用開關需重啟 Engine 才生效
-    ///（DailyQuota / RatePerMinute 亦同；DB 收訊號碼則 60 秒內熱生效）
+    /// 路徑由 Common 的 SharedSettingLocator 解析（..\..\Shared → 本機 Setting → 開發 repo），與 Engine 同一套：
+    /// 生產機 = C:\SCADA\Shared\SmsSetting.json、開發模式 = repo 的 ScadaEngine.Engine/Setting/SmsSetting.json。
+    /// 存檔後由 controller 發 MQTT SCADA/Sys/Notify/Reload，Engine 熱重載並重掃序列埠（改 COM / 啟用不必重啟）；
+    /// DB 收訊號碼則另走 60 秒快取。
     /// </summary>
     public class SmsSenderConfigService
     {
+        public const string FileName = "SmsSetting.json";
+
         private readonly ILogger<SmsSenderConfigService> _logger;
         private readonly object _fileLock = new();
 
         public SmsSenderConfigService(ILogger<SmsSenderConfigService> logger)
         {
             _logger = logger;
+
+            var location = SharedSettingLocator.Resolve(FileName);
+            _logger.LogInformation("通知設定檔路徑: {Path}（來源: {Source}）",
+                location.szPath ?? $"(未找到 {FileName})", location.szSourceLabel);
         }
 
         public SmsSenderConfigDto Read()
@@ -54,16 +62,17 @@ namespace ScadaEngine.Web.Services
                         TestSendThrottleSeconds = dto.testSendThrottleSeconds > 0 ? dto.testSendThrottleSeconds : 10
                     };
 
-                    var szPath = ResolvePath();
+                    var szPath = ResolveWritePath();
                     var szJson = JsonSerializer.Serialize(setting, new JsonSerializerOptions { WriteIndented = true });
+                    Directory.CreateDirectory(Path.GetDirectoryName(szPath)!);
                     File.WriteAllText(szPath, szJson);
-                    _logger.LogInformation("已更新 SmsSetting.json: {Path}", szPath);
+                    _logger.LogInformation("已更新 {File}: {Path}", FileName, szPath);
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "儲存 SmsSetting.json 失敗");
+                _logger.LogError(ex, "儲存 {File} 失敗", FileName);
                 return false;
             }
         }
@@ -75,13 +84,14 @@ namespace ScadaEngine.Web.Services
             {
                 lock (_fileLock)
                 {
-                    var szPath = ResolvePath();
-                    if (!File.Exists(szPath))
+                    var location = SharedSettingLocator.Resolve(FileName);
+                    if (location.szPath == null)
                     {
-                        _logger.LogWarning("找不到 SmsSetting.json，使用預設值: {Path}", szPath);
+                        _logger.LogWarning("找不到 {File}，使用預設值；依序找過: {Searched}",
+                            FileName, string.Join(" | ", location.szSearchedPaths));
                         return new SmsSettingModel { EnableNotification = false };
                     }
-                    var szJson = File.ReadAllText(szPath);
+                    var szJson = File.ReadAllText(location.szPath);
                     var setting = JsonSerializer.Deserialize<SmsSettingModel>(
                         szJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                     return setting ?? new SmsSettingModel { EnableNotification = false };
@@ -89,19 +99,18 @@ namespace ScadaEngine.Web.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "讀取 SmsSetting.json 失敗");
+                _logger.LogError(ex, "讀取 {File} 失敗", FileName);
                 return new SmsSettingModel { EnableNotification = false };
             }
         }
 
-        private static string ResolvePath()
+        /// <summary>寫入目標 = 解析到的那一份；都不存在時退到 Shared（生產）或開發 repo，並 log warning</summary>
+        private string ResolveWritePath()
         {
-            // 優先使用本地 Setting/，開發時 fallback 到 Engine 專案
-            var szLocal = Path.Combine(AppContext.BaseDirectory, "Setting", "SmsSetting.json");
-            if (File.Exists(szLocal)) return szLocal;
-            var szEngine = Path.Combine("..", "ScadaEngine.Engine", "Setting", "SmsSetting.json");
-            if (File.Exists(szEngine)) return szEngine;
-            return szEngine;
+            var (szPath, isFallback) = SharedSettingLocator.ResolveForWrite(FileName);
+            if (isFallback)
+                _logger.LogWarning("{File} 不存在於任何解析層，將新建於: {Path}", FileName, szPath);
+            return szPath;
         }
     }
 }

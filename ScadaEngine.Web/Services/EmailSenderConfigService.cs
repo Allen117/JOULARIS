@@ -1,22 +1,32 @@
 using System.Text.Json;
 using ScadaEngine.Common.Data.Models;
+using ScadaEngine.Common.Data.Services;
 using ScadaEngine.Web.Features.AlarmSetting.Models;
 
 namespace ScadaEngine.Web.Services
 {
     /// <summary>
     /// EmailSetting.json 讀寫服務 — Web UI 編輯 SMTP 設定時直接寫 JSON 檔
-    /// 與 Engine 共用同一份 JSON（透過相對路徑 ../ScadaEngine.Engine/Setting/）
+    /// 路徑由 Common 的 SharedSettingLocator 解析（..\..\Shared → 本機 Setting → 開發 repo），與 Engine 同一套：
+    /// 生產機 = C:\SCADA\Shared\EmailSetting.json、開發模式 = repo 的 ScadaEngine.Engine/Setting/EmailSetting.json。
+    /// 讀寫走同一條解析路徑，不會再有「讀 Engine 那份、寫 Web 複本」的分家。
+    /// 存檔後由 controller 發 MQTT SCADA/Sys/Notify/Reload 讓 Engine 熱重載。
     /// 密碼空字串時保留既有密碼（避免每次儲存都要重輸入）
     /// </summary>
     public class EmailSenderConfigService
     {
+        public const string FileName = "EmailSetting.json";
+
         private readonly ILogger<EmailSenderConfigService> _logger;
         private readonly object _fileLock = new();
 
         public EmailSenderConfigService(ILogger<EmailSenderConfigService> logger)
         {
             _logger = logger;
+
+            var location = SharedSettingLocator.Resolve(FileName);
+            _logger.LogInformation("通知設定檔路徑: {Path}（來源: {Source}）",
+                location.szPath ?? $"(未找到 {FileName})", location.szSourceLabel);
         }
 
         /// <summary>讀取設定（不回傳密碼明文，只回傳 hasPassword 旗標）</summary>
@@ -65,16 +75,17 @@ namespace ScadaEngine.Web.Services
                         TestSendThrottleSeconds = dto.testSendThrottleSeconds > 0 ? dto.testSendThrottleSeconds : 10
                     };
 
-                    var szPath = ResolvePath();
+                    var szPath = ResolveWritePath();
                     var szJson = JsonSerializer.Serialize(setting, new JsonSerializerOptions { WriteIndented = true });
+                    Directory.CreateDirectory(Path.GetDirectoryName(szPath)!);
                     File.WriteAllText(szPath, szJson);
-                    _logger.LogInformation("已更新 EmailSetting.json: {Path}", szPath);
+                    _logger.LogInformation("已更新 {File}: {Path}", FileName, szPath);
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "儲存 EmailSetting.json 失敗");
+                _logger.LogError(ex, "儲存 {File} 失敗", FileName);
                 return false;
             }
         }
@@ -86,13 +97,14 @@ namespace ScadaEngine.Web.Services
             {
                 lock (_fileLock)
                 {
-                    var szPath = ResolvePath();
-                    if (!File.Exists(szPath))
+                    var location = SharedSettingLocator.Resolve(FileName);
+                    if (location.szPath == null)
                     {
-                        _logger.LogWarning("找不到 EmailSetting.json，使用預設值: {Path}", szPath);
+                        _logger.LogWarning("找不到 {File}，使用預設值；依序找過: {Searched}",
+                            FileName, string.Join(" | ", location.szSearchedPaths));
                         return new EmailSettingModel { EnableNotification = false };
                     }
-                    var szJson = File.ReadAllText(szPath);
+                    var szJson = File.ReadAllText(location.szPath);
                     var setting = JsonSerializer.Deserialize<EmailSettingModel>(
                         szJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                     return setting ?? new EmailSettingModel { EnableNotification = false };
@@ -100,20 +112,18 @@ namespace ScadaEngine.Web.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "讀取 EmailSetting.json 失敗");
+                _logger.LogError(ex, "讀取 {File} 失敗", FileName);
                 return new EmailSettingModel { EnableNotification = false };
             }
         }
 
-        private static string ResolvePath()
+        /// <summary>寫入目標 = 解析到的那一份；都不存在時退到 Shared（生產）或開發 repo，並 log warning</summary>
+        private string ResolveWritePath()
         {
-            // 優先使用本地 Setting/，開發時 fallback 到 Engine 專案
-            var szLocal = Path.Combine(AppContext.BaseDirectory, "Setting", "EmailSetting.json");
-            if (File.Exists(szLocal)) return szLocal;
-            var szEngine = Path.Combine("..", "ScadaEngine.Engine", "Setting", "EmailSetting.json");
-            if (File.Exists(szEngine)) return szEngine;
-            // 都不存在時，預設寫到 Engine 路徑（與其他設定一致）
-            return szEngine;
+            var (szPath, isFallback) = SharedSettingLocator.ResolveForWrite(FileName);
+            if (isFallback)
+                _logger.LogWarning("{File} 不存在於任何解析層，將新建於: {Path}", FileName, szPath);
+            return szPath;
         }
     }
 }

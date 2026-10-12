@@ -797,20 +797,26 @@
     }
 
     function showToastSafe(msg, kind) {
-        // 簡易 toast：預設用 alert；如未來導入 Bootstrap toast 可在此替換
-        if (kind === 'success') {
-            // 不強制跳 alert，使用 console + 湮出提示
+        // 簡易 toast：success / warning 浮出提示，其餘走 alert；如未來導入 Bootstrap toast 可在此替換
+        if (kind === 'success' || kind === 'warning') {
+            var isWarn = kind === 'warning';
             var div = document.createElement('div');
-            div.className = 'alert alert-success position-fixed';
+            div.className = 'alert position-fixed ' + (isWarn ? 'alert-warning' : 'alert-success');
             div.style.top = '80px';
             div.style.right = '20px';
             div.style.zIndex = '9999';
-            div.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + escHtml(msg);
+            div.style.maxWidth = '420px';
+            div.innerHTML = '<i class="fas ' + (isWarn ? 'fa-exclamation-triangle' : 'fa-check-circle') + ' me-1"></i>' + escHtml(msg);
             document.body.appendChild(div);
-            setTimeout(function () { div.remove(); }, 3500);
+            setTimeout(function () { div.remove(); }, isWarn ? 7000 : 3500);
         } else {
             alert(msg);
         }
+    }
+
+    /** 存檔回應的 reload 欄位（ok / failed / timeout）→ toast 樣式：Engine 已套用 = success，其餘 = warning */
+    function reloadToastKind(body) {
+        return (body && body.reload && body.reload !== 'ok') ? 'warning' : 'success';
     }
 
     // ── Email 通知設定 Tab ──
@@ -886,7 +892,10 @@
         .then(function (res) {
             if (res.ok && res.body.success) {
                 _emailConfigModal.hide();
-                location.reload();
+                // 先讓使用者看到 Engine 熱重載結果（ok / Engine 未回應 / 套用失敗），再重整頁面刷新 SMTP 摘要
+                var kind = reloadToastKind(res.body);
+                showToastSafe(res.body.message || t('alarm.toast.saved'), kind);
+                setTimeout(function () { location.reload(); }, kind === 'success' ? 1500 : 5000);
             } else {
                 alert(res.body.message || t('alarm.alert.save_failed'));
             }
@@ -1332,8 +1341,10 @@
         .then(function (res) {
             if (res.ok && res.body.success) {
                 _smsConfigModal.hide();
-                showToastSafe(res.body.message || t('alarm.toast.saved'), 'success');
+                // Engine 熱重載 + 重掃序列埠；非 ok 時以 warning 提示（Engine 未回應 / 套用失敗）
+                showToastSafe(res.body.message || t('alarm.toast.saved'), reloadToastKind(res.body));
                 _smsSenderConfig = dto;
+                refreshSmsStatus();
             } else {
                 alert(res.body.message || t('alarm.alert.save_failed'));
             }

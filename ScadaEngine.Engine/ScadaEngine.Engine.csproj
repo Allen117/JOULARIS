@@ -95,16 +95,16 @@
          Release 包由 BuildRelease.ps1 放到包根 Shared\（生產機 C:\SCADA\Shared\），App\Setting 不再有複本 -->
     <None Remove="Setting\dbSetting.json" />
     <Content Remove="Setting\dbSetting.json" />
-    <None Update="Setting\LineSetting.json">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
+    <!-- EmailSetting / SmsSetting / LineSetting 同理：機器層級共用檔，由 SharedSettingLocator 解析，
+         Release 包放包根 Shared\，Engine\App\Setting 與 Web\App\Setting 皆不帶複本（Web 經 ProjectReference 遞移也不會帶）。
+         *.example.json 仍複製：BuildRelease 用來產 Shared\ 範本 -->
+    <None Remove="Setting\LineSetting.json" />
+    <Content Remove="Setting\LineSetting.json" />
+    <None Remove="Setting\EmailSetting.json" />
+    <Content Remove="Setting\EmailSetting.json" />
+    <None Remove="Setting\SmsSetting.json" />
+    <Content Remove="Setting\SmsSetting.json" />
     <None Update="Setting\LineSetting.example.json">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-    <None Update="Setting\EmailSetting.json">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-    <None Update="Setting\SmsSetting.json">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>
     <None Update="Setting\SmsSetting.example.json">

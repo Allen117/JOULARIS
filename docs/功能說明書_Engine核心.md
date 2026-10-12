@@ -650,7 +650,7 @@ LogicFlowDiagram 表使用 `Version` 欄位實作樂觀鎖，防止 Web 端與 E
 
 | 檔案路徑 | 用途 |
 |---------|------|
-| dbSetting.json | SQL Server 連線設定（IP、DB、帳密）。**生產機在 `C:\SCADA\Shared\`**（Engine / Web / Gateway 共用一份，`App\Setting` 不留複本）、開發 repo 在 `Setting/`；解析順序見 [架構.md §dbSetting.json 解析順序](架構.md#dbsettingjson-解析順序) |
+| dbSetting.json | SQL Server 連線設定（IP、DB、帳密）。**生產機在 `C:\SCADA\Shared\`**（Engine / Web / Gateway 共用一份，`App\Setting` 不留複本）、開發 repo 在 `Setting/`；解析順序見 [架構.md §共用設定檔解析順序](架構.md#共用設定檔解析順序) |
 | `MqttSetting/MqttSetting.json` | MQTT Broker 連線設定 |
 | `Modbus/*.json` | Modbus 設備定義（支援多檔多設備） |
 | `DatabaseSchema/DatabaseSchema.json` | 資料庫表定義（自動建表用） |

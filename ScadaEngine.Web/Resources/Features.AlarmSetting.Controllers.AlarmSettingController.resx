@@ -68,7 +68,9 @@
   <data name="alarm.error.phone_invalid" xml:space="preserve"><value>手機號碼格式不正確（僅數字與開頭 +，8~15 碼）</value></data>
   <data name="alarm.error.target_not_found" xml:space="preserve"><value>號碼不存在</value></data>
   <data name="alarm.error.mqtt_not_connected" xml:space="preserve"><value>MQTT 未連線，命令無法送達 Engine</value></data>
-  <data name="alarm.success.saved_restart_engine" xml:space="preserve"><value>已儲存，重啟 Engine 後生效</value></data>
+  <data name="alarm.success.saved_reloaded" xml:space="preserve"><value>已儲存，Engine 已套用新設定</value></data>
+  <data name="alarm.warn.saved_engine_no_response" xml:space="preserve"><value>已儲存，但 Engine 未回應（離線或 MQTT 未連線）；Engine 下次啟動會自動套用</value></data>
+  <data name="alarm.warn.saved_engine_reload_failed" xml:space="preserve"><value>已儲存，但 Engine 套用失敗：{0}</value></data>
   <data name="alarm.success.sms_rescan_sent" xml:space="preserve"><value>重掃命令已送出，稍後請看狀態卡</value></data>
   <data name="alarm.demand.point_suffix" xml:space="preserve"><value>需量</value></data>
   <data name="alarm.nrg.daily_suffix" xml:space="preserve"><value>每日用電</value></data>

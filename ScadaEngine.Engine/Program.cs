@@ -87,6 +87,9 @@ try
     // 註冊簡訊盒 MQTT 橋接服務（發布狀態 + 代 Web 執行測試發送/重掃 port）
     builder.Services.AddHostedService<SmsMqttBridge>();
 
+    // 通知設定檔熱重載訂閱（SCADA/Sys/Notify/Reload → 重讀 Shared 的 Email / Sms / Line 設定，不重啟 Engine）
+    builder.Services.AddHostedService<NotifySettingReloadSubscriber>();
+
     // 註冊 DB 來源通訊服務（雙註冊：Singleton 供 ReloadSubscriber 注入呼叫 + HostedService 啟動 polling）
     builder.Services.AddHostedService<DbCommunicationService>(provider =>
         provider.GetRequiredService<DbCommunicationService>());

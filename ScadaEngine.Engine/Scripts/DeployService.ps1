@@ -276,6 +276,7 @@ function Install-Service {
         Write-Host "Service installed successfully to: $TargetPath"
         Write-Host "Configuration files structure:"
         Write-Host '  - ..\..\Shared\dbSetting.json  (C:\SCADA\Shared - ONE DB config shared by Engine/Web/Gateway)'
+        Write-Host '  - ..\..\Shared\EmailSetting.json / SmsSetting.json / LineSetting.json  (C:\SCADA\Shared - notify configs shared with Web)'
         Write-Host '  - Modbus\*.json'
         Write-Host '  - Mqtt\MqttSetting.json'
         Write-Host '  - DatabaseSchema\DatabaseSchema.json'
@@ -608,6 +609,9 @@ function Diagnose-Service {
     Write-Host "`n3. Configuration Files:" -ForegroundColor Yellow
     $configFiles = @(
         '..\..\Shared\dbSetting.json',
+        '..\..\Shared\EmailSetting.json',
+        '..\..\Shared\SmsSetting.json',
+        '..\..\Shared\LineSetting.json',
         'MqttSetting\MqttSetting.json',
         'DatabaseSchema\DatabaseSchema.json'
     )

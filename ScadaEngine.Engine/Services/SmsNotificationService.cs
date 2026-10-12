@@ -80,6 +80,32 @@ public class SmsNotificationService : IDisposable
     }
 
     /// <summary>
+    /// 執行期換設定（Web 存 SmsSetting.json 後經 MQTT 熱重載）。
+    /// 與 <see cref="InitializeAsync"/> 的差別：不再開第二個佇列 worker、不重設每日計數；
+    /// 設定物件整份替換（發送端拿到新或舊都是完整一份），再交由 transport 關舊 port、依新設定重掃。
+    /// </summary>
+    public async Task ReloadSettingAsync(SmsSettingModel setting)
+    {
+        var newSetting = setting ?? new SmsSettingModel();
+        if (newSetting.RatePerMinute <= 0)
+            newSetting.RatePerMinute = 10;
+
+        _setting = newSetting;
+        var isConnected = await _transport.ReloadAsync(_setting);
+
+        if (!_isInitialized)
+        {
+            // 啟動時 InitializeAsync 尚未跑到（理論上不會，保險）：補起 worker 與 flush timer
+            _workerTask = Task.Run(() => ProcessQueueAsync(_cts.Token));
+            _flushTimer.Change(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+            _isInitialized = true;
+        }
+
+        _logger.LogInformation("簡訊通知設定已重載 (啟用={Enabled}, 每分鐘上限={Rate}, 每日上限={Quota}, 恢復通知={Recovery}, 簡訊盒連線={Connected})",
+            _setting.EnableNotification, _setting.RatePerMinute, _setting.DailyQuota, _setting.SendRecovery, isConnected);
+    }
+
+    /// <summary>
     /// 警報觸發時呼叫 — 對所有符合「MaxSeverity >= 此警報嚴重度」的號碼發簡訊
     /// </summary>
     public async Task NotifyAsync(NotifyContext ctx)

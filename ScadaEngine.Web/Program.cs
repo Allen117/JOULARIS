@@ -312,6 +312,9 @@ builder.Services.AddSingleton<ScadaEngine.Web.Services.LicenseStatusCache>();
 // 簡訊盒狀態快取（Singleton — 由 MqttRealtimeSubscriberService 訂閱 SCADA/Sys/Sms/Status 更新）
 builder.Services.AddSingleton<ScadaEngine.Web.Services.SmsStatusCache>();
 
+// 通知設定熱重載結果快取（Singleton — 由 MqttRealtimeSubscriberService 訂閱 SCADA/Sys/Notify/Status 更新，存檔請求依 requestId 等結果）
+builder.Services.AddSingleton<ScadaEngine.Web.Services.NotifyReloadStatusCache>();
+
 // 註冊即時監控 MQTT 訂閱服務
 builder.Services.AddSingleton<ScadaEngine.Web.Services.MqttRealtimeSubscriberService>();
 builder.Services.AddHostedService<ScadaEngine.Web.Services.MqttRealtimeSubscriberService>(provider =>
@@ -332,6 +335,11 @@ builder.Services.AddSingleton<ScadaEngine.Web.Services.SmsCommandPublisher>();
 builder.Services.AddHostedService<ScadaEngine.Web.Services.SmsCommandPublisher>(provider =>
     provider.GetRequiredService<ScadaEngine.Web.Services.SmsCommandPublisher>());
 
+// 通知設定熱重載發布者（Web 存 Email / Sms 設定後發 SCADA/Sys/Notify/Reload，Engine 重讀 Shared 檔、不重啟）
+builder.Services.AddSingleton<ScadaEngine.Web.Services.NotifySettingReloadPublisher>();
+builder.Services.AddHostedService<ScadaEngine.Web.Services.NotifySettingReloadPublisher>(provider =>
+    provider.GetRequiredService<ScadaEngine.Web.Services.NotifySettingReloadPublisher>());
+
 // 註冊 DB 來源 Reload 發布者（雙註冊：Singleton 供 Controller 注入呼叫 + HostedService 啟動時連 broker）
 builder.Services.AddSingleton<ScadaEngine.Web.Services.DbCoordinatorReloadPublisher>();
 builder.Services.AddHostedService<ScadaEngine.Web.Services.DbCoordinatorReloadPublisher>(provider =>
@@ -345,6 +353,12 @@ builder.Services.AddHostedService<ScadaEngine.Web.Services.OpcUaReloadPublisher>
 var app = builder.Build();
 
 Console.WriteLine("正在啟動 SCADA Web 應用程式...");
+
+// 通知設定檔（Email / Sms / Line）路徑：三個 Singleton 建構時各印一行「通知設定檔路徑 … 來源」，
+// 這裡強制建構，讓啟動 log 就能與 Engine 的三行比對是否同一份（否則要等第一次用到才印）
+app.Services.GetRequiredService<ScadaEngine.Web.Services.EmailSenderConfigService>();
+app.Services.GetRequiredService<ScadaEngine.Web.Services.SmsSenderConfigService>();
+app.Services.GetRequiredService<ScadaEngine.Web.Services.LineTestSendService>();
 
 // 啟動時同步 DB 結構（schema-driven 建表 + 補缺欄位）— 消滅 Engine/Web 部署順序依賴，誰先重啟誰補。
 // 失敗僅 log 不擋啟動（DB 連不上時 Web 照常起，之後 Engine 或手動初始化可補）

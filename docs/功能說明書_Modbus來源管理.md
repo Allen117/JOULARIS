@@ -172,7 +172,7 @@ Install.bat → 填 Modbus範本.xlsx（任何能編輯 xlsx 的軟體；或頁�
 - 刪除 = `{name}.json` 移到 `Modbus/_deleted/{name}_{yyyyMMddHHmmss}.json`（子資料夾不在 watcher 與載入範圍；人工搬回即復原）
 - Engine 收到 `Deleted` → 依 ModbusCollectionManager 的「檔名 → IP:Port」對照 `StopDeviceCollectionAsync`；兩個設定檔共用同一 IP:Port 時另一個還在就不停
 - `ModbusCoordinator` / `ModbusPoints` 與歷史資料**都不刪**：同名重新匯入時 CoordinatorId 不變、SID 一致、歷史接得上；頁面對「DB 有 Coordinator 但 JSON 不存在」者標示「設定檔已移除」並隱藏點位設定
-- 反向狀態「**待 Engine 載入**」：JSON 已匯入但 DB 還沒有紀錄（Engine 未啟動、設定驗證失敗）→ 側欄列出該檔名並提示去看 Engine；頁面清單本身是讀 DB，Coordinator 要等 Engine 載入 JSON 後才會出現。**曾經最常見的原因是 Web 與 Engine 各自一份 `dbSetting.json` 指向不同資料庫**（2026-10-06 現場即如此：Engine `wsn_TG`、Web `wsnCsharp`）→ 頁面提示已列為檢查點 (2)。此問題已於 26.4 結構性消除：三個 app 共讀 `C:\SCADA\Shared\dbSetting.json`（見 [架構.md §dbSetting.json 解析順序](架構.md#dbsettingjson-解析順序)）；若仍懷疑，比對 Engine / Web 啟動 log 的「資料庫設定檔路徑」行
+- 反向狀態「**待 Engine 載入**」：JSON 已匯入但 DB 還沒有紀錄（Engine 未啟動、設定驗證失敗）→ 側欄列出該檔名並提示去看 Engine；頁面清單本身是讀 DB，Coordinator 要等 Engine 載入 JSON 後才會出現。**曾經最常見的原因是 Web 與 Engine 各自一份 `dbSetting.json` 指向不同資料庫**（2026-10-06 現場即如此：Engine `wsn_TG`、Web `wsnCsharp`）→ 頁面提示已列為檢查點 (2)。此問題已於 26.4 結構性消除：三個 app 共讀 `C:\SCADA\Shared\dbSetting.json`（見 [架構.md §共用設定檔解析順序](架構.md#共用設定檔解析順序)）；若仍懷疑，比對 Engine / Web 啟動 log 的「資料庫設定檔路徑」行
 - Engine 空載（`Modbus\` 沒有任何 JSON，新裝機必然如此）**仍會啟動 watcher**（2026-10-06 修正：原本無設備就 return、watcher 沒掛 → 匯入後要等 Engine 重啟才採集）；資料夾不存在會先建立
 - 同資料夾 `X.json → Y.json` 改名也視為 X 移除 + Y 新增；`File.Replace` 的 `X.json → X.json.bak` 中間步驟（同資料夾、新名非 .json）不算移除
 

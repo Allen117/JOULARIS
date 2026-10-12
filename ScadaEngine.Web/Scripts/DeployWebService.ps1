@@ -143,6 +143,7 @@ function Install-Service {
         Write-Host ""
         Write-Host "Configuration files:"
         Write-Host "  - ..\..\Shared\dbSetting.json  (DB connection, C:\SCADA\Shared - shared with Engine)"
+        Write-Host "  - ..\..\Shared\EmailSetting.json / SmsSetting.json / LineSetting.json  (notify configs, C:\SCADA\Shared - Web UI writes, Engine hot-reloads)"
         Write-Host "  - MqttSetting\MqttSetting.json (MQTT broker)"
         Write-Host ""
         Write-Host "Next: Run '.\DeployWebService.ps1 start' to start the service"
@@ -341,7 +342,7 @@ function Diagnose-Service {
     Write-Host "  wwwroot: $(if (Test-Path $wwwrootPath) { 'OK' } else { 'MISSING' })"
 
     Write-Host "`n3. Configuration Files:" -ForegroundColor Yellow
-    $configFiles = @('..\..\Shared\dbSetting.json', 'MqttSetting\MqttSetting.json', 'DatabaseSchema\DatabaseSchema.json')
+    $configFiles = @('..\..\Shared\dbSetting.json', '..\..\Shared\EmailSetting.json', '..\..\Shared\SmsSetting.json', '..\..\Shared\LineSetting.json', 'MqttSetting\MqttSetting.json', 'DatabaseSchema\DatabaseSchema.json')
     foreach ($config in $configFiles) {
         $configPath = Join-Path $TargetPath $config
         $exists = Test-Path $configPath
