@@ -91,9 +91,10 @@
   </ItemGroup>
   
   <ItemGroup>  
-    <None Update="Setting\dbsetting.json">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
+    <!-- dbSetting.json 不複製到輸出：開發模式由 DbSettingLocator 讀 repo 的 Setting\dbSetting.json（第 4 層），
+         Release 包由 BuildRelease.ps1 放到包根 Shared\（生產機 C:\SCADA\Shared\），App\Setting 不再有複本 -->
+    <None Remove="Setting\dbSetting.json" />
+    <Content Remove="Setting\dbSetting.json" />
     <None Update="Setting\LineSetting.json">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>

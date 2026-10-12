@@ -19,61 +19,12 @@ public static class DataServiceExtensions
     /// <returns>服務集合</returns>
     public static IServiceCollection AddDataServices(this IServiceCollection services)
     {
-        // 註冊資料庫配置服務為單例 - 智慧路徑偵測
+        // 註冊資料庫配置服務為單例 — 路徑由 Common 的 DbSettingLocator 統一解析
+        // （環境變數 → ..\..\Shared → 本機 Setting → 開發 repo；Engine / Web / ModbusServer 三者同一套，見 docs/架構.md）
         services.AddSingleton<DatabaseConfigService>(serviceProvider =>
         {
             var logger = serviceProvider.GetRequiredService<ILogger<DatabaseConfigService>>();
-            
-            // 使用應用程式基礎目錄作為設定檔路徑
-            var szBasePath = AppDomain.CurrentDomain.BaseDirectory;
-            var szConfigPath = Path.Combine(szBasePath, "Setting", "dbSetting.json");
-            
-            // 記錄路徑偵測結果
-            logger.LogInformation("資料庫配置服務初始化");
-            logger.LogInformation("應用程式基礎目錄: {BasePath}", szBasePath);
-            logger.LogInformation("資料庫設定檔路徑: {ConfigPath}", szConfigPath);
-            logger.LogInformation("設定檔是否存在: {FileExists}", File.Exists(szConfigPath));
-            
-            // 如果檔案不存在，嘗試備用路徑
-            if (!File.Exists(szConfigPath))
-            {
-                // 備用路徑1: 開發模式的相對路徑
-                var szFallbackPath1 = Path.Combine(Directory.GetCurrentDirectory(), "Setting", "dbSetting.json");
-                if (File.Exists(szFallbackPath1))
-                {
-                    logger.LogInformation("使用備用路徑1: {FallbackPath}", szFallbackPath1);
-                    szConfigPath = szFallbackPath1;
-                }
-                else
-                {
-                    // 備用路徑2: 專案根目錄
-                    var szProjectRoot = Path.GetDirectoryName(szBasePath);
-                    while (szProjectRoot != null && !Directory.GetFiles(szProjectRoot, "*.csproj").Any())
-                    {
-                        szProjectRoot = Path.GetDirectoryName(szProjectRoot);
-                    }
-                    
-                    if (szProjectRoot != null)
-                    {
-                        var szFallbackPath2 = Path.Combine(szProjectRoot, "Setting", "dbSetting.json");
-                        if (File.Exists(szFallbackPath2))
-                        {
-                            logger.LogInformation("使用備用路徑2 (專案根目錄): {FallbackPath}", szFallbackPath2);
-                            szConfigPath = szFallbackPath2;
-                        }
-                        else
-                        {
-                            logger.LogWarning("所有路徑都找不到設定檔，將使用預設配置");
-                        }
-                    }
-                    else
-                    {
-                        logger.LogWarning("無法找到專案根目錄，將使用預設配置");
-                    }
-                }
-            }
-            
-            return new DatabaseConfigService(logger, szConfigPath);
+            return new DatabaseConfigService(logger, DbSettingLocator.Resolve());
         });
 
         // 註冊資料庫綱要服務為單例 - 智慧路徑偵測

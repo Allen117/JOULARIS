@@ -41,7 +41,19 @@ function Read-JsonFile([string]$path) {
 }
 
 # ─── 1. 讀取設定檔補齊參數 ───────────────────────────────────────────────
-$dbSetting    = Read-JsonFile (Join-Path $PSScriptRoot 'dbSetting.json')
+# dbSetting.json 與 DbSettingLocator 同序：環境變數 JOULARIS_DBSETTING → 機器共用檔
+# （本腳本在 C:\SCADA\Engine\App\Setting\，往上三層 = C:\SCADA\Shared\）→ 同資料夾（舊佈局 / 開發 repo）
+$dbSettingPath = $null
+foreach ($cand in @(
+    $env:JOULARIS_DBSETTING,
+    (Join-Path $PSScriptRoot '..\..\..\Shared\dbSetting.json'),
+    (Join-Path $PSScriptRoot 'dbSetting.json')
+)) {
+    if ($cand -and (Test-Path $cand)) { $dbSettingPath = (Resolve-Path $cand).Path; break }
+}
+$dbSetting    = if ($dbSettingPath) { Read-JsonFile $dbSettingPath } else { $null }
+if ($dbSettingPath) { Write-Host "連線設定: $dbSettingPath" -ForegroundColor Gray }
+else { Write-Host "警告: 找不到 dbSetting.json（Shared / 同資料夾皆無），使用內建預設值" -ForegroundColor Yellow }
 $maintSetting = Read-JsonFile (Join-Path $PSScriptRoot 'DbMaintenanceSetting.json')
 
 if (-not $ServerInstance) { $ServerInstance = if ($dbSetting) { $dbSetting.DatabaseAddress } else { 'localhost' } }

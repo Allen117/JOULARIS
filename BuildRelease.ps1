@@ -72,6 +72,17 @@ foreach ($dir in $engineConfigs) {
     }
 }
 
+# dbSetting.json → 包根 Shared\（Install.bat 鋪到 C:\SCADA\Shared\dbSetting.json，Engine / Web / Gateway 共用一份）。
+# Engine\App\Setting 不再帶複本：DbSettingLocator 第 2 層（..\..\Shared）本就贏過第 3 層（本機 Setting），
+# 留複本只會讓現場改到一份永遠不被讀的檔。見 docs/架構.md §dbSetting.json 解析順序
+$sharedDir = "$ReleasePath\Shared"
+if (-not (Test-Path $sharedDir)) { New-Item -ItemType Directory -Path $sharedDir -Force | Out-Null }
+$dbSettingSrc = Join-Path $engineProject "Setting\dbSetting.json"
+if (-not (Test-Path $dbSettingSrc)) { Write-Host "Engine Setting\dbSetting.json missing (needed as Shared template)" -ForegroundColor Red; exit 1 }
+Copy-Item $dbSettingSrc -Destination "$sharedDir\dbSetting.json" -Force
+Remove-Item "$ReleasePath\Engine\App\Setting\dbSetting.json" -Force -ErrorAction SilentlyContinue
+Write-Host "  dbSetting.json -> package root Shared\ (installs to C:\SCADA\Shared, shared by Engine/Web/Gateway)" -ForegroundColor Gray
+
 # 現場資料夾（Modbus / DBPoint / OpcUaPoint）：dotnet publish 會依 Engine csproj 的
 # CopyToOutputDirectory 把 repo 的 dev 裝置定義（*.json）與範例（*.json.example）帶進 Engine\App。
 # 這些是各站台自有的現場資料，不該隨 release 外流到客戶伺服器。作法：清掉整個資料夾內容，
@@ -189,11 +200,9 @@ $webMqttDst = "$ReleasePath\Web\App\MqttSetting"
 if (-not (Test-Path $webMqttDst)) { New-Item -ItemType Directory -Path $webMqttDst -Force | Out-Null }
 if (Test-Path $webMqtt) { Copy-Item $webMqtt -Destination "$webMqttDst\MqttSetting.json" -Force }
 
-# Copy shared DB config from Engine
-$dbSetting = Join-Path $engineProject "Setting\dbSetting.json"
-$webSettingDir = "$ReleasePath\Web\App\Setting"
-if (-not (Test-Path $webSettingDir)) { New-Item -ItemType Directory -Path $webSettingDir -Force | Out-Null }
-if (Test-Path $dbSetting) { Copy-Item $dbSetting -Destination "$webSettingDir\dbSetting.json" -Force }
+# dbSetting.json 不進 Web\App\Setting — Web 改讀 C:\SCADA\Shared\dbSetting.json（與 Engine 同一份，見上方 Engine 段）。
+# 以前這裡從 Engine 複製一份給 Web，升級時兩份各自備份/還原，一旦分家就永久分家（2026-10-06 現場即如此）。
+Remove-Item "$ReleasePath\Web\App\Setting\dbSetting.json" -Force -ErrorAction SilentlyContinue
 
 # Copy DatabaseSchema from Engine
 $schemaFile = Join-Path $engineProject "DatabaseSchema\DatabaseSchema.json"
@@ -250,6 +259,9 @@ foreach ($dir in @("Setting", "MqttSetting", "Web")) {
         Copy-Item -Path "$src\*" -Destination $dst -Recurse -Force
     }
 }
+
+# Gateway 包內只帶 dbSetting.example.json：同機安裝讀 C:\SCADA\Shared\，異機安裝由 InstallModbusServer.bat 從 example 鋪本機 Setting\dbSetting.json
+Remove-Item "$ReleasePath\ModbusServer\App\Setting\dbSetting.json" -Force -ErrorAction SilentlyContinue
 
 # Copy ModbusServer scripts
 Copy-Item -Path (Join-Path $modbusProject "Scripts\DeployModbusServer.ps1") -Destination "$ReleasePath\ModbusServer\" -Force
@@ -497,8 +509,31 @@ if "%_IS_UPGRADE%"=="1" (
     echo.
 )
 
+:: -- dbSetting.json: ONE machine-wide copy at C:\SCADA\Shared (read by Engine, Web and Modbus Gateway) --
+:: All three apps resolve it the same way (DbSettingLocator): env JOULARIS_DBSETTING -> <App>\..\..\Shared
+:: -> <App>\Setting -> dev repo. Shared lives OUTSIDE every <App>\App folder, so upgrades never touch it
+:: and it no longer needs the backup/restore dance.
+::   upgrade from the old layout : MOVE the site's Engine copy (just restored above) to Shared
+::   fresh install               : write the package template
+::   Shared already present      : leave it alone
+:: Afterwards delete the per-app copies so nobody edits a file that is no longer read.
+if not exist "C:\SCADA\Shared" mkdir "C:\SCADA\Shared"
+if exist "C:\SCADA\Shared\dbSetting.json" goto DBSETTING_DONE
+if exist "C:\SCADA\Engine\App\Setting\dbSetting.json" (
+    echo [MIGRATE] Moving Engine\App\Setting\dbSetting.json to C:\SCADA\Shared\dbSetting.json ...
+    move /Y "C:\SCADA\Engine\App\Setting\dbSetting.json" "C:\SCADA\Shared\dbSetting.json" >nul
+    goto DBSETTING_DONE
+)
+echo [INFO] First install - writing DB connection template to C:\SCADA\Shared\dbSetting.json
+copy /Y "%~dp0Shared\dbSetting.json" "C:\SCADA\Shared\dbSetting.json" >nul
+:DBSETTING_DONE
+if exist "C:\SCADA\Engine\App\Setting\dbSetting.json" del /Q "C:\SCADA\Engine\App\Setting\dbSetting.json"
+if exist "C:\SCADA\Web\App\Setting\dbSetting.json" del /Q "C:\SCADA\Web\App\Setting\dbSetting.json"
+echo [OK] DB connection file: C:\SCADA\Shared\dbSetting.json
+echo.
+
 :: ── Database setup: create DB if missing + backup folder ACL + app login ──
-:: idempotent; runs AFTER config restore so it reads the site's dbSetting.json
+:: idempotent; runs AFTER the dbSetting migration above so it reads C:\SCADA\Shared\dbSetting.json
 echo [5/8] Database setup...
 powershell -ExecutionPolicy Bypass -File "C:\SCADA\Engine\App\Setting\install-db.ps1"
 if %errorLevel% NEQ 0 (
@@ -558,9 +593,10 @@ echo ========================================
 echo.
 if "%_IS_UPGRADE%"=="1" (
     echo [OK] Site config was PRESERVED ^(Modbus, Setting, MqttSetting, DBPoint, OpcUaPoint^).
+    echo      DB connection file is C:\SCADA\Shared\dbSetting.json ^(shared by Engine/Web/Gateway^).
 ) else (
     echo [NOTE] First install — edit config files as needed:
-    echo   C:\SCADA\Engine\App\Setting\dbSetting.json      ^(DB connection^)
+    echo   C:\SCADA\Shared\dbSetting.json                  ^(DB connection - ONE file for Engine/Web/Gateway^)
     echo   C:\SCADA\Engine\App\Modbus\*.json                ^(Modbus devices^)
     echo   C:\SCADA\Engine\App\MqttSetting\MqttSetting.json ^(MQTT broker^)
     echo   C:\SCADA\Engine\App\DBPoint\*.json               ^(DB source points^)
@@ -679,6 +715,19 @@ if "%_IS_UPGRADE%"=="1" (
     rmdir /S /Q "%_BACKUP%"
 )
 
+:: -- dbSetting.json: same box as Engine/Web -> read C:\SCADA\Shared\dbSetting.json (DbSettingLocator layer 2
+::    always beats a local copy, so delete the local one to avoid a file nobody reads);
+::    standalone box (no Shared) -> keep the site copy, or seed Setting\dbSetting.json from the example --
+if exist "C:\SCADA\Shared\dbSetting.json" (
+    if exist "%_APP%\Setting\dbSetting.json" del /Q "%_APP%\Setting\dbSetting.json"
+    echo [INFO] Using shared DB connection: C:\SCADA\Shared\dbSetting.json
+) else (
+    if not exist "%_APP%\Setting\dbSetting.json" (
+        copy /Y "%_APP%\Setting\dbSetting.example.json" "%_APP%\Setting\dbSetting.json" >nul
+        echo [NOTE] Standalone gateway: edit %_APP%\Setting\dbSetting.json ^(SQL Server IP / account^)
+    )
+)
+
 :: -- Read configured ports from the (site) setting file --
 for /f "usebackq" %%p in (`powershell -NoProfile -Command "(Get-Content '%_APP%\Setting\ModbusServerSetting.json' -Raw | ConvertFrom-Json).ModbusListenPort"`) do set MODBUS_PORT=%%p
 for /f "usebackq" %%p in (`powershell -NoProfile -Command "(Get-Content '%_APP%\Setting\ModbusServerSetting.json' -Raw | ConvertFrom-Json).WebPort"`) do set WEB_PORT=%%p
@@ -749,7 +798,11 @@ if "%_IS_UPGRADE%"=="1" (
 ) else (
     echo [NOTE] First install - edit config as needed:
     echo   %_APP%\Setting\ModbusServerSetting.json  ^(ports / word order / segments^)
-    echo   %_APP%\Setting\dbSetting.json            ^(SQL connection^)
+    if exist "C:\SCADA\Shared\dbSetting.json" (
+        echo   C:\SCADA\Shared\dbSetting.json           ^(SQL connection - shared with Engine/Web^)
+    ) else (
+        echo   %_APP%\Setting\dbSetting.json            ^(SQL connection - standalone box^)
+    )
     echo   %_APP%\MqttSetting\MqttSetting.json      ^(MQTT broker^)
 )
 echo.
@@ -790,6 +843,7 @@ Write-Host "Folder structure:"
 Write-Host "  SCADA_Release_${DateTag}_v$AppVersion\"
 Write-Host "  +-- Install.bat              <- On-site: right-click Run as Admin (Engine + Web only)"
 Write-Host "  +-- InstallModbusServer.bat  <- Optional Modbus gateway (standalone, run separately)"
+Write-Host "  +-- Shared\                  <- dbSetting.json template -> C:\SCADA\Shared (ONE DB config for Engine/Web/Gateway)"
 if (-not $NoPython) {
 Write-Host "  +-- PythonRuntime\           <- Python base bundle (version-gated; Install.bat deploys to Engine\App)"
 }

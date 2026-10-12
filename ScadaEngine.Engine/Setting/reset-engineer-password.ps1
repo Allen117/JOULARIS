@@ -14,8 +14,8 @@
     本腳本為工程師隨身工具，放在 Release 包根目錄、**不會**被安裝到客戶伺服器
     （留在伺服器等於任何能碰檔案系統的人都能一鍵重設）。需要時由工程師以 USB 帶到現場執行。
 
-    參數不給時自動尋找 dbSetting.json：腳本同資料夾 → 包內 Engine\App\Setting →
-    伺服器安裝路徑 C:\SCADA\Engine\App\Setting。
+    參數不給時自動尋找 dbSetting.json：環境變數 JOULARIS_DBSETTING → 伺服器共用檔 C:\SCADA\Shared →
+    包根 Shared\ → 腳本同資料夾 → 包內 Engine\App\Setting → 舊佈局 C:\SCADA\Engine\App\Setting。
     密碼雜湊與 Web 登入驗證一致：SHA256(UTF8) 小寫 hex。
 #>
 [CmdletBinding()]
@@ -35,13 +35,18 @@ function Read-JsonFile([string]$path) {
 }
 
 # ─── 1. 讀取設定檔補齊參數 ───────────────────────────────────────────────
-# 依序尋找：腳本同資料夾（開發/舊佈局）→ 包根目錄執行時的包內路徑 → 伺服器安裝路徑
+# 依序尋找（與 DbSettingLocator 同精神，共用檔優先）：環境變數 → 伺服器共用檔 C:\SCADA\Shared →
+# 包根目錄執行時的包內 Shared\ → 腳本同資料夾（開發 repo）→ 包內 Engine\App\Setting（舊包）→ 舊佈局伺服器路徑
 $dbSetting = $null
 foreach ($cand in @(
+    $env:JOULARIS_DBSETTING,
+    'C:\SCADA\Shared\dbSetting.json',
+    (Join-Path $PSScriptRoot 'Shared\dbSetting.json'),
     (Join-Path $PSScriptRoot 'dbSetting.json'),
     (Join-Path $PSScriptRoot 'Engine\App\Setting\dbSetting.json'),
     'C:\SCADA\Engine\App\Setting\dbSetting.json'
 )) {
+    if (-not $cand) { continue }
     $dbSetting = Read-JsonFile $cand
     if ($dbSetting) { Write-Host "連線設定: $cand" -ForegroundColor Gray; break }
 }

@@ -275,7 +275,7 @@ function Install-Service {
 
         Write-Host "Service installed successfully to: $TargetPath"
         Write-Host "Configuration files structure:"
-        Write-Host '  - Setting\dbSetting.json'
+        Write-Host '  - ..\..\Shared\dbSetting.json  (C:\SCADA\Shared - ONE DB config shared by Engine/Web/Gateway)'
         Write-Host '  - Modbus\*.json'
         Write-Host '  - Mqtt\MqttSetting.json'
         Write-Host '  - DatabaseSchema\DatabaseSchema.json'
@@ -428,9 +428,11 @@ function Start-ServiceInstance {
         }
         
         # 檢查配置檔案
-        $configPath = Join-Path $TargetPath "Setting\dbSetting.json"
-        if (-not (Test-Path $configPath)) {
-            Write-Host "WARNING: Database config not found: $configPath" -ForegroundColor Yellow
+        # dbSetting.json: the shared copy two levels up (C:\SCADA\Shared) wins; Setting\ is the standalone fallback
+        $sharedConfig = Join-Path $TargetPath "..\..\Shared\dbSetting.json"
+        $localConfig  = Join-Path $TargetPath "Setting\dbSetting.json"
+        if (-not (Test-Path $sharedConfig) -and -not (Test-Path $localConfig)) {
+            Write-Host "WARNING: Database config not found: $sharedConfig (nor $localConfig)" -ForegroundColor Yellow
         }
         
         Write-Host "Attempting to start service..."
@@ -473,7 +475,7 @@ function Start-ServiceInstance {
             Write-Host "Troubleshooting suggestions:" -ForegroundColor Yellow
             Write-Host "1. Check Event Viewer: eventvwr.msc -> Windows Logs -> System"
             Write-Host "2. Test manually: cd `"$TargetPath`" && .\ScadaEngine.Engine.exe"
-            Write-Host "3. Check database connection in dbSetting.json"
+            Write-Host "3. Check database connection in C:\SCADA\Shared\dbSetting.json"
             Write-Host "4. Reinstall with option 2 (Uninstall) then option 1 (Install)"
             
             return $false
@@ -605,7 +607,7 @@ function Diagnose-Service {
     # 3. 檢查配置檔案
     Write-Host "`n3. Configuration Files:" -ForegroundColor Yellow
     $configFiles = @(
-        'Setting\dbSetting.json',
+        '..\..\Shared\dbSetting.json',
         'MqttSetting\MqttSetting.json',
         'DatabaseSchema\DatabaseSchema.json'
     )

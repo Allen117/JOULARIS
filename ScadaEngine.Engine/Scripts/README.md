@@ -96,7 +96,7 @@ sc.exe start JoularisEngine
 ```
 C:\SCADA\Engine\App\
 ├── Setting\
-│   └── dbSetting.json          # 資料庫連線設定
+│   └── dbSetting.json          # (已移至 C:\SCADA\Shared\dbSetting.json，Engine/Web/Gateway 共用；開發讀 repo 這份)
 ├── Modbus\
 │   ├── Modbus.json             # Modbus 設備配置
 │   └── Modbus2.json            # 其他 Modbus 設備

@@ -103,15 +103,9 @@ function Install-Service {
         Copy-Item -Path "$publishPath\*" -Destination $TargetPath -Recurse -Force
         Write-Host "Application files copied." -ForegroundColor Green
 
-        # Copy config from Engine (DB setting shared)
+        # dbSetting.json is NOT copied here: Web reads the machine-wide C:\SCADA\Shared\dbSetting.json
+        # (DbSettingLocator, same resolution as Engine / Gateway). Install.bat creates / migrates that file.
         $enginePath = Join-Path (Split-Path -Parent $ProjectPath) "ScadaEngine.Engine"
-        $engineDbSetting = Join-Path $enginePath "Setting\dbSetting.json"
-        if (Test-Path $engineDbSetting) {
-            Copy-Item -Path $engineDbSetting -Destination (Join-Path $TargetPath "Setting\dbSetting.json") -Force
-            Write-Host "Copied: Engine dbSetting.json"
-        } else {
-            Write-Host "WARNING: Engine dbSetting.json not found. Copy manually to $TargetPath\Setting\" -ForegroundColor Yellow
-        }
 
         # Copy Engine DatabaseSchema
         $engineSchema = Join-Path $enginePath "DatabaseSchema\DatabaseSchema.json"
@@ -148,7 +142,7 @@ function Install-Service {
         Write-Host "========================================" -ForegroundColor Green
         Write-Host ""
         Write-Host "Configuration files:"
-        Write-Host "  - Setting\dbSetting.json       (DB connection)"
+        Write-Host "  - ..\..\Shared\dbSetting.json  (DB connection, C:\SCADA\Shared - shared with Engine)"
         Write-Host "  - MqttSetting\MqttSetting.json (MQTT broker)"
         Write-Host ""
         Write-Host "Next: Run '.\DeployWebService.ps1 start' to start the service"
@@ -296,8 +290,8 @@ function Update-Service {
 
         # Sync config files
         $enginePath = Join-Path (Split-Path -Parent $ProjectPath) "ScadaEngine.Engine"
+        # (dbSetting.json deliberately absent: Web reads C:\SCADA\Shared\dbSetting.json, never a local copy)
         $configsToCopy = @(
-            @{ Src = (Join-Path $enginePath "Setting\dbSetting.json"); Dst = (Join-Path $TargetPath "Setting\dbSetting.json") },
             @{ Src = (Join-Path $enginePath "DatabaseSchema\DatabaseSchema.json"); Dst = (Join-Path $TargetPath "DatabaseSchema\DatabaseSchema.json") },
             @{ Src = (Join-Path $ProjectPath "MqttSetting\MqttSetting.json"); Dst = (Join-Path $TargetPath "MqttSetting\MqttSetting.json") }
         )
@@ -347,7 +341,7 @@ function Diagnose-Service {
     Write-Host "  wwwroot: $(if (Test-Path $wwwrootPath) { 'OK' } else { 'MISSING' })"
 
     Write-Host "`n3. Configuration Files:" -ForegroundColor Yellow
-    $configFiles = @('Setting\dbSetting.json', 'MqttSetting\MqttSetting.json', 'DatabaseSchema\DatabaseSchema.json')
+    $configFiles = @('..\..\Shared\dbSetting.json', 'MqttSetting\MqttSetting.json', 'DatabaseSchema\DatabaseSchema.json')
     foreach ($config in $configFiles) {
         $configPath = Join-Path $TargetPath $config
         $exists = Test-Path $configPath

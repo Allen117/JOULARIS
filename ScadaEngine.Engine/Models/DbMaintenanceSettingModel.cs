@@ -44,7 +44,8 @@ public class DbMaintenanceSettingModel
 
     /// <summary>
     /// 載入 DbMaintenanceSetting.json — 路徑偵測與 LineSetting/EmailSetting 同邏輯，
-    /// 另加 Web 端相對路徑 fallback（Web 讀 Engine 設定檔慣例，同 dbSetting.json）。
+    /// 另加開發模式相對路徑 fallback（Web dotnet run 時讀 repo 內 Engine 那份）。
+    /// 本檔為 Engine 專屬設定、不走 DbSettingLocator 的 Shared\ 機制（那只管 dbSetting.json）。
     /// 檔案不存在或解析失敗時回傳預設值（C:\Scada 路徑 + 週日 03:00）。
     /// </summary>
     public static DbMaintenanceSettingModel LoadFromDefaultPaths(ILogger logger)

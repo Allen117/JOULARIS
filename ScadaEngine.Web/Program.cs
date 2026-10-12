@@ -36,10 +36,29 @@ if (isHttpsEnabled)
     builder.Services.AddHttpsRedirection(options => options.HttpsPort = 7189);
 }
 
-// 配置 Serilog 日誌
+// 配置 Serilog 日誌：appsettings 有 "Serilog" 區段就照它；沒有（預設）則比照 Engine / ModbusServer —
+// 服務模式寫 Log\Web-.log（以 BaseDirectory 組絕對路徑，服務 CWD 是 system32）、開發模式印 Console。
+// 沒這段時 ILogger 零輸出，連「資料庫設定檔路徑」這種排障必看的啟動 log 都看不到。
 builder.Host.UseSerilog((context, config) =>
 {
     config.ReadFrom.Configuration(context.Configuration);
+    if (context.Configuration.GetSection("Serilog").Exists()) return;
+
+    config.MinimumLevel.Information()
+          .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+          .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning);
+    if (Microsoft.Extensions.Hosting.WindowsServices.WindowsServiceHelpers.IsWindowsService())
+    {
+        config.WriteTo.File(
+            path: Path.Combine(AppContext.BaseDirectory, "Log", "Web-.log"),
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 30,
+            outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj}{NewLine}{Exception}");
+    }
+    else
+    {
+        config.WriteTo.Console();
+    }
 });
 
 // 多語系：resx 集中放在 Resources/，IStringLocalizer / IViewLocalizer / DataAnnotations 都吃這份
@@ -121,15 +140,12 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-// 註冊來自 Engine 專案的資料庫服務（用於登入功能）
+// 註冊資料庫配置服務 — dbSetting.json 路徑由 Common 的 DbSettingLocator 統一解析
+// （環境變數 → ..\..\Shared → 本機 Setting → 開發 repo；與 Engine / ModbusServer 同一套，見 docs/架構.md）
 builder.Services.AddSingleton<DatabaseConfigService>(serviceProvider =>
 {
     var logger = serviceProvider.GetRequiredService<ILogger<DatabaseConfigService>>();
-    // 優先使用本地 Setting/，部署時由腳本複製；開發時 fallback 到 Engine 專案
-    var localDbConfig = Path.Combine(AppContext.BaseDirectory, "Setting", "dbSetting.json");
-    var engineDbConfig = Path.Combine("..", "ScadaEngine.Engine", "Setting", "dbSetting.json");
-    var dbConfigPath = File.Exists(localDbConfig) ? localDbConfig : engineDbConfig;
-    return new DatabaseConfigService(logger, dbConfigPath);
+    return new DatabaseConfigService(logger, DbSettingLocator.Resolve());
 });
 
 builder.Services.AddSingleton<DatabaseSchemaService>(serviceProvider =>

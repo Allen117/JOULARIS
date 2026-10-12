@@ -120,7 +120,8 @@ function Install-GatewayService {
         Write-Host "Service installed to: $TargetPath" -ForegroundColor Green
         Write-Host "Config files:"
         Write-Host '  - Setting\ModbusServerSetting.json  (ports / word order / segments)'
-        Write-Host '  - Setting\dbSetting.json            (SQL connection)'
+        Write-Host '  - ..\..\Shared\dbSetting.json       (SQL connection; same box as Engine/Web -> C:\SCADA\Shared)'
+        Write-Host '  - Setting\dbSetting.json            (SQL connection; standalone box only, seeded from dbSetting.example.json)'
         Write-Host '  - MqttSetting\MqttSetting.json      (MQTT broker)'
         Write-Host '  - AddressMap.json                   (auto-generated, DO NOT delete: address assignments)'
         return $true

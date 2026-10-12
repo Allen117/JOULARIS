@@ -150,7 +150,7 @@ ScadaEngine.sln
 
 | File | Purpose |
 |------|---------|
-| `ScadaEngine.Engine/Setting/dbSetting.json` | SQL Server connection (host, DB, user, pass) |
+| `dbSetting.json`（開發 `ScadaEngine.Engine/Setting/`；生產機 **`C:\SCADA\Shared\`**） | SQL Server connection，Engine / Web / ModbusServer **共用一份**。三者皆由 Common `DbSettingLocator` 四層解析（環境變數 `JOULARIS_DBSETTING` → `..\..\Shared` → 本機 `Setting` → 開發 repo），啟動 log 印實際路徑與來源；升級由 Install.bat 自動從舊佈局搬移 → docs/架構.md §dbSetting.json 解析順序 |
 | `ScadaEngine.Engine/MqttSetting/MqttSetting.json` | MQTT broker IP/port/topic/retain |
 | `ScadaEngine.Engine/Modbus/Modbus.json` | Modbus device definitions (IP, port, tags) |
 | `ScadaEngine.Engine/DatabaseSchema/DatabaseSchema.json` | 建表 + 欄位自動同步的**唯一真相來源** — 加欄位只改此檔，Engine 與 Web 啟動時自動補缺欄位（只加不減不改，詳見 docs/架構.md §資料庫結構初始化與欄位同步） |
@@ -163,7 +163,7 @@ ScadaEngine.sln
 | `ScadaEngine.Engine/Resources/notification.{zh-TW,en}.json` | Engine 通知訊息字典（Line + Email + 簡訊共用，依群組/號碼 Language 切換）|
 | `ScadaEngine.ModbusServer/Setting/ModbusServerSetting.json` | 對外 Modbus Gateway：監聽埠(502)/UnitId/WordOrder/NaN 或 HoldLast/網頁埠(5041，刻意避開 CDPSvc 的 5040)/位址段界 — **僅啟動載入**。同專案 `AddressMap.json`（執行期自動產生）為位址對照持久化，**升級必保留、勿刪**。細節見 docs/功能說明書_ModbusServerGateway.md |
 
-Web reads Engine's `dbSetting.json` via a relative path `../ScadaEngine.Engine/Setting/dbSetting.json` — both projects must run from their own directories.
+開發模式三個專案各自在自己目錄 `dotnet run`（MqttSetting 等仍以 CWD 相對路徑讀）；`dbSetting.json` 由 `DbSettingLocator` 解析，三者都讀 repo 內 Engine 那份、不依賴 CWD。
 
 ---
 

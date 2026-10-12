@@ -144,7 +144,7 @@ API：`GET /api/points`（對照表 + 即時值 JSON）、`POST /api/rescan`。
 
 | 檔案 | 用途 |
 |------|------|
-| `Setting/dbSetting.json` | SQL 連線（格式同 Engine；裝在別台機器時改成主機 IP） |
+| dbSetting.json（SQL 連線，格式同 Engine） | **與 Engine / Web 同機**：讀 `C:\SCADA\Shared\dbSetting.json`（三者共用一份，`Setting\` 不留複本）。**裝在別台機器**：`InstallModbusServer.bat` 從 `Setting/dbSetting.example.json` 鋪一份 `Setting/dbSetting.json`，改成主機 IP / 帳密。解析順序（環境變數 → `..\..\Shared` → 本機 `Setting` → 開發 repo）見 [架構.md §dbSetting.json 解析順序](架構.md#dbsettingjson-解析順序)；啟動 log 印「資料庫設定檔路徑 … 來源」可核對 |
 | `MqttSetting/MqttSetting.json` | MQTT broker（格式同 Engine） |
 | `AddressMap.json` | 配址持久化（自動產生，**勿刪**，升級自動保留） |
 

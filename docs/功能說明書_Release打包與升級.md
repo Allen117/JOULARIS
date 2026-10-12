@@ -9,7 +9,8 @@ SCADA_Release_yyyyMMdd_HHmm\
 ├── Install.bat              <- 現場安裝/升級 Engine + Web + LicenseBridge（右鍵以系統管理員執行）
 ├── InstallModbusServer.bat  <- 對外 Modbus Gateway 獨立安裝（不由 Install.bat 帶）
 ├── reset-engineer-password.ps1  <- 工程師工具，隨 USB 攜帶，不落地伺服器
-├── Engine\App\             <- Engine 執行檔 + 設定
+├── Shared\dbSetting.json   <- DB 連線範本 → 現場 C:\SCADA\Shared\（Engine / Web / Gateway 共用一份，見 §dbSetting.json 遷移與回滾）
+├── Engine\App\             <- Engine 執行檔 + 設定（Setting\ 不含 dbSetting.json）
 ├── Web\App\                <- Web 執行檔 + wwwroot + 設定
 ├── LicenseBridge\App\      <- net48 HASP 授權橋接（需 USB 加密狗）
 └── ModbusServer\App\       <- 對外 Modbus TCP Gateway
@@ -43,10 +44,11 @@ Install.bat 以 **`C:\SCADA\Engine\App\Modbus` 資料夾是否存在**為哨兵�
 ### 升級流程（`_IS_UPGRADE=1`）：先備份 → 整包覆蓋 → 再還原
 
 1. **備份現場設定**到 `C:\SCADA\_ConfigBackup`：
-   - Engine：`Modbus`、`Setting`（含 dbSetting.json）、`MqttSetting`、`DBPoint`
+   - Engine：`Modbus`、`Setting`（舊佈局時含 dbSetting.json）、`MqttSetting`、`DBPoint`
    - Web：`Setting`、`MqttSetting`
 2. **停服務** → `xcopy /Y` 用 release 包整包覆蓋 `Engine\App` / `Web\App` / `LicenseBridge`
 3. **還原現場設定**蓋回步驟 2 的新版設定 → **現場設定最後勝出**
+4. **dbSetting.json 遷移到 `C:\SCADA\Shared\`**（見下方 §dbSetting.json 遷移與回滾）→ 之後才跑 `install-db.ps1`
 
 淨結果：
 
@@ -54,7 +56,8 @@ Install.bat 以 **`C:\SCADA\Engine\App\Modbus` 資料夾是否存在**為哨兵�
 |------|--------|
 | Modbus / DBPoint 現場裝置定義 | **保留現場版**（release 空資料夾不會蓋掉；`*.xlsx` 範本更新為新版；舊版殘留的 `*.xlsm` 放著無害）；Web 匯入功能建立的 `_deleted/` 備份子資料夾隨整個資料夾一起備份／還原 |
 | OpcUaPoint 現場定義 | **保留現場版**（不在備份清單，但 release 不帶 json、xcopy 不刪，故原封不動） |
-| dbSetting.json / MqttSetting.json | **保留現場版** |
+| dbSetting.json | **保留現場版**，但位置改為 **`C:\SCADA\Shared\dbSetting.json`**（自舊佈局升級時從 `Engine\App\Setting` 自動搬過去、Web 複本刪除；`Shared\` 已存在則完全不動，不會被包內範本蓋掉） |
+| MqttSetting.json | **保留現場版** |
 | 程式執行檔、wwwroot | 換成 release 新版 |
 | `Setting\*.ps1`（install-db 等腳本） | **一律換 release 新版**（腳本屬程式，不還原舊版） |
 | `DatabaseSchema.json` | 換 release 新版（schema 唯一真相來源，只加不減） |
@@ -62,13 +65,34 @@ Install.bat 以 **`C:\SCADA\Engine\App\Modbus` 資料夾是否存在**為哨兵�
 
 > ⚠️ 因此**升級不會**把你在 `C:\SCADA` 上的 DB 連線與 Modbus 裝置設定換成 release 包裡的預設值。
 
+### dbSetting.json 遷移與回滾
+
+`C:\SCADA\Shared\dbSetting.json` 是 Engine / Web / Gateway **共用的唯一一份** DB 連線設定（解析順序見 [架構.md §dbSetting.json 解析順序](架構.md#dbsettingjson-解析順序)）。它在所有 `<App>\App\` 之外，所以升級的「整包覆蓋」天然碰不到它，也不在備份／還原清單裡。Install.bat 在還原現場設定之後、`install-db.ps1` 之前執行：
+
+| 現場狀態 | Install.bat 動作 |
+|---------|-----------------|
+| `Shared\dbSetting.json` 已存在 | 不動（包內範本**不會**覆蓋） |
+| 不存在，但 `Engine\App\Setting\dbSetting.json` 存在（舊佈局升級，剛從備份還原） | `move` 到 `Shared\`（印 `[MIGRATE]`） |
+| 都不存在（全新安裝） | 把包內 `Shared\dbSetting.json` 範本 `copy` 過去 |
+| 收尾 | 一律 `del` `Engine\App\Setting\dbSetting.json` 與 `Web\App\Setting\dbSetting.json` 殘留，避免現場改到一份永遠不被讀的檔 |
+
+⚠️ 舊佈局若 Web 複本與 Engine 複本內容**不同**（刻意讓 Web 連別的 DB），升級後以 **Engine 那份**為準統一；升級前請人工 diff 確認。
+
+**回滾到 Shared 之前的舊版 Release 包**（26.3.x 以前）：舊版 Engine / Web 只讀自己的 `App\Setting\dbSetting.json`，而新版已把它搬走，直接跑舊版 Install.bat 會讓兩個 app 讀到包內預設值。步驟：
+
+1. 先 `copy C:\SCADA\Shared\dbSetting.json C:\SCADA\Engine\App\Setting\` 與 `...\Web\App\Setting\`（兩份都要）
+2. 再跑舊版 Install.bat（它會備份／還原這兩份）
+3. `Shared\` 資料夾留著無害；之後再升回新版會偵測到 `Shared\` 已存在而直接沿用
+
 ### 首次安裝（`_IS_UPGRADE=0`）
 
-無備份/還原；release 包內容直接落地。Modbus / DBPoint 只有 `*.xlsx` 空白範本、OpcUaPoint 只有 `*.xlsm` 工具，無任何裝置定義 → Modbus / DB 由現場工程師填範本後在 Web 匯入（自動寫 `*.json`、免重啟）；OPC UA 用工具產生 `*.json` 後放入對應資料夾。
+無備份/還原；release 包內容直接落地，`C:\SCADA\Shared\dbSetting.json` 由包內範本寫入（現場改這一份即可，三個 app 共用）。Modbus / DBPoint 只有 `*.xlsx` 空白範本、OpcUaPoint 只有 `*.xlsm` 工具，無任何裝置定義 → Modbus / DB 由現場工程師填範本後在 Web 匯入（自動寫 `*.json`、免重啟）；OPC UA 用工具產生 `*.json` 後放入對應資料夾。
 
 ## 四、ModbusServer Gateway（獨立）
 
-`InstallModbusServer.bat` 與 Install.bat **解耦**，需另外執行。升級同樣備份/還原現場 `Setting`、`MqttSetting`，並特別保留執行期產生的 **`AddressMap.json`**（對外 Modbus 位址對照，append-only，絕不可丟）。詳見 docs/功能說明書_ModbusServerGateway.md。
+`InstallModbusServer.bat` 與 Install.bat **解耦**，需另外執行。升級同樣備份/還原現場 `Setting`、`MqttSetting`，並特別保留執行期產生的 **`AddressMap.json`**（對外 Modbus 位址對照，append-only，絕不可丟）。
+
+dbSetting.json：包內只帶 `Setting\dbSetting.example.json`。安裝時若同機已有 `C:\SCADA\Shared\dbSetting.json`（與 Engine / Web 同機）就直接共用、並刪掉本機 `Setting\dbSetting.json` 殘留；若沒有（Gateway 裝在另一台機器）則從 example 鋪一份 `Setting\dbSetting.json` 並提示填 SQL Server IP / 帳密。詳見 docs/功能說明書_ModbusServerGateway.md。
 
 ## 相關檔案
 
