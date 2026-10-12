@@ -90,4 +90,6 @@
   <data name="dbcoord.badge.config_missing" xml:space="preserve"><value>設定檔已移除</value></data>
   <data name="dbcoord.btn.delete_source" xml:space="preserve"><value>刪除來源</value></data>
   <data name="dbcoord.msg.config_missing_hint" xml:space="preserve"><value>此來源的設定檔已移除，Engine 已停止輪詢；資料庫與歷史資料保留。重新匯入同名工作表即可恢復。</value></data>
+  <data name="dbcoord.badge.pending_engine" xml:space="preserve"><value>待 Engine 載入</value></data>
+  <data name="dbcoord.msg.pending_engine_hint" xml:space="preserve"><value>此來源的設定檔已匯入，但 Engine 尚未載入（Web 連的資料庫沒有紀錄）。請依序確認：(1) Engine 正在執行，必要時按右上「通知 Engine 重新載入 JSON」；(2) Web 與 Engine 的 Setting\dbSetting.json 指向同一個資料庫；(3) Engine Log 是否有錯誤。</value></data>
 </root>

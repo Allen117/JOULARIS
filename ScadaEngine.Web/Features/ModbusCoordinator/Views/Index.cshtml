@@ -99,12 +99,22 @@
                             }
                         }
                     }
-                    else
+                    else if (pendingConfigNames.Count == 0)
                     {
                         <div class="text-center text-muted py-4">
                             <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                             @Localizer["modbuscoordinator.empty.no_device"]
                         </div>
+                    }
+                    @* JSON 已匯入但 Engine 尚未載入（DB 無紀錄）→ 列出讓使用者知道檔案在、只是還沒被採集 *@
+                    @foreach (var szPending in pendingConfigNames)
+                    {
+                        <a href="#" class="list-group-item list-group-item-action py-2 pending-item" data-name="@szPending">
+                            <i class="fas fa-chevron-right me-1" style="font-size:.7rem;visibility:hidden;"></i>
+                            <i class="fas fa-hourglass-half me-1 text-warning"></i>
+                            <span class="small">@szPending</span>
+                            <span class="badge bg-info text-dark ms-1 srcxl-missing-badge">@Localizer["modbuscoordinator.badge.pending_engine"]</span>
+                        </a>
                     }
                 </div>
             </div>
@@ -135,6 +145,10 @@
                     <!-- Coordinator 在 DB 中存在、但 JSON 已移除 -->
                     <div id="configMissingNote" class="alert alert-warning py-2 small" style="display:none;">
                         <i class="fas fa-exclamation-triangle me-1"></i>@Localizer["modbuscoordinator.msg.config_missing_hint"]
+                    </div>
+                    <!-- JSON 已匯入、Engine 尚未載入 -->
+                    <div id="pendingEngineNote" class="alert alert-info py-2 small" style="display:none;">
+                        <i class="fas fa-hourglass-half me-1"></i>@Localizer["modbuscoordinator.msg.pending_engine_hint"]
                     </div>
                     @if (Model.Any())
                     {
@@ -259,6 +273,8 @@
         window._modbusMissingConfig = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(missingConfigNames));
         // 設備名稱 → { ip, port }（來自各設備 JSON；設定檔已移除者不在內）
         window._modbusEndpoints = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(endpoints));
+        // 待 Engine 載入名單 → 共用 JS 背景輪詢 /ModbusCoordinator/SourceStatus，載入後自動重新整理
+        window._srcxlPendingNames = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(pendingConfigNames));
     </script>
     <script src="~/js/common/source-excel-import.js" asp-append-version="true"></script>
     <script src="~/js/modbuscoordinator.js" asp-append-version="true"></script>

@@ -18,7 +18,7 @@
     }
 
     function clearAllActive() {
-        document.querySelectorAll('.coordinator-item, .coordinator-toggle, .sub-item')
+        document.querySelectorAll('.coordinator-item, .coordinator-toggle, .sub-item, .pending-item')
             .forEach(function (el) { el.classList.remove('active'); });
     }
 
@@ -182,9 +182,34 @@
     function updateSourceControls(szName) {
         var isMissing = !!szName && aMissingConfig.indexOf(szName.toLowerCase()) >= 0;
         if (configMissingNote) configMissingNote.style.display = isMissing ? '' : 'none';
+        if (pendingEngineNote) pendingEngineNote.style.display = 'none';
         if (btnDeleteSource) btnDeleteSource.style.display = (szName && !isMissing) ? '' : 'none';
         if (isMissing) hideOpenPointsButton();
     }
+
+    /* ── 「待 Engine 載入」項目（JSON 已匯入、DB 尚無紀錄）：只顯示提示 + 刪除按鈕 ── */
+    var pendingEngineNote = document.getElementById('pendingEngineNote');
+    document.querySelectorAll('.pending-item').forEach(function (item) {
+        item.addEventListener('click', function (e) {
+            e.preventDefault();
+            clearAllActive();
+            this.classList.add('active');
+            var szName = this.dataset.name || '';
+
+            var fullDetail = document.getElementById('fullDetail');
+            var subDetail = document.getElementById('subDetail');
+            if (fullDetail) fullDetail.style.display = 'none';
+            if (subDetail) subDetail.style.display = 'none';
+            document.getElementById('detailTitle').innerHTML =
+                '<i class="fas fa-hourglass-half me-1"></i>' + t('modbuscoordinator.card.device_detail') + ' — ' + szName;
+
+            if (configMissingNote) configMissingNote.style.display = 'none';
+            if (pendingEngineNote) pendingEngineNote.style.display = '';
+            hideOpenPointsButton();
+            szPointsCoordinator = szName;                       // 讓刪除按鈕知道目前是哪個設定檔
+            if (btnDeleteSource) btnDeleteSource.style.display = szName ? '' : 'none';
+        });
+    });
 
     if (btnDeleteSource) {
         btnDeleteSource.addEventListener('click', function () {

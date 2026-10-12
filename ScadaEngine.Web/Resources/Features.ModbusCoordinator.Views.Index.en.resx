@@ -108,4 +108,6 @@ Note:
   <data name="modbuscoordinator.badge.config_missing" xml:space="preserve"><value>Config removed</value></data>
   <data name="modbuscoordinator.btn.delete_source" xml:space="preserve"><value>Delete Device</value></data>
   <data name="modbuscoordinator.msg.config_missing_hint" xml:space="preserve"><value>This device's config file has been removed and the Engine stopped polling it; DB rows and history are kept. Re-import a worksheet with the same name to restore.</value></data>
+  <data name="modbuscoordinator.badge.pending_engine" xml:space="preserve"><value>Awaiting Engine</value></data>
+  <data name="modbuscoordinator.msg.pending_engine_hint" xml:space="preserve"><value>This device's config has been imported but the Engine has not loaded it (no record in the database the Web uses). Check in order: (1) the Engine is running (loads on startup; while running, the watcher picks it up within seconds); (2) Web and Engine Setting\dbSetting.json point to the SAME database; (3) the Engine log for validation errors.</value></data>
 </root>

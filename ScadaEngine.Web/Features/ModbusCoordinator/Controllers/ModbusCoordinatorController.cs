@@ -223,6 +223,22 @@ public class ModbusCoordinatorController : Controller
         return result.Conflict ? StatusCode(409, result) : BadRequest(result);
     }
 
+    /// <summary>
+    /// 匯入後輪詢用：DB 已載入的 Coordinator 名稱 + 資料夾現有 JSON 名稱。
+    /// 匯入寫檔 → Engine watcher 去抖 1 秒 + 延遲 0.5 秒才寫 DB，頁面若立刻重新整理會把新設備判成「待 Engine 載入」，
+    /// 前端改為輪詢此端點、等名稱出現在 loaded 再重新整理。
+    /// </summary>
+    [HttpGet("/ModbusCoordinator/SourceStatus")]
+    public async Task<IActionResult> SourceStatus()
+    {
+        var coordinators = await _repository.GetAllCoordinatorsAsync();
+        return Ok(new
+        {
+            loaded = coordinators.Select(c => c.szName).ToList(),
+            existing = _importCoordinator.GetExistingNames(_excelAdapter).ToList(),
+        });
+    }
+
     /// <summary>逐台刪除設備設定（移到 _deleted/ 備份；Engine watcher 收到 Deleted 即停止採集）</summary>
     [HttpPost("/ModbusCoordinator/DeleteSource")]
     public async Task<IActionResult> DeleteSource([FromBody] SourceExcelDeleteRequest request)

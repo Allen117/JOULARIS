@@ -67,6 +67,13 @@ public class DbCoordinatorController : Controller
             }).ToList()
         }).ToList();
 
+        // 反向：JSON 已存在但 DB 還沒有 → Engine 尚未載入（Engine 未啟動 / Reload 沒送到 / 設定驗證失敗），列為「待 Engine 載入」
+        var coordinatorNames = new HashSet<string>(dto.Select(d => d.name), StringComparer.OrdinalIgnoreCase);
+        dto.AddRange(existing
+            .Where(e => !coordinatorNames.Contains(e.Name))
+            .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(e => new DbCoordinatorListItemDto { id = 0, name = e.Name, pendingEngine = true, monitorEnabled = true }));
+
         ViewBag.CoordinatorListJson = System.Text.Json.JsonSerializer.Serialize(dto);
         ViewBag.SourceExcel = new SourceExcelImportViewModel
         {
@@ -179,6 +186,18 @@ public class DbCoordinatorController : Controller
 
         await PublishReloadOrAppendWarningAsync(result);
         return Ok(result);
+    }
+
+    /// <summary>匯入後輪詢用：DB 已載入的 Coordinator 名稱 + 資料夾現有 JSON 名稱（前端等 Engine Reload 寫完 DB 再重新整理）</summary>
+    [HttpGet("/DbCoordinator/SourceStatus")]
+    public async Task<IActionResult> SourceStatus()
+    {
+        var data = await _service.GetAllAsync();
+        return Ok(new
+        {
+            loaded = data.Select(d => d.Coordinator.szName).ToList(),
+            existing = _importCoordinator.GetExistingNames(_excelAdapter).ToList(),
+        });
     }
 
     /// <summary>逐台刪除來源設定（移到 _deleted/ 備份），成功後自動發 Reload 讓 Engine 依現有 JSON 重建</summary>

@@ -98,4 +98,5 @@
   <data name="srcxl.confirm.delete_one" xml:space="preserve"><value>Delete the configuration of "{name}"?</value></data>
   <data name="srcxl.msg.delete_success" xml:space="preserve"><value>Deleted</value></data>
   <data name="srcxl.msg.delete_failed" xml:space="preserve"><value>Delete failed (HTTP {status})</value></data>
+  <data name="srcxl.msg.waiting_engine" xml:space="preserve"><value>Configuration written; waiting for the Engine to load ({count} remaining)…</value></data>
 </root>

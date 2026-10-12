@@ -14,6 +14,9 @@ public class DbCoordinatorListItemDto
     /// <summary>true = DB 有此 Coordinator 但 DBPoint/{Name}.json 已不存在（被刪除）→ 頁面標示「設定檔已移除」</summary>
     public bool configMissing { get; set; }
 
+    /// <summary>true = DBPoint/{Name}.json 已存在但 Engine 尚未載入（DB 無紀錄）→ 頁面列為「待 Engine 載入」，id=0、無點位</summary>
+    public bool pendingEngine { get; set; }
+
     public List<DbPointListItemDto> points { get; set; } = new();
 }
 

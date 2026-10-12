@@ -90,4 +90,6 @@
   <data name="dbcoord.badge.config_missing" xml:space="preserve"><value>Config removed</value></data>
   <data name="dbcoord.btn.delete_source" xml:space="preserve"><value>Delete Source</value></data>
   <data name="dbcoord.msg.config_missing_hint" xml:space="preserve"><value>This source's config file has been removed and the Engine stopped polling it; DB rows and history are kept. Re-import a worksheet with the same name to restore.</value></data>
+  <data name="dbcoord.badge.pending_engine" xml:space="preserve"><value>Awaiting Engine</value></data>
+  <data name="dbcoord.msg.pending_engine_hint" xml:space="preserve"><value>This source's config has been imported but the Engine has not loaded it (no record in the database the Web uses). Check in order: (1) the Engine is running, or click "Notify Engine to Reload JSON"; (2) Web and Engine Setting\dbSetting.json point to the same database; (3) the Engine log for errors.</value></data>
 </root>

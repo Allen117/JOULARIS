@@ -79,6 +79,7 @@
 | POST | `/ModbusCoordinator/ImportPreview` | 上傳 .xlsx/.xlsm（multipart `file`）→ 解析、驗證、比對既有 JSON → 回傳預覽 + `token`（**不寫檔**） | Engineer |
 | POST | `/ModbusCoordinator/ImportCommit` | `{ token, importSheets[], deleteNames[], acknowledgeSidShift }` → 提交前重新比對 → 寫檔／刪檔；預覽後設定被更動回 **409** | Engineer |
 | POST | `/ModbusCoordinator/DeleteSource` | `{ name }` 逐台刪除（JSON 移到 `_deleted/`） | Engineer |
+| GET  | `/ModbusCoordinator/SourceStatus` | `{ loaded[], existing[] }` — DB 已載入的 Coordinator 名稱 + 資料夾 JSON 名稱，前端匯入後輪詢用 | Engineer |
 
 `{name}` = Coordinator 名稱 = JSON 檔名（不含副檔名）。非 Admin 直接呼叫回 403，頁面上不渲染編輯卡片。
 
@@ -131,6 +132,8 @@ Install.bat → 填 Modbus範本.xlsx（任何能編輯 xlsx 的軟體；或頁�
   → 提交前重新比對既有檔 SHA-256（有人同時熱編輯 → 409 要求重新預覽）
   → System.Text.Json 寫 JSON（原子寫檔 tmp → File.Replace；新檔 UTF-16 LE BOM、既有檔沿用原編碼；頂層多寫 SourceWorkbook=上傳檔名）
   → Engine watcher Created/Renamed → 去抖 1 秒 → 重載；刪除 → Deleted → 依「檔名 → IP:Port」對照停止採集
+  → 前端輪詢 GET SourceStatus（DB 已載入名稱 + 資料夾 JSON 名稱；1 秒一次、最多 20 秒）等匯入的名稱都被 Engine 寫進 DB 才 reload
+     （頁面清單讀 DB；太早 reload 會把新設備判成「待 Engine 載入」）；頁面上有「待 Engine 載入」項目時也背景輪詢 60 秒自動刷新
 ```
 
 ### 範本版面（沿用舊 xlsm，舊檔可直接上傳）
@@ -169,6 +172,8 @@ Install.bat → 填 Modbus範本.xlsx（任何能編輯 xlsx 的軟體；或頁�
 - 刪除 = `{name}.json` 移到 `Modbus/_deleted/{name}_{yyyyMMddHHmmss}.json`（子資料夾不在 watcher 與載入範圍；人工搬回即復原）
 - Engine 收到 `Deleted` → 依 ModbusCollectionManager 的「檔名 → IP:Port」對照 `StopDeviceCollectionAsync`；兩個設定檔共用同一 IP:Port 時另一個還在就不停
 - `ModbusCoordinator` / `ModbusPoints` 與歷史資料**都不刪**：同名重新匯入時 CoordinatorId 不變、SID 一致、歷史接得上；頁面對「DB 有 Coordinator 但 JSON 不存在」者標示「設定檔已移除」並隱藏點位設定
+- 反向狀態「**待 Engine 載入**」：JSON 已匯入但 DB 還沒有紀錄（Engine 未啟動、設定驗證失敗）→ 側欄列出該檔名並提示去看 Engine；頁面清單本身是讀 DB，Coordinator 要等 Engine 載入 JSON 後才會出現。**最常見原因是 Web 與 Engine 的 `Setting\dbSetting.json` 指向不同資料庫**（兩邊各有一份、升級時都保留，改其中一邊容易忘另一邊；2026-10-06 現場即如此：Engine `wsn_TG`、Web `wsnCsharp`）→ 頁面提示已列為檢查點 (2)
+- Engine 空載（`Modbus\` 沒有任何 JSON，新裝機必然如此）**仍會啟動 watcher**（2026-10-06 修正：原本無設備就 return、watcher 沒掛 → 匯入後要等 Engine 重啟才採集）；資料夾不存在會先建立
 - 同資料夾 `X.json → Y.json` 改名也視為 X 移除 + Y 新增；`File.Replace` 的 `X.json → X.json.bak` 中間步驟（同資料夾、新名非 .json）不算移除
 
 ### 相關元件

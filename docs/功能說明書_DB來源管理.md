@@ -26,6 +26,7 @@ DB 來源是 Modbus / 計算點位之外的**第三類點位來源**。專供「
 | POST | `/DbCoordinator/ImportPreview` | 上傳 .xlsx/.xlsm → 解析、驗證、比對既有 JSON → 預覽 + `token`（不寫檔） | Engineer |
 | POST | `/DbCoordinator/ImportCommit` | 帶 token + 勾選結果提交 → 寫檔／刪檔 → **自動發 Reload**；預覽後設定被更動回 409 | Engineer |
 | POST | `/DbCoordinator/DeleteSource` | `{ name }` 逐台刪除（JSON 移到 `_deleted/`）→ 自動發 Reload | Engineer |
+| GET  | `/DbCoordinator/SourceStatus` | `{ loaded[], existing[] }` — 前端匯入後輪詢等 Engine Reload 寫完 DB 再重新整理 | Engineer |
 
 ---
 
@@ -185,7 +186,7 @@ DbCoordinatorReloadSubscriber (Engine BackgroundService)
 採用與 `/ModbusCoordinator` 一致的「左側清單 + 右側詳情」雙欄佈局：
 
 - **上方按鈕列**：「下載範本」「匯出 Excel（全部／依來源 Excel 檔）」「匯入 Excel」+「重新整理頁面」「通知 Engine 重新載入 JSON」
-- **左側「DB 通訊」卡**：列出所有已載入的 DB Coordinator（依 `DBPoint/*.json` 順序），停用者顯示灰色「停用」徽章；DB 有紀錄但 JSON 已移除者顯示黃色「設定檔已移除」徽章
+- **左側「DB 通訊」卡**：列出所有已載入的 DB Coordinator（依 `DBPoint/*.json` 順序），停用者顯示灰色「停用」徽章；DB 有紀錄但 JSON 已移除者顯示黃色「設定檔已移除」徽章；JSON 已匯入但 Engine 尚未載入（DB 無紀錄）者顯示藍色「待 Engine 載入」徽章（清單本身讀 DB，Coordinator 要等 Engine Reload 後才會出現）
 - **右側「設備詳細資料」卡**：點擊左側項目後顯示該 Coordinator 的 Id / Name / PollingInterval / ConnectTimeout / MonitorEnabled / 點位數，下方附**點位列表**（SID / 名稱 / 單位 / Min / Max，名稱與單位可行內編輯）
 - 預設自動載入第一筆 Coordinator；詳情卡右上「刪除來源」按鈕可逐台刪除（確認後移到 `_deleted/`、自動發 Reload）
 - 結構性編輯（增刪點位、改 Min/Max、增刪 Coordinator）透過「匯出 Excel → 修改 → 匯入 Excel」，提交後自動通知 Engine 重載（見 §8.4）

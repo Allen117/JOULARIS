@@ -98,4 +98,5 @@
   <data name="srcxl.confirm.delete_one" xml:space="preserve"><value>確定要刪除「{name}」的設定？</value></data>
   <data name="srcxl.msg.delete_success" xml:space="preserve"><value>已刪除</value></data>
   <data name="srcxl.msg.delete_failed" xml:space="preserve"><value>刪除失敗（HTTP {status}）</value></data>
+  <data name="srcxl.msg.waiting_engine" xml:space="preserve"><value>已寫入設定，等待 Engine 載入中（剩 {count} 台）…</value></data>
 </root>

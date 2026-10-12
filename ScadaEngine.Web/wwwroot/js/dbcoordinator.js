@@ -38,11 +38,22 @@
         document.getElementById('fieldMonitorEnabled').value  = c.monitorEnabled ? t('dbcoord.value.yes') : t('dbcoord.value.no');
         document.getElementById('fieldPointCount').value      = (c.points || []).length;
 
-        // 設定檔已移除標示 + 逐台刪除按鈕（Excel 匯入功能，共用 source-excel-import.js）
+        // 設定檔已移除 / 待 Engine 載入 標示 + 逐台刪除按鈕（Excel 匯入功能，共用 source-excel-import.js）
         var note = document.getElementById('configMissingNote');
         if (note) note.style.display = c.configMissing ? '' : 'none';
+        var pendingNote = document.getElementById('pendingEngineNote');
+        if (pendingNote) pendingNote.style.display = c.pendingEngine ? '' : 'none';
         var btnDel = document.getElementById('btnDeleteSource');
         if (btnDel) btnDel.style.display = c.configMissing ? 'none' : '';
+
+        // 待 Engine 載入：JSON 在、DB 沒有 → 沒有 Id / 點位可顯示，只留提示與刪除按鈕
+        if (c.pendingEngine) {
+            document.getElementById('fieldId').value = '';
+            document.getElementById('fieldPollingInterval').value = '';
+            document.getElementById('fieldConnectTimeout').value = '';
+            document.getElementById('fieldMonitorEnabled').value = '';
+            document.getElementById('fieldPointCount').value = '';
+        }
 
         renderPointTable(c);
     }
@@ -222,10 +233,12 @@
 
         var disabledBadge = '<span class="badge bg-secondary ms-1" style="font-size:.6rem;">' + escapeHtml(t('dbcoord.badge.disabled')) + '</span>';
         var missingBadge = '<span class="badge bg-warning text-dark ms-1 srcxl-missing-badge">' + escapeHtml(t('dbcoord.badge.config_missing')) + '</span>';
+        var pendingBadge = '<span class="badge bg-info text-dark ms-1 srcxl-missing-badge">' + escapeHtml(t('dbcoord.badge.pending_engine')) + '</span>';
         var html = coordinators.map(function (c, i) {
-            var badge = (c.monitorEnabled ? '' : disabledBadge) + (c.configMissing ? missingBadge : '');
+            var badge = (c.monitorEnabled ? '' : disabledBadge) + (c.configMissing ? missingBadge : '') + (c.pendingEngine ? pendingBadge : '');
+            var szIcon = c.pendingEngine ? 'fa-hourglass-half text-warning' : 'fa-database text-secondary';
             return '<a href="#" class="list-group-item list-group-item-action py-2 coordinator-item" data-index="' + i + '">' +
-                '<i class="fas fa-database me-1 text-secondary"></i>' +
+                '<i class="fas ' + szIcon + ' me-1"></i>' +
                 '<span class="small">' + escapeHtml(c.name) + '</span>' +
                 badge +
             '</a>';
@@ -247,6 +260,12 @@
         if (firstItem) {
             firstItem.classList.add('active');
             showDetail(0);
+        }
+
+        // 待 Engine 載入的來源 → 共用 JS 背景輪詢 /DbCoordinator/SourceStatus，Engine Reload 寫完 DB 後自動重新整理
+        var aPending = coordinators.filter(function (c) { return c.pendingEngine; }).map(function (c) { return c.name; });
+        if (aPending.length && window.SourceExcelImport && window.SourceExcelImport.watchPending) {
+            window.SourceExcelImport.watchPending(aPending);
         }
     }
 

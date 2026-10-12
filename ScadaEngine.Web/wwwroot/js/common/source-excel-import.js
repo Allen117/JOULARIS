@@ -336,7 +336,10 @@
 
             if (resp.ok && data && data.success) {
                 setStatus(data.message || t('srcxl.msg.commit_success'), false);
-                setTimeout(function () { window.location.reload(); }, 1200);
+                // 不能立刻 reload：Engine watcher 去抖 1 秒 + 延遲 0.5 秒才寫 DB，太早渲染會把新設備判成「待 Engine 載入」
+                waitForEngineThenReload(sel.importSheets, function (nRemaining) {
+                    setStatus(t('srcxl.msg.waiting_engine', { count: nRemaining }), false);
+                });
                 return;
             }
 
@@ -386,5 +389,70 @@
         });
     }
 
-    window.SourceExcelImport = { deleteSource: deleteSource };
+    /* ───────────── 等 Engine 載入（輪詢 {base}/SourceStatus） ─────────────
+     * 匯入寫檔後 Engine 才非同步載入並寫 DB；頁面清單讀的是 DB。
+     * 用 loaded 名單判斷哪些名稱已被 Engine 載入：全部到齊（或逾時）就 reload。
+     */
+    var POLL_INTERVAL_MS = 1000;
+    var POLL_MAX_MS = 20000;
+
+    async function fetchStatus() {
+        var resp = await fetch(szBase + '/SourceStatus', { credentials: 'same-origin', cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.json();
+    }
+
+    /**
+     * 等 names 全部出現在 Engine 已載入清單再 reload；逾時也 reload（頁面會以「待 Engine 載入」呈現剩下的）。
+     * onTick(nRemaining) 每輪回呼，供顯示進度。
+     */
+    function waitForEngineThenReload(names, onTick) {
+        var pending = (names || []).map(function (n) { return String(n).toLowerCase(); });
+        if (pending.length === 0) { window.location.reload(); return; }
+        var nStart = Date.now();
+
+        async function tick() {
+            try {
+                var st = await fetchStatus();
+                var loaded = (st.loaded || []).map(function (n) { return String(n).toLowerCase(); });
+                pending = pending.filter(function (n) { return loaded.indexOf(n) < 0; });
+            } catch (e) { /* 網路抖動就下一輪再試 */ }
+
+            if (pending.length === 0 || Date.now() - nStart > POLL_MAX_MS) {
+                window.location.reload();
+                return;
+            }
+            if (typeof onTick === 'function') onTick(pending.length);
+            setTimeout(tick, POLL_INTERVAL_MS);
+        }
+        setTimeout(tick, POLL_INTERVAL_MS);
+    }
+
+    /**
+     * 頁面載入時若有「待 Engine 載入」項目（JSON 在、DB 沒有），背景輪詢最多 60 秒，
+     * 任一項被 Engine 載入就 reload 讓它變成正常設備；逾時就停（可能是設定驗證失敗，留著提示給使用者看）。
+     */
+    function watchPending(names) {
+        var pending = (names || []).map(function (n) { return String(n).toLowerCase(); });
+        if (pending.length === 0) return;
+        var nStart = Date.now();
+
+        async function tick() {
+            try {
+                var st = await fetchStatus();
+                var loaded = (st.loaded || []).map(function (n) { return String(n).toLowerCase(); });
+                if (pending.some(function (n) { return loaded.indexOf(n) >= 0; })) {
+                    window.location.reload();
+                    return;
+                }
+            } catch (e) { /* ignore */ }
+            if (Date.now() - nStart < 60000) setTimeout(tick, 3000);
+        }
+        setTimeout(tick, 3000);
+    }
+
+    // 頁面可在載入本檔前以 window._srcxlPendingNames 交付待載入名單（Modbus 頁由 Razor 內嵌）
+    if (Array.isArray(window._srcxlPendingNames)) watchPending(window._srcxlPendingNames);
+
+    window.SourceExcelImport = { deleteSource: deleteSource, watchPending: watchPending, waitForEngineThenReload: waitForEngineThenReload };
 })();
