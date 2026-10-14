@@ -27,10 +27,10 @@ cd "C:\Users\A50388.ITRI\Desktop\ScadaEngine\ScadaEngine.Engine\Scripts"
 ### 方法三：手動部署
 ```powershell
 # 1. 發佈應用程式
-dotnet publish --configuration Release --self-contained true --runtime win-x64 --output "C:\SCADA\Engine\App"
+dotnet publish --configuration Release --self-contained true --runtime win-x64 --output "C:\JOULARIS\Engine\App"
 
 # 2. 註冊 Windows Service
-sc.exe create JoularisEngine binPath="C:\SCADA\Engine\App\ScadaEngine.Engine.exe" start=auto DisplayName="JOULARIS Engine"
+sc.exe create JoularisEngine binPath="C:\JOULARIS\Engine\App\ScadaEngine.Engine.exe" start=auto DisplayName="JOULARIS Engine"
 
 # 3. 設定服務描述
 sc.exe description JoularisEngine "JOULARIS Engine | Backend - data collection | vYY.A.B | yyyy-MM-dd"
@@ -87,16 +87,16 @@ sc.exe start JoularisEngine
 - **重置週期**: 24 小時重置失敗計數器
 
 ### 日誌配置
-- **日誌位置**: `C:\SCADA\Engine\App\Log\`
+- **日誌位置**: `C:\JOULARIS\Engine\App\Log\`
 - **日誌格式**: 每日滾動，保留 30 天
 - **錯誤日誌**: 單獨記錄警告和錯誤，保留 90 天
 - **檔案命名**: `ScadaEngine-YYYYMMDD.log`
 
 ### 設定檔位置
 ```
-C:\SCADA\Engine\App\
+C:\JOULARIS\Engine\App\
 ├── Setting\
-│   └── dbSetting.json          # (已移至 C:\SCADA\Shared\dbSetting.json，Engine/Web/Gateway 共用；開發讀 repo 這份)
+│   └── dbSetting.json          # (已移至 C:\JOULARIS\Shared\dbSetting.json，Engine/Web/Gateway 共用；開發讀 repo 這份)
 ├── Modbus\
 │   ├── Modbus.json             # Modbus 設備配置
 │   └── Modbus2.json            # 其他 Modbus 設備
@@ -171,7 +171,7 @@ C:\SCADA\Engine\App\
 sc.exe stop JoularisEngine
 
 # 以 Console 模式執行
-cd "C:\SCADA\Engine\App"
+cd "C:\JOULARIS\Engine\App"
 ScadaEngine.Engine.exe
 ```
 

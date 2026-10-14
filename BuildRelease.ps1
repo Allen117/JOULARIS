@@ -45,7 +45,7 @@ dotnet publish $engineProject -c Release --self-contained false --runtime win-x6
 if ($LASTEXITCODE -ne 0) { Write-Host "Engine build FAILED" -ForegroundColor Red; exit 1 }
 
 # 移除 Engine\App 內未使用的 HASP 原生 dll（~40MB）。
-# 驗狗由 net48 的 LicenseBridge 做（自帶 hasp_net_windows.dll + 原生 dll，另裝 C:\SCADA\LicenseBridge\），
+# 驗狗由 net48 的 LicenseBridge 做（自帶 hasp_net_windows.dll + 原生 dll，另裝 C:\JOULARIS\LicenseBridge\），
 # Engine 只用 NamedPipeClientStream 呼叫 bridge：編譯碼零 HASP DllImport、Engine\App 無受管包裝
 # hasp_net_windows.dll、csproj 無 HASP 受管參考 → 這些原生 dll 從不被載入，是 bridge 前身遺留的死重。
 # 樣式 hasp_windows* 不會誤刪 hasp_net_windows.dll（此處本就沒有），LicenseBridge\App 的那份不受影響。
@@ -72,7 +72,7 @@ foreach ($dir in $engineConfigs) {
     }
 }
 
-# 機器層級共用設定 → 包根 Shared\（Install.bat 鋪到 C:\SCADA\Shared\，Engine / Web 共用一份；dbSetting 另含 Gateway）。
+# 機器層級共用設定 → 包根 Shared\（Install.bat 鋪到 C:\JOULARIS\Shared\，Engine / Web 共用一份；dbSetting 另含 Gateway）。
 # 四檔皆由 Common SharedSettingLocator 解析：第 2 層（..\..\Shared）本就贏過第 3 層（本機 Setting），
 # Engine\App\Setting / Web\App\Setting 不再帶複本，留複本只會讓現場改到一份永遠不被讀的檔。
 # 見 docs/架構.md §共用設定檔解析順序
@@ -98,7 +98,7 @@ if (Test-Path $lineSettingSrc) {
 foreach ($sharedName in @("dbSetting.json", "EmailSetting.json", "SmsSetting.json", "LineSetting.json")) {
     Remove-Item "$ReleasePath\Engine\App\Setting\$sharedName" -Force -ErrorAction SilentlyContinue
 }
-Write-Host "  dbSetting / EmailSetting / SmsSetting / LineSetting -> package root Shared\ (installs to C:\SCADA\Shared, shared by Engine/Web)" -ForegroundColor Gray
+Write-Host "  dbSetting / EmailSetting / SmsSetting / LineSetting -> package root Shared\ (installs to C:\JOULARIS\Shared, shared by Engine/Web)" -ForegroundColor Gray
 
 # 現場資料夾（Modbus / DBPoint / OpcUaPoint）：dotnet publish 會依 Engine csproj 的
 # CopyToOutputDirectory 把 repo 的 dev 裝置定義（*.json）與範例（*.json.example）帶進 Engine\App。
@@ -179,7 +179,7 @@ if ($LASTEXITCODE -ne 0) { Write-Host "Web build FAILED" -ForegroundColor Red; e
 # 移除 Web publish 遞移帶入的 Engine 設定資料夾（死檔，避免工程師誤改）
 # Web ProjectReference 到 Engine，Engine .csproj 把 Modbus/DBPoint/OpcUaPoint 的 *.json 標了
 # CopyToOutputDirectory，SDK 會沿引用把它們複製進 Web 輸出。但 Web 實際讀的是
-# appsettings.json 的 WatchedFolder（= C:\SCADA\Engine\App\...），Web\App 下這幾份是死的，
+# appsettings.json 的 WatchedFolder（= ../../Engine/App/...，相對 Web\App 解析到 <安裝根目錄>\Engine\App），Web\App 下這幾份是死的，
 # 留著只會讓現場工程師誤以為要改這裡。刪掉，保持 Web\App 乾淨。
 foreach ($deadDir in @("Modbus", "DBPoint", "OpcUaPoint")) {
     $deadPath = "$ReleasePath\Web\App\$deadDir"
@@ -209,7 +209,7 @@ $webMqttDst = "$ReleasePath\Web\App\MqttSetting"
 if (-not (Test-Path $webMqttDst)) { New-Item -ItemType Directory -Path $webMqttDst -Force | Out-Null }
 if (Test-Path $webMqtt) { Copy-Item $webMqtt -Destination "$webMqttDst\MqttSetting.json" -Force }
 
-# dbSetting / EmailSetting / SmsSetting / LineSetting 不進 Web\App\Setting — Web 改讀寫 C:\SCADA\Shared\（與 Engine 同一份，見上方 Engine 段）。
+# dbSetting / EmailSetting / SmsSetting / LineSetting 不進 Web\App\Setting — Web 改讀寫 C:\JOULARIS\Shared\（與 Engine 同一份，見上方 Engine 段）。
 # 以前這裡從 Engine 複製一份給 Web，升級時兩份各自備份/還原，一旦分家就永久分家（2026-10-06 現場即如此）；
 # 通知三檔更糟：Web UI 存 SMTP 寫進 Web 複本，Engine 永遠看不到。
 foreach ($sharedName in @("dbSetting.json", "EmailSetting.json", "SmsSetting.json", "LineSetting.json")) {
@@ -272,7 +272,7 @@ foreach ($dir in @("Setting", "MqttSetting", "Web")) {
     }
 }
 
-# Gateway 包內只帶 dbSetting.example.json：同機安裝讀 C:\SCADA\Shared\，異機安裝由 InstallModbusServer.bat 從 example 鋪本機 Setting\dbSetting.json
+# Gateway 包內只帶 dbSetting.example.json：同機安裝讀 C:\JOULARIS\Shared\，異機安裝由 InstallModbusServer.bat 從 example 鋪本機 Setting\dbSetting.json
 Remove-Item "$ReleasePath\ModbusServer\App\Setting\dbSetting.json" -Force -ErrorAction SilentlyContinue
 
 # Copy ModbusServer scripts
@@ -380,26 +380,63 @@ exit /b 1
 :DOTNET_OK
 echo [OK] .NET 8 runtime detected (base + ASP.NET Core).
 echo.
+:: ── Install root ──
+:: ONE place defines where JOULARIS lives; every path below derives from it (the apps themselves
+:: resolve Shared / LicenseBridge / Algorithms relative to their own exe, so they never hard-code it).
+:: _OLDROOT = pre-v26.6.0 install root, only used to detect + migrate an old installation.
+set "_ROOT=C:\JOULARIS"
+set "_OLDROOT=C:\SCADA"
+
+:: ── [0/8] Migrate an old install root (_OLDROOT -> _ROOT) ──
+:: Done BEFORE upgrade detection so the rest of this script sees a normal upgrade under %_ROOT%
+:: (site config backup/restore + Shared migration run unchanged). migrate-install-root.ps1 stops
+:: services under the old root, takes SQL databases whose files live there OFFLINE, renames the
+:: folder (same drive = instant), re-points DB files / service binPaths / config files / scheduled
+:: tasks, then brings the DBs back ONLINE. On failure it restores the machine and we abort here.
+:: Services this script manages are NOT restarted by it (step [8/8] below starts them).
+if not exist "%_OLDROOT%\Engine\App" goto ROOT_MIGRATE_DONE
+if exist "%_ROOT%\Engine\App" (
+    echo [WARN] Both %_OLDROOT% and %_ROOT% exist - NOT migrating. Installing into %_ROOT%.
+    echo        %_OLDROOT% is probably a leftover ^(or an old Install.bat was run after migration^);
+    echo        check it and delete it by hand once you are sure nothing there is still needed.
+    echo.
+    goto ROOT_MIGRATE_DONE
+)
+echo [0/8] Migrating install root %_OLDROOT% -^> %_ROOT% ...
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Engine\App\Setting\migrate-install-root.ps1" -OldRoot "%_OLDROOT%" -NewRoot "%_ROOT%" -SkipRestart "JoularisEngine,JoularisWeb,JoularisLicense,ScadaEngineService,ScadaWebService,ScadaEngineLicense"
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Install root migration FAILED - see the messages above ^(also in install-log.txt^).
+    echo         Nothing was upgraded. Fix the cause ^(e.g. close Explorer/editors open under %_OLDROOT%^)
+    echo         and re-run Install.bat.
+    echo.
+    pause
+    exit /b 1
+)
+echo.
+:ROOT_MIGRATE_DONE
+
 
 :: ── Detect upgrade: backup site-specific configs ──
-set "_BACKUP=C:\SCADA\_ConfigBackup"
+set "_BACKUP=%_ROOT%\_ConfigBackup"
 set "_IS_UPGRADE=0"
 
-if exist "C:\SCADA\Engine\App\Modbus" (
+if exist "%_ROOT%\Engine\App\Modbus" (
     set "_IS_UPGRADE=1"
     echo [INFO] Detected existing installation — preserving site config...
     echo.
     if not exist "%_BACKUP%" mkdir "%_BACKUP%"
-    xcopy /E /I /Y "C:\SCADA\Engine\App\Modbus"      "%_BACKUP%\Engine\Modbus"      >nul
-    xcopy /E /I /Y "C:\SCADA\Engine\App\Setting"      "%_BACKUP%\Engine\Setting"      >nul
-    xcopy /E /I /Y "C:\SCADA\Engine\App\MqttSetting"  "%_BACKUP%\Engine\MqttSetting"  >nul
-    xcopy /E /I /Y "C:\SCADA\Engine\App\DBPoint"      "%_BACKUP%\Engine\DBPoint"      >nul
-    if exist "C:\SCADA\Engine\App\OpcUaPoint" xcopy /E /I /Y "C:\SCADA\Engine\App\OpcUaPoint" "%_BACKUP%\Engine\OpcUaPoint" >nul
+    xcopy /E /I /Y "%_ROOT%\Engine\App\Modbus"      "%_BACKUP%\Engine\Modbus"      >nul
+    xcopy /E /I /Y "%_ROOT%\Engine\App\Setting"      "%_BACKUP%\Engine\Setting"      >nul
+    xcopy /E /I /Y "%_ROOT%\Engine\App\MqttSetting"  "%_BACKUP%\Engine\MqttSetting"  >nul
+    xcopy /E /I /Y "%_ROOT%\Engine\App\DBPoint"      "%_BACKUP%\Engine\DBPoint"      >nul
+    if exist "%_ROOT%\Engine\App\OpcUaPoint" xcopy /E /I /Y "%_ROOT%\Engine\App\OpcUaPoint" "%_BACKUP%\Engine\OpcUaPoint" >nul
 )
-if exist "C:\SCADA\Web\App\Setting" (
+if exist "%_ROOT%\Web\App\Setting" (
     if not exist "%_BACKUP%" mkdir "%_BACKUP%"
-    xcopy /E /I /Y "C:\SCADA\Web\App\Setting"         "%_BACKUP%\Web\Setting"         >nul
-    xcopy /E /I /Y "C:\SCADA\Web\App\MqttSetting"     "%_BACKUP%\Web\MqttSetting"     >nul
+    xcopy /E /I /Y "%_ROOT%\Web\App\Setting"         "%_BACKUP%\Web\Setting"         >nul
+    xcopy /E /I /Y "%_ROOT%\Web\App\MqttSetting"     "%_BACKUP%\Web\MqttSetting"     >nul
 )
 
 echo [1/8] Stopping existing services (if any)...
@@ -431,17 +468,17 @@ echo.
 :: fail to start. Delete only root-level FILES here (subfolders are preserved: PythonRuntime, Setting,
 :: Modbus, DBPoint, OpcUaPoint, MqttSetting, Algorithms). The xcopy below re-supplies all app files;
 :: site config was already backed up above and is restored later.
-if exist "C:\SCADA\Engine\App" for %%F in ("C:\SCADA\Engine\App\*") do del /Q "%%F" >nul 2>&1
-xcopy /E /I /Y "%~dp0Engine\App" "C:\SCADA\Engine\App"
+if exist "%_ROOT%\Engine\App" for %%F in ("%_ROOT%\Engine\App\*") do del /Q "%%F" >nul 2>&1
+xcopy /E /I /Y "%~dp0Engine\App" "%_ROOT%\Engine\App"
 
 :: ── Python runtime base bundle (version-gated) ──
 :: Python is a separate 62MB base bundle at the package root (not inside Engine\App).
-:: Engine reads it at C:\SCADA\Engine\App\PythonRuntime (Worker.ResolvePythonExe). The
+:: Engine reads it at %_ROOT%\Engine\App\PythonRuntime (Worker.ResolvePythonExe). The
 :: Engine xcopy above does NOT carry or purge it, so we (re)deploy here only when the
 :: bundle's VERSION differs from what's installed. -NoPython packages omit the bundle:
 :: we then keep the existing Python and only warn if none is present.
 set "_PYSRC=%~dp0PythonRuntime"
-set "_PYDST=C:\SCADA\Engine\App\PythonRuntime"
+set "_PYDST=%_ROOT%\Engine\App\PythonRuntime"
 if not exist "%_PYSRC%\VERSION" goto PY_NOBUNDLE
 if not exist "%_PYDST%\VERSION" goto PY_DEPLOY
 fc /b "%_PYSRC%\VERSION" "%_PYDST%\VERSION" >nul 2>&1
@@ -464,9 +501,11 @@ if exist "%_PYDST%\python.exe" (
 echo.
 :: Service name = machine identifier (stable, no spaces). DisplayName / description = for humans:
 :: role (Backend / Frontend), product version (Directory.Build.props) and package build date.
-sc create JoularisEngine binPath= "\"C:\SCADA\Engine\App\ScadaEngine.Engine.exe\"" DisplayName= "JOULARIS Engine" start= auto
+sc create JoularisEngine binPath= "\"%_ROOT%\Engine\App\ScadaEngine.Engine.exe\"" DisplayName= "JOULARIS Engine" start= auto
 :: sc create is a no-op when the service already exists (upgrade); force start type back
-:: to auto so a previously disabled service doesn't survive the reinstall and block net start
+:: to auto so a previously disabled service doesn't survive the reinstall and block net start,
+:: and force binPath to %_ROOT% so a service registered by an older installer (other root) follows
+sc config JoularisEngine binPath= "\"%_ROOT%\Engine\App\ScadaEngine.Engine.exe\"" >nul
 sc config JoularisEngine start= auto >nul
 sc description JoularisEngine "JOULARIS Engine | Backend - data collection (Modbus/DB/OPC UA -> MQTT/SQL) | v$AppVersion | $BuildDate"
 sc failure JoularisEngine reset= 86400 actions= restart/5000/restart/10000/restart/30000
@@ -476,9 +515,10 @@ echo.
 echo [3/8] Installing Web...
 echo.
 :: -- Clean stale root files before deploy (same reason as Engine above) --
-if exist "C:\SCADA\Web\App" for %%F in ("C:\SCADA\Web\App\*") do del /Q "%%F" >nul 2>&1
-xcopy /E /I /Y "%~dp0Web\App" "C:\SCADA\Web\App"
-sc create JoularisWeb binPath= "\"C:\SCADA\Web\App\ScadaEngine.Web.exe\"" DisplayName= "JOULARIS Web" start= auto
+if exist "%_ROOT%\Web\App" for %%F in ("%_ROOT%\Web\App\*") do del /Q "%%F" >nul 2>&1
+xcopy /E /I /Y "%~dp0Web\App" "%_ROOT%\Web\App"
+sc create JoularisWeb binPath= "\"%_ROOT%\Web\App\ScadaEngine.Web.exe\"" DisplayName= "JOULARIS Web" start= auto
+sc config JoularisWeb binPath= "\"%_ROOT%\Web\App\ScadaEngine.Web.exe\"" >nul
 sc config JoularisWeb start= auto >nul
 sc description JoularisWeb "JOULARIS Web | Frontend - web dashboard (http://0.0.0.0:5038, https 7189) | v$AppVersion | $BuildDate"
 sc failure JoularisWeb reset= 86400 actions= restart/5000/restart/10000/restart/30000
@@ -487,9 +527,10 @@ echo.
 
 echo [4/8] Installing License Bridge (HASP)...
 echo.
-:: net48 x86 bridge; exe path is hard-coded in Engine as C:\SCADA\LicenseBridge\ (no \App subfolder)
-xcopy /E /I /Y "%~dp0LicenseBridge\App" "C:\SCADA\LicenseBridge"
-sc create JoularisLicense binPath= "\"C:\SCADA\LicenseBridge\ScadaEngine.LicenseBridge.exe\"" DisplayName= "JOULARIS License Bridge" start= auto
+:: net48 x86 bridge; Engine resolves it as <Engine\App>\..\..\LicenseBridge\ (no \App subfolder) - keep the layout
+xcopy /E /I /Y "%~dp0LicenseBridge\App" "%_ROOT%\LicenseBridge"
+sc create JoularisLicense binPath= "\"%_ROOT%\LicenseBridge\ScadaEngine.LicenseBridge.exe\"" DisplayName= "JOULARIS License Bridge" start= auto
+sc config JoularisLicense binPath= "\"%_ROOT%\LicenseBridge\ScadaEngine.LicenseBridge.exe\"" >nul
 sc config JoularisLicense start= auto >nul
 sc description JoularisLicense "JOULARIS License Bridge | Backend - 32-bit HASP verification (Named Pipe, Engine only) | v$AppVersion | $BuildDate"
 sc failure JoularisLicense reset= 86400 actions= restart/5000/restart/10000/restart/30000
@@ -500,28 +541,28 @@ echo.
 :: ── Restore site-specific configs ──
 if "%_IS_UPGRADE%"=="1" (
     echo [INFO] Restoring site config...
-    xcopy /E /I /Y "%_BACKUP%\Engine\Modbus"      "C:\SCADA\Engine\App\Modbus"      >nul
-    xcopy /E /I /Y "%_BACKUP%\Engine\Setting"      "C:\SCADA\Engine\App\Setting"      >nul
-    xcopy /E /I /Y "%_BACKUP%\Engine\MqttSetting"  "C:\SCADA\Engine\App\MqttSetting"  >nul
-    if exist "%_BACKUP%\Engine\DBPoint" xcopy /E /I /Y "%_BACKUP%\Engine\DBPoint" "C:\SCADA\Engine\App\DBPoint" >nul
-    if exist "%_BACKUP%\Engine\OpcUaPoint" xcopy /E /I /Y "%_BACKUP%\Engine\OpcUaPoint" "C:\SCADA\Engine\App\OpcUaPoint" >nul
+    xcopy /E /I /Y "%_BACKUP%\Engine\Modbus"      "%_ROOT%\Engine\App\Modbus"      >nul
+    xcopy /E /I /Y "%_BACKUP%\Engine\Setting"      "%_ROOT%\Engine\App\Setting"      >nul
+    xcopy /E /I /Y "%_BACKUP%\Engine\MqttSetting"  "%_ROOT%\Engine\App\MqttSetting"  >nul
+    if exist "%_BACKUP%\Engine\DBPoint" xcopy /E /I /Y "%_BACKUP%\Engine\DBPoint" "%_ROOT%\Engine\App\DBPoint" >nul
+    if exist "%_BACKUP%\Engine\OpcUaPoint" xcopy /E /I /Y "%_BACKUP%\Engine\OpcUaPoint" "%_ROOT%\Engine\App\OpcUaPoint" >nul
     if exist "%_BACKUP%\Web\Setting" (
-        xcopy /E /I /Y "%_BACKUP%\Web\Setting"     "C:\SCADA\Web\App\Setting"         >nul
-        xcopy /E /I /Y "%_BACKUP%\Web\MqttSetting" "C:\SCADA\Web\App\MqttSetting"     >nul
+        xcopy /E /I /Y "%_BACKUP%\Web\Setting"     "%_ROOT%\Web\App\Setting"         >nul
+        xcopy /E /I /Y "%_BACKUP%\Web\MqttSetting" "%_ROOT%\Web\App\MqttSetting"     >nul
     )
     :: Setting restore is for site JSON configs only; *.ps1 scripts are part of the app,
     :: always take the package version (otherwise old scripts get restored over new ones)
-    copy /Y "%~dp0Engine\App\Setting\*.ps1" "C:\SCADA\Engine\App\Setting\" >nul
-    if exist "C:\SCADA\Web\App\Setting" copy /Y "%~dp0Web\App\Setting\*.ps1" "C:\SCADA\Web\App\Setting\" >nul
+    copy /Y "%~dp0Engine\App\Setting\*.ps1" "%_ROOT%\Engine\App\Setting\" >nul
+    if exist "%_ROOT%\Web\App\Setting" copy /Y "%~dp0Web\App\Setting\*.ps1" "%_ROOT%\Web\App\Setting\" >nul
     rmdir /S /Q "%_BACKUP%"
     :: Engineer tool must never live on the server (anyone with file access could reset the engineer password)
-    del /Q "C:\SCADA\Engine\App\Setting\reset-engineer-password.ps1" 2>nul
-    del /Q "C:\SCADA\Web\App\Setting\reset-engineer-password.ps1" 2>nul
+    del /Q "%_ROOT%\Engine\App\Setting\reset-engineer-password.ps1" 2>nul
+    del /Q "%_ROOT%\Web\App\Setting\reset-engineer-password.ps1" 2>nul
     echo [INFO] Site config restored successfully.
     echo.
 )
 
-:: -- Machine-wide shared configs: ONE copy each at C:\SCADA\Shared --
+:: -- Machine-wide shared configs: ONE copy each at %_ROOT%\Shared --
 ::    dbSetting.json      (DB connection; Engine + Web + Modbus Gateway)
 ::    EmailSetting.json   (SMTP;          Engine sends, Web UI edits)
 ::    SmsSetting.json     (SMS modem;     Engine sends, Web UI edits)
@@ -535,25 +576,25 @@ if "%_IS_UPGRADE%"=="1" (
 ::                                 used to write the Web copy) keep it as Shared\<file>.web-backup to merge by hand.
 ::   fresh install               : write the package template
 :: Afterwards delete the per-app copies so nobody edits a file that is no longer read.
-if not exist "C:\SCADA\Shared" mkdir "C:\SCADA\Shared"
+if not exist "%_ROOT%\Shared" mkdir "%_ROOT%\Shared"
 for %%F in (dbSetting.json EmailSetting.json SmsSetting.json LineSetting.json) do call :MIGRATE_SHARED %%F
-echo [OK] Shared config folder: C:\SCADA\Shared ^(dbSetting / EmailSetting / SmsSetting / LineSetting^)
+echo [OK] Shared config folder: %_ROOT%\Shared ^(dbSetting / EmailSetting / SmsSetting / LineSetting^)
 echo.
 goto SHARED_DONE
 
 :MIGRATE_SHARED
 set "_F=%~1"
-set "_ENG=C:\SCADA\Engine\App\Setting\%_F%"
-set "_WEB=C:\SCADA\Web\App\Setting\%_F%"
-set "_SHD=C:\SCADA\Shared\%_F%"
+set "_ENG=%_ROOT%\Engine\App\Setting\%_F%"
+set "_WEB=%_ROOT%\Web\App\Setting\%_F%"
+set "_SHD=%_ROOT%\Shared\%_F%"
 if exist "%_SHD%" goto MIGRATE_SHARED_CLEAN
 if exist "%_ENG%" (
-    echo [MIGRATE] Moving Engine\App\Setting\%_F% to C:\SCADA\Shared\%_F% ...
+    echo [MIGRATE] Moving Engine\App\Setting\%_F% to %_ROOT%\Shared\%_F% ...
     if exist "%_WEB%" (
         fc /B "%_ENG%" "%_WEB%" >nul 2>&1
         if errorlevel 1 (
             echo [WARN] Web\App\Setting\%_F% differs from the Engine copy ^(edited in the Web UI?^).
-            echo        Engine copy wins; Web copy kept as C:\SCADA\Shared\%_F%.web-backup - merge by hand if needed.
+            echo        Engine copy wins; Web copy kept as %_ROOT%\Shared\%_F%.web-backup - merge by hand if needed.
             copy /Y "%_WEB%" "%_SHD%.web-backup" >nul
         )
     )
@@ -561,11 +602,11 @@ if exist "%_ENG%" (
     goto MIGRATE_SHARED_CLEAN
 )
 if exist "%_WEB%" (
-    echo [MIGRATE] No Engine copy of %_F%; moving Web\App\Setting\%_F% to C:\SCADA\Shared\%_F% ...
+    echo [MIGRATE] No Engine copy of %_F%; moving Web\App\Setting\%_F% to %_ROOT%\Shared\%_F% ...
     move /Y "%_WEB%" "%_SHD%" >nul
     goto MIGRATE_SHARED_CLEAN
 )
-echo [INFO] First install - writing template C:\SCADA\Shared\%_F%
+echo [INFO] First install - writing template %_ROOT%\Shared\%_F%
 copy /Y "%~dp0Shared\%_F%" "%_SHD%" >nul
 :MIGRATE_SHARED_CLEAN
 if exist "%_ENG%" del /Q "%_ENG%"
@@ -575,34 +616,34 @@ exit /b 0
 :SHARED_DONE
 
 :: ── Database setup: create DB if missing + backup folder ACL + app login ──
-:: idempotent; runs AFTER the dbSetting migration above so it reads C:\SCADA\Shared\dbSetting.json
+:: idempotent; runs AFTER the dbSetting migration above so it reads %_ROOT%\Shared\dbSetting.json
 echo [5/8] Database setup...
-powershell -ExecutionPolicy Bypass -File "C:\SCADA\Engine\App\Setting\install-db.ps1"
+powershell -ExecutionPolicy Bypass -File "%_ROOT%\Engine\App\Setting\install-db.ps1"
 if %errorLevel% NEQ 0 (
     echo [WARN] Database setup reported errors. Engine startup has a fallback,
     echo        but weekly backup needs the folders. Re-run manually if needed:
-    echo        powershell -ExecutionPolicy Bypass -File C:\SCADA\Engine\App\Setting\install-db.ps1
+    echo        powershell -ExecutionPolicy Bypass -File %_ROOT%\Engine\App\Setting\install-db.ps1
 )
 echo.
 
 echo [6/8] Generating internal HTTPS certificate (CA + server cert)...
 echo.
-if exist "C:\SCADA\Web\App\certs\scada-web.pfx" (
+if exist "%_ROOT%\Web\App\certs\scada-web.pfx" (
     echo [INFO] Server certificate already exists - reusing.
     echo        Re-run generate-https-cert.ps1 manually if the server IP changed.
 ) else (
-    powershell -ExecutionPolicy Bypass -File "C:\SCADA\Web\App\certs\generate-https-cert.ps1"
+    powershell -ExecutionPolicy Bypass -File "%_ROOT%\Web\App\certs\generate-https-cert.ps1"
     if errorlevel 1 (
         echo [WARN] Certificate generation failed - Web will fall back to HTTP-only on 5038.
-        echo        Re-run manually: powershell -ExecutionPolicy Bypass -File C:\SCADA\Web\App\certs\generate-https-cert.ps1
+        echo        Re-run manually: powershell -ExecutionPolicy Bypass -File %_ROOT%\Web\App\certs\generate-https-cert.ps1
     )
 )
 :: Assemble client CA installer bundle for easy distribution to each browsing PC
-if exist "C:\SCADA\Web\App\certs\ScadaEngine-CA.crt" (
-    if not exist "C:\SCADA\ClientCA_Installer" mkdir "C:\SCADA\ClientCA_Installer"
-    copy /Y "C:\SCADA\Web\App\certs\ScadaEngine-CA.crt"       "C:\SCADA\ClientCA_Installer\" >nul
-    copy /Y "C:\SCADA\Web\App\certs\install-ca-on-client.ps1" "C:\SCADA\ClientCA_Installer\" >nul
-    echo [OK] Client CA installer ready: C:\SCADA\ClientCA_Installer
+if exist "%_ROOT%\Web\App\certs\ScadaEngine-CA.crt" (
+    if not exist "%_ROOT%\ClientCA_Installer" mkdir "%_ROOT%\ClientCA_Installer"
+    copy /Y "%_ROOT%\Web\App\certs\ScadaEngine-CA.crt"       "%_ROOT%\ClientCA_Installer\" >nul
+    copy /Y "%_ROOT%\Web\App\certs\install-ca-on-client.ps1" "%_ROOT%\ClientCA_Installer\" >nul
+    echo [OK] Client CA installer ready: %_ROOT%\ClientCA_Installer
     echo      Copy that folder to each client PC, run install-ca-on-client.ps1 as Admin.
 )
 echo.
@@ -635,25 +676,25 @@ echo ========================================
 echo.
 if "%_IS_UPGRADE%"=="1" (
     echo [OK] Site config was PRESERVED ^(Modbus, Setting, MqttSetting, DBPoint, OpcUaPoint^).
-    echo      Shared configs are in C:\SCADA\Shared ^(dbSetting / EmailSetting / SmsSetting / LineSetting - ONE copy for Engine+Web^).
+    echo      Shared configs are in %_ROOT%\Shared ^(dbSetting / EmailSetting / SmsSetting / LineSetting - ONE copy for Engine+Web^).
 ) else (
     echo [NOTE] First install — edit config files as needed:
-    echo   C:\SCADA\Shared\dbSetting.json                  ^(DB connection - ONE file for Engine/Web/Gateway^)
-    echo   C:\SCADA\Shared\EmailSetting.json               ^(SMTP - or edit in Web: Alarm Setting / Email tab^)
-    echo   C:\SCADA\Shared\SmsSetting.json                 ^(SMS modem - or edit in Web: Alarm Setting / SMS tab^)
-    echo   C:\SCADA\Shared\LineSetting.json                ^(Line channel access token^)
-    echo   C:\SCADA\Engine\App\Modbus\*.json                ^(Modbus devices^)
-    echo   C:\SCADA\Engine\App\MqttSetting\MqttSetting.json ^(MQTT broker^)
-    echo   C:\SCADA\Engine\App\DBPoint\*.json               ^(DB source points^)
-    echo   C:\SCADA\Engine\App\Setting\DbMaintenanceSetting.json ^(weekly DB backup schedule^)
+    echo   %_ROOT%\Shared\dbSetting.json                  ^(DB connection - ONE file for Engine/Web/Gateway^)
+    echo   %_ROOT%\Shared\EmailSetting.json               ^(SMTP - or edit in Web: Alarm Setting / Email tab^)
+    echo   %_ROOT%\Shared\SmsSetting.json                 ^(SMS modem - or edit in Web: Alarm Setting / SMS tab^)
+    echo   %_ROOT%\Shared\LineSetting.json                ^(Line channel access token^)
+    echo   %_ROOT%\Engine\App\Modbus\*.json                ^(Modbus devices^)
+    echo   %_ROOT%\Engine\App\MqttSetting\MqttSetting.json ^(MQTT broker^)
+    echo   %_ROOT%\Engine\App\DBPoint\*.json               ^(DB source points^)
+    echo   %_ROOT%\Engine\App\Setting\DbMaintenanceSetting.json ^(weekly DB backup schedule^)
 )
 echo.
 echo [HTTPS] HTTPS is now ENABLED. http://server-ip:5038 auto-redirects to https://server-ip:7189.
 echo   - Until each client installs the CA, browsers show a certificate warning (click-through still works).
-echo   - To remove the warning: copy the C:\SCADA\ClientCA_Installer folder to each client PC,
+echo   - To remove the warning: copy the %_ROOT%\ClientCA_Installer folder to each client PC,
 echo     run install-ca-on-client.ps1 as Administrator, then fully restart the browser.
 echo   - Connect using the server IP printed in the certs output above (must match the certificate SAN).
-echo   - To disable HTTPS (HTTP-only on 5038): delete C:\SCADA\Web\App\certs\scada-web.pfx and restart JoularisWeb.
+echo   - To disable HTTPS (HTTP-only on 5038): delete %_ROOT%\Web\App\certs\scada-web.pfx and restart JoularisWeb.
 echo.
 echo ========================================
 echo   Service Status  (RUNNING = OK)
@@ -672,8 +713,8 @@ echo.
 :: -- Explicit verdict + durable log (so success/fail does NOT depend on catching this window) --
 :: Engine + Web are the hard success condition. License legitimately stays STOPPED without the
 :: HASP dongle, so it is reported as a NOTE, not a failure. Result is also appended (with a
-:: timestamp) to C:\SCADA\install-log.txt - open that file any time to see how the last run went.
-set "_LOG=C:\SCADA\install-log.txt"
+:: timestamp) to %_ROOT%\install-log.txt - open that file any time to see how the last run went.
+set "_LOG=%_ROOT%\install-log.txt"
 set "_FAIL="
 sc query JoularisEngine  | find "RUNNING" >nul || set "_FAIL=1"
 sc query JoularisWeb     | find "RUNNING" >nul || set "_FAIL=1"
@@ -722,11 +763,30 @@ if %errorLevel% NEQ 0 (
     exit /b 1
 )
 
-set "_APP=C:\SCADA\ModbusServer\App"
-set "_BACKUP=C:\SCADA\_ModbusGatewayBackup"
+:: Install root: ONE place (same as Install.bat). _OLDROOT = pre-v26.6.0 root, migrated if found.
+set "_ROOT=C:\JOULARIS"
+set "_OLDROOT=C:\SCADA"
+set "_APP=%_ROOT%\ModbusServer\App"
+set "_BACKUP=%_ROOT%\_ModbusGatewayBackup"
 set "_SVC=JoularisModbusGateway"
 set "_OLDSVC=ScadaModbusGatewayService"
 set "_IS_UPGRADE=0"
+:: -- Migrate an old install root first (same script as Install.bat; the whole folder incl. Engine/Web/Shared
+::    moves together, otherwise the gateway would land in %_ROOT% while Shared\dbSetting.json stays behind) --
+if not exist "%_OLDROOT%" goto ROOT_MIGRATE_DONE
+if exist "%_ROOT%" (
+    echo [WARN] Both %_OLDROOT% and %_ROOT% exist - NOT migrating. Installing into %_ROOT%.
+    goto ROOT_MIGRATE_DONE
+)
+echo [0/6] Migrating install root %_OLDROOT% -^> %_ROOT% ...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Engine\App\Setting\migrate-install-root.ps1" -OldRoot "%_OLDROOT%" -NewRoot "%_ROOT%" -SkipRestart "%_SVC%,%_OLDSVC%"
+if errorlevel 1 (
+    echo [ERROR] Install root migration FAILED - see the messages above. Nothing was installed.
+    pause
+    exit /b 1
+)
+:ROOT_MIGRATE_DONE
+
 
 :: -- Detect upgrade: backup site config + AddressMap.json (address assignments must survive) --
 if exist "%_APP%\Setting" (
@@ -760,12 +820,12 @@ if "%_IS_UPGRADE%"=="1" (
     rmdir /S /Q "%_BACKUP%"
 )
 
-:: -- dbSetting.json: same box as Engine/Web -> read C:\SCADA\Shared\dbSetting.json (DbSettingLocator layer 2
+:: -- dbSetting.json: same box as Engine/Web -> read %_ROOT%\Shared\dbSetting.json (DbSettingLocator layer 2
 ::    always beats a local copy, so delete the local one to avoid a file nobody reads);
 ::    standalone box (no Shared) -> keep the site copy, or seed Setting\dbSetting.json from the example --
-if exist "C:\SCADA\Shared\dbSetting.json" (
+if exist "%_ROOT%\Shared\dbSetting.json" (
     if exist "%_APP%\Setting\dbSetting.json" del /Q "%_APP%\Setting\dbSetting.json"
-    echo [INFO] Using shared DB connection: C:\SCADA\Shared\dbSetting.json
+    echo [INFO] Using shared DB connection: %_ROOT%\Shared\dbSetting.json
 ) else (
     if not exist "%_APP%\Setting\dbSetting.json" (
         copy /Y "%_APP%\Setting\dbSetting.example.json" "%_APP%\Setting\dbSetting.json" >nul
@@ -816,6 +876,8 @@ if %errorLevel% NEQ 0 (
 )
 :: upgrade path skips the create block above; force start type back to auto so a
 :: previously disabled service doesn't block the net start below
+:: binPath too: a service registered by an older installer (other install root) must follow %_ROOT%
+sc config %_SVC% binPath= "\"%_APP%\ScadaEngine.ModbusServer.exe\"" >nul
 sc config %_SVC% start= auto >nul
 :: description carries version + build date, so refresh it on every install (not only on create)
 sc description %_SVC% "JOULARIS Modbus Gateway | Backend - Modbus TCP gateway (FC4 input registers, float32) | v__APPVERSION__ | __BUILDDATE__"
@@ -843,8 +905,8 @@ if "%_IS_UPGRADE%"=="1" (
 ) else (
     echo [NOTE] First install - edit config as needed:
     echo   %_APP%\Setting\ModbusServerSetting.json  ^(ports / word order / segments^)
-    if exist "C:\SCADA\Shared\dbSetting.json" (
-        echo   C:\SCADA\Shared\dbSetting.json           ^(SQL connection - shared with Engine/Web^)
+    if exist "%_ROOT%\Shared\dbSetting.json" (
+        echo   %_ROOT%\Shared\dbSetting.json           ^(SQL connection - shared with Engine/Web^)
     ) else (
         echo   %_APP%\Setting\dbSetting.json            ^(SQL connection - standalone box^)
     )
@@ -888,7 +950,7 @@ Write-Host "Folder structure:"
 Write-Host "  SCADA_Release_${DateTag}_v$AppVersion\"
 Write-Host "  +-- Install.bat              <- On-site: right-click Run as Admin (Engine + Web only)"
 Write-Host "  +-- InstallModbusServer.bat  <- Optional Modbus gateway (standalone, run separately)"
-Write-Host "  +-- Shared\                  <- dbSetting/EmailSetting/SmsSetting/LineSetting templates -> C:\SCADA\Shared (ONE copy for Engine/Web)"
+Write-Host "  +-- Shared\                  <- dbSetting/EmailSetting/SmsSetting/LineSetting templates -> C:\JOULARIS\Shared (ONE copy for Engine/Web)"
 if (-not $NoPython) {
 Write-Host "  +-- PythonRuntime\           <- Python base bundle (version-gated; Install.bat deploys to Engine\App)"
 }

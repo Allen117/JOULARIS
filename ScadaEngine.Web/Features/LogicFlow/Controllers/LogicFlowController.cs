@@ -384,7 +384,7 @@ public class LogicFlowController : Controller
             Path.Combine(Directory.GetCurrentDirectory(), "..", "ScadaEngine.Engine", "Algorithms"),
             // 部署環境（同層）：Algorithms 直接放在 Web\App\Algorithms
             Path.Combine(szBaseDir, "Algorithms"),
-            // 部署環境（分棟）：Web 在 C:\SCADA\Web\App，Engine 在 C:\SCADA\Engine\App
+            // 部署環境（分棟）：Web 在 C:\JOULARIS\Web\App，Engine 在 C:\JOULARIS\Engine\App
             Path.Combine(szBaseDir, "..", "..", "Engine", "App", "Algorithms"),
         };
 

@@ -1,6 +1,6 @@
 {
-  "DataFileFolder": "C:\\Scada\\Database",
-  "BackupFolder": "C:\\Scada\\Backup",
+  "DataFileFolder": "C:\\JOULARIS\\Database",
+  "BackupFolder": "C:\\JOULARIS\\Backup",
   "BackupEnabled": true,
   "BackupDayOfWeek": "Sunday",
   "BackupTime": "03:00"

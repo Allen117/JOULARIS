@@ -91,16 +91,17 @@ Web 埠 5038 寫死在 Program.cs（`ListenAnyIP`，環境變數無效），生�
 - 驗完**同一輪必須復原**：關掉開發實例（路徑過濾殺進程，見下節）→ `Start-Service` 把停掉的服務全部拉回來，並確認 `Get-Service` 為 Running
 - 停/啟服務要在回覆中明講，讓使用者知道生產監控有中斷窗口
 
-### 部署到 C:\SCADA（本機 = 生產機）
+### 部署到 C:\JOULARIS（本機 = 生產機）
 
 - **Release 包為 framework-dependent（瘦身）**：三個 .NET 8 app（Engine/Web/ModbusServer）不再自帶 runtime，**目標機須先裝 `ASP.NET Core Runtime 8.0.x (x64)`**（一包覆蓋三者）。`Install.bat` 開頭會偵測，缺就中止不動機器。**升級既有 self-contained 生產機前，務必先裝好 runtime**。只鎖 major=8（只有 .NET 9 不會跑）。Python 抽成 package 根目錄的版號化基礎包，Install.bat 只在缺/版本變更才鋪；只改 C# 碼時可 `BuildRelease.ps1 -NoPython` 產 app-only 小包。詳見 docs/功能說明書_部署與遠端更新.md
 - **一鍵全部署**：repo 根目錄 `QuickDeployAll.bat`（系統管理員執行）＝ `BuildRelease.ps1` 打包 → 最新 Release 包 `Install.bat` 安裝 Engine + Web（升級自動備份/還原現場設定）。**不碰 Modbus Gateway** — 要裝/更新 Gateway 另跑 Release 包內 `InstallModbusServer.bat`
-- ⚠️ 各專案 `Scripts\QuickDeploy.bat` 的 Update（選 6）會用 **repo 版設定檔硬蓋** `C:\SCADA\...` 現場設定（無備份），且停服務後的進程清理用 `ScadaEngine*` 萬用字元會**誤殺另一個服務的進程**；生產機更新一律走 QuickDeployAll / Install.bat
+- **安裝根目錄唯一真相 = Install.bat 的 `set "_ROOT=C:\JOULARIS"`**（26.6.0 起；之前是 `C:\SCADA`）。程式碼**不得**寫死任何根目錄 — Shared / LicenseBridge / Algorithms / Python / Web 的 WatchedFolder 都以執行檔位置相對推算。舊機偵測到 `C:\SCADA` 時 Install.bat 先跑 `Engine\App\Setting\migrate-install-root.ps1` 自動搬家（服務 / SQL 資料檔 / 排程 / 設定檔改指；可 `-WhatIf` 預演）→ docs/功能說明書_部署與遠端更新.md §安裝根目錄遷移
+- ⚠️ 各專案 `Scripts\QuickDeploy.bat` 的 Update（選 6）會用 **repo 版設定檔硬蓋** `C:\JOULARIS\...` 現場設定（無備份），且停服務後的進程清理用 `ScadaEngine*` 萬用字元會**誤殺另一個服務的進程**；生產機更新一律走 QuickDeployAll / Install.bat
 
 ### 卡住的 Web 進程（鎖住 bin 導致 build 失敗）
 
 ⚠️ 這台機器上**同時會有兩個 `ScadaEngine.Web` 進程**：
-`C:\SCADA\Web\App\` 是**部署站台**、`...\Desktop\ScadaEngine\ScadaEngine.Web\bin\Debug\` 才是開發 build。
+`C:\JOULARIS\Web\App\` 是**部署站台**、`...\Desktop\ScadaEngine\ScadaEngine.Web\bin\Debug\` 才是開發 build。
 只有後者會鎖住 build 輸出，**不分路徑盲殺會一併關掉正式站台**，務必用路徑過濾：
 
 ```powershell
@@ -132,7 +133,7 @@ ScadaEngine.sln
 
 - **資料流**：Modbus / DB 來源 / OPC UA 來源 → HistoryData / LatestData / MQTT → Web；對外 Modbus TCP Gateway 分支（ScadaEngine.ModbusServer，append-only 位址對照 `AddressMap.json`）→ docs/功能說明書_ModbusServerGateway.md
 - **警報系統**：Alarm MQTT 推播 + 規則熱重載（Engine ↔ Web）
-- **通知系統**：Line / Email / 簡訊三通道推播（每群組/號碼可選 zh-TW / en，觸發 + 恢復皆通知；寄送結果寫 EventLog 摘要，EventType=3）。Engine 端訊息字典 `Resources/notification.{zh-TW,en}.json`，Web UI 在 `AlarmSetting` 第三 tab 管理 Email 群組與規則路由、第四 tab 管理簡訊號碼。SMTP 走 **MailKit**；簡訊走序列埠簡訊盒（**System.IO.Ports** + 標準 AT 指令、UCS2 70 字、COM 自動偵測，無網路可用；Web 測試發送/重掃經 MQTT `SCADA/Sys/Sms/Cmd|Status` 由 Engine 代執行）→ docs/功能說明書_簡訊通知.md。三檔設定（Email / Sms / Line）生產機在 `C:\SCADA\Shared\`，Engine 讀、Web 讀寫同一份；Web 存檔後發 `SCADA/Sys/Notify/Reload|Status` 熱重載，不重啟 Engine → docs/架構.md §共用設定檔解析順序
+- **通知系統**：Line / Email / 簡訊三通道推播（每群組/號碼可選 zh-TW / en，觸發 + 恢復皆通知；寄送結果寫 EventLog 摘要，EventType=3）。Engine 端訊息字典 `Resources/notification.{zh-TW,en}.json`，Web UI 在 `AlarmSetting` 第三 tab 管理 Email 群組與規則路由、第四 tab 管理簡訊號碼。SMTP 走 **MailKit**；簡訊走序列埠簡訊盒（**System.IO.Ports** + 標準 AT 指令、UCS2 70 字、COM 自動偵測，無網路可用；Web 測試發送/重掃經 MQTT `SCADA/Sys/Sms/Cmd|Status` 由 Engine 代執行）→ docs/功能說明書_簡訊通知.md。三檔設定（Email / Sms / Line）生產機在 `C:\JOULARIS\Shared\`，Engine 讀、Web 讀寫同一份；Web 存檔後發 `SCADA/Sys/Notify/Reload|Status` 熱重載，不重啟 Engine → docs/架構.md §共用設定檔解析順序
 - **用電報表**：On-demand 計算 + 葉子層 Hourly 預聚合 + Staleness Window
 - **電費計算**：Web 逐時計價（EnergyLeafHourly → ElectricityCostHourly，XX:05 觸發）+ EMS 電費狀態卡 + /HolidaySetting 假日（TOU 落 sun_offday）
 - **用水報表與水費**：累積式水表 `WaterMeter*` 體系（boundary 相減 + MaxVolume 溢位 + UnitScale 換算 m³）+ 台水流動水費分段累進 on-demand（無逐時表）；與冷凍噸 WaterCircuit 無關
@@ -150,14 +151,14 @@ ScadaEngine.sln
 
 | File | Purpose |
 |------|---------|
-| `dbSetting.json`（開發 `ScadaEngine.Engine/Setting/`；生產機 **`C:\SCADA\Shared\`**） | SQL Server connection，Engine / Web / ModbusServer **共用一份**。三者皆由 Common `DbSettingLocator`（`SharedSettingLocator` 薄包裝）四層解析（環境變數 `JOULARIS_DBSETTING` → `..\..\Shared` → 本機 `Setting` → 開發 repo），啟動 log 印實際路徑與來源；升級由 Install.bat 自動從舊佈局搬移 → docs/架構.md §共用設定檔解析順序 |
+| `dbSetting.json`（開發 `ScadaEngine.Engine/Setting/`；生產機 **`C:\JOULARIS\Shared\`**） | SQL Server connection，Engine / Web / ModbusServer **共用一份**。三者皆由 Common `DbSettingLocator`（`SharedSettingLocator` 薄包裝）四層解析（環境變數 `JOULARIS_DBSETTING` → `..\..\Shared` → 本機 `Setting` → 開發 repo），啟動 log 印實際路徑與來源；升級由 Install.bat 自動從舊佈局搬移 → docs/架構.md §共用設定檔解析順序 |
 | `ScadaEngine.Engine/MqttSetting/MqttSetting.json` | MQTT broker IP/port/topic/retain |
 | `ScadaEngine.Engine/Modbus/Modbus.json` | Modbus device definitions (IP, port, tags) |
 | `ScadaEngine.Engine/DatabaseSchema/DatabaseSchema.json` | 建表 + 欄位自動同步的**唯一真相來源** — 加欄位只改此檔，Engine 與 Web 啟動時自動補缺欄位（只加不減不改，詳見 docs/架構.md §資料庫結構初始化與欄位同步） |
 | `ScadaEngine.Engine/DBPoint/*.json` | DB 來源 Coordinator 點位定義（由 Web「DB 來源」頁**匯入 Excel** 產生，範本 `DB來源範本.xlsx`；Name/Unit 可在頁面熱編輯回寫）。Modbus 同理走「Modbus 來源」頁匯入 `Modbus範本.xlsx`，共用 `ScadaEngine.Web/Services/SourceExcel/`。細節見 docs/架構.md §資料流 + docs/功能說明書_DB來源管理.md §8.4 / _Modbus來源管理.md §4.1 |
 | `ScadaEngine.Engine/OpcUaPoint/*.json` | OPC UA 來源定義（一檔一 Server 含 Devices 分組；Web「OPC UA 來源」頁全欄位動態編輯回寫，免重啟）。細節見 docs/架構.md §資料流 + docs/功能說明書_OPCUA通訊.md |
 | `ScadaEngine.Engine/Setting/DbMaintenanceSetting.json` | 自動建 DB 路徑 + 每週備份排程。同資料夾 `install-db.ps1` 為安裝腳本（idempotent，已綁入部署流程）。細節見 docs/架構.md §資料庫自動建立與每週備份 |
-| `LineSetting.json`（開發 `ScadaEngine.Engine/Setting/`；生產機 **`C:\SCADA\Shared\`**） | Line Messaging API token + rate limit。Engine / Web 共用一份，`SharedSettingLocator` 解析（同 dbSetting 但無環境變數層） |
+| `LineSetting.json`（開發 `ScadaEngine.Engine/Setting/`；生產機 **`C:\JOULARIS\Shared\`**） | Line Messaging API token + rate limit。Engine / Web 共用一份，`SharedSettingLocator` 解析（同 dbSetting 但無環境變數層） |
 | `EmailSetting.json`（同上） | SMTP host/port/帳密 + rate limit（MailKit）。Web「警報設定 → Email」存檔寫同一份，之後發 MQTT `SCADA/Sys/Notify/Reload` 由 Engine 熱重載，不重啟 |
 | `SmsSetting.json`（同上） | 簡訊盒設定（ComPort auto/手動、BaudRate、SimPin、限流、每日上限、恢復通知開關）。Web 存檔後 MQTT 熱重載 + 重掃序列埠。細節見 docs/功能說明書_簡訊通知.md |
 | `ScadaEngine.Engine/Resources/notification.{zh-TW,en}.json` | Engine 通知訊息字典（Line + Email + 簡訊共用，依群組/號碼 Language 切換）|

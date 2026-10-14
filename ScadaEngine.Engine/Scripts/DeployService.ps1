@@ -11,7 +11,7 @@ $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ProjectPath = Split-Path -Parent $ScriptPath
 
 # 目標部署路徑
-$TargetPath = "C:\SCADA\Engine\App"
+$TargetPath = "C:\JOULARIS\Engine\App"
 
 # Service configuration
 $ServiceName = "JoularisEngine"
@@ -275,8 +275,8 @@ function Install-Service {
 
         Write-Host "Service installed successfully to: $TargetPath"
         Write-Host "Configuration files structure:"
-        Write-Host '  - ..\..\Shared\dbSetting.json  (C:\SCADA\Shared - ONE DB config shared by Engine/Web/Gateway)'
-        Write-Host '  - ..\..\Shared\EmailSetting.json / SmsSetting.json / LineSetting.json  (C:\SCADA\Shared - notify configs shared with Web)'
+        Write-Host '  - ..\..\Shared\dbSetting.json  (C:\JOULARIS\Shared - ONE DB config shared by Engine/Web/Gateway)'
+        Write-Host '  - ..\..\Shared\EmailSetting.json / SmsSetting.json / LineSetting.json  (C:\JOULARIS\Shared - notify configs shared with Web)'
         Write-Host '  - Modbus\*.json'
         Write-Host '  - Mqtt\MqttSetting.json'
         Write-Host '  - DatabaseSchema\DatabaseSchema.json'
@@ -429,7 +429,7 @@ function Start-ServiceInstance {
         }
         
         # 檢查配置檔案
-        # dbSetting.json: the shared copy two levels up (C:\SCADA\Shared) wins; Setting\ is the standalone fallback
+        # dbSetting.json: the shared copy two levels up (C:\JOULARIS\Shared) wins; Setting\ is the standalone fallback
         $sharedConfig = Join-Path $TargetPath "..\..\Shared\dbSetting.json"
         $localConfig  = Join-Path $TargetPath "Setting\dbSetting.json"
         if (-not (Test-Path $sharedConfig) -and -not (Test-Path $localConfig)) {
@@ -476,7 +476,7 @@ function Start-ServiceInstance {
             Write-Host "Troubleshooting suggestions:" -ForegroundColor Yellow
             Write-Host "1. Check Event Viewer: eventvwr.msc -> Windows Logs -> System"
             Write-Host "2. Test manually: cd `"$TargetPath`" && .\ScadaEngine.Engine.exe"
-            Write-Host "3. Check database connection in C:\SCADA\Shared\dbSetting.json"
+            Write-Host "3. Check database connection in C:\JOULARIS\Shared\dbSetting.json"
             Write-Host "4. Reinstall with option 2 (Uninstall) then option 1 (Install)"
             
             return $false
@@ -760,7 +760,7 @@ function Deploy-LicenseBridge {
     )
 
     $BridgeProject = Join-Path $SolutionRoot "ScadaEngine.LicenseBridge\ScadaEngine.LicenseBridge.csproj"
-    $BridgeTarget  = "C:\SCADA\LicenseBridge"
+    $BridgeTarget  = "C:\JOULARIS\LicenseBridge"
     $BridgeSvc     = "JoularisLicense"
     $BridgeExe     = Join-Path $BridgeTarget "ScadaEngine.LicenseBridge.exe"
 
@@ -835,7 +835,7 @@ switch ($Action.ToLower()) {
         Write-Host "Available actions: install, uninstall, start, stop, restart, update, logs, status, diagnose, cleanup"
         Write-Host ""
         Write-Host "Examples:"
-        Write-Host "  .\DeployService.ps1 install   - Install service to C:\SCADA\Engine\App\"
+        Write-Host "  .\DeployService.ps1 install   - Install service to C:\JOULARIS\Engine\App\"
         Write-Host "  .\DeployService.ps1 diagnose  - Run comprehensive diagnostics"
         Write-Host "  .\DeployService.ps1 cleanup   - Force cleanup (use if files are locked)"
         Write-Host "  .\DeployService.ps1 start     - Start service with detailed feedback"

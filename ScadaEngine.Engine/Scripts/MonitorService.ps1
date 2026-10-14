@@ -9,7 +9,7 @@ param(
     [int]$nIntervalSeconds = 30,
     
     [Parameter(Mandatory=$false)]
-    [string]$szLogPath = "C:\SCADA\Engine\App\Log"
+    [string]$szLogPath = "C:\JOULARIS\Engine\App\Log"
 )
 
 $szServiceName = "JoularisEngine"

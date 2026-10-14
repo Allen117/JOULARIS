@@ -126,7 +126,7 @@ namespace ScadaEngine.Web.Services
 
         /// <summary>
         /// 讀 LineSetting.json — 路徑由 SharedSettingLocator 解析（..\..\Shared → 本機 Setting → 開發 repo），
-        /// 與 Engine 讀的是同一份（生產機 C:\SCADA\Shared\LineSetting.json）。
+        /// 與 Engine 讀的是同一份（生產機 C:\JOULARIS\Shared\LineSetting.json）。
         /// 以檔案 LastWriteTime 當快取鍵：現場手改 token 後下一次測試發送即生效，不必重啟 Web。
         /// </summary>
         private LineSettingModel LoadSetting()

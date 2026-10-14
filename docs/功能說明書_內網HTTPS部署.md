@@ -46,13 +46,13 @@
 - ✅ **會**把 `certs/*.ps1`（`generate-https-cert.ps1`、`install-ca-on-client.ps1`）copy 進 `Web\App\certs\`
 - ❌ **絕不**打包任何 `*.pfx` / `*.crt`（含私鑰，且綁特定機器 IP）—— 由 csproj `CopyToPublishDirectory="Never"` 保證
 
-`Install.bat` 部署到 `C:\SCADA\Web\App`，並自動放行防火牆 5038 + 7189。因為 Program.cs 由 `ContentRoot\certs` 讀 pfx，部署後憑證路徑即 `C:\SCADA\Web\App\certs\`，與腳本落點一致。
+`Install.bat` 部署到 `C:\JOULARIS\Web\App`，並自動放行防火牆 5038 + 7189。因為 Program.cs 由 `ContentRoot\certs` 讀 pfx，部署後憑證路徑即 `C:\JOULARIS\Web\App\certs\`，與腳本落點一致。
 
 **Install.bat 自動產憑證（步驟 [5/7]）**：安裝流程會在 DB 設定後、開防火牆前**自動執行 `generate-https-cert.ps1`**，所以 install 一跑完 HTTPS 即就緒，不再需要手動跑：
 
 - **首裝**（`certs\scada-web.pfx` 不存在）→ 自動產生 CA + 伺服器憑證（用**目標機當下偵測到的 LAN IP** 簽 SAN）
 - **升級**（`scada-web.pfx` 已存在）→ **略過不動**，沿用既有憑證（IP 若變過，手動重跑 `generate-https-cert.ps1`）
-- 產生後自動把 client 安裝包（`ScadaEngine-CA.crt` + `install-ca-on-client.ps1`）複製到 **`C:\SCADA\ClientCA_Installer\`**，整夾拷給每台 client 即可
+- 產生後自動把 client 安裝包（`ScadaEngine-CA.crt` + `install-ca-on-client.ps1`）複製到 **`C:\JOULARIS\ClientCA_Installer\`**，整夾拷給每台 client 即可
 - 憑證產生失敗（無 PowerShell 權限等）→ 印 WARN，Web 優雅退回純 HTTP，不中斷安裝
 - ⚠️ 因憑證存在會觸發 Program.cs 強制轉址：**client 裝好 CA 前連線會跳憑證警告**（可按繼續前往），裝 CA 後零警告
 
@@ -72,7 +72,7 @@
 
 ```powershell
 # 部署路徑
-powershell -ExecutionPolicy Bypass -File C:\SCADA\Web\App\certs\generate-https-cert.ps1
+powershell -ExecutionPolicy Bypass -File C:\JOULARIS\Web\App\certs\generate-https-cert.ps1
 net stop JoularisWeb; net start JoularisWeb   # 重啟讓 Kestrel 載入憑證
 ```
 
@@ -89,7 +89,7 @@ New-NetFirewallRule -DisplayName "JOULARIS Web HTTPS" -Direction Inbound -Protoc
 
 ### 二、每台 client（一次）
 
-把伺服器 `C:\SCADA\ClientCA_Installer\` 整個資料夾（內含 `ScadaEngine-CA.crt` + `install-ca-on-client.ps1`）複製到該 client，以**系統管理員**執行：
+把伺服器 `C:\JOULARIS\ClientCA_Installer\` 整個資料夾（內含 `ScadaEngine-CA.crt` + `install-ca-on-client.ps1`）複製到該 client，以**系統管理員**執行：
 
 ```powershell
 ./install-ca-on-client.ps1       # 裝入「受信任的根憑證授權單位」

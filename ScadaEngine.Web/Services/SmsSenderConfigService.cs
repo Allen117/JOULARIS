@@ -8,7 +8,7 @@ namespace ScadaEngine.Web.Services
     /// <summary>
     /// SmsSetting.json 讀寫服務 — Web UI 編輯簡訊盒設定時直接寫 JSON 檔
     /// 路徑由 Common 的 SharedSettingLocator 解析（..\..\Shared → 本機 Setting → 開發 repo），與 Engine 同一套：
-    /// 生產機 = C:\SCADA\Shared\SmsSetting.json、開發模式 = repo 的 ScadaEngine.Engine/Setting/SmsSetting.json。
+    /// 生產機 = C:\JOULARIS\Shared\SmsSetting.json、開發模式 = repo 的 ScadaEngine.Engine/Setting/SmsSetting.json。
     /// 存檔後由 controller 發 MQTT SCADA/Sys/Notify/Reload，Engine 熱重載並重掃序列埠（改 COM / 啟用不必重啟）；
     /// DB 收訊號碼則另走 60 秒快取。
     /// </summary>

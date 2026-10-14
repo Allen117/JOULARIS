@@ -9,7 +9,7 @@ $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ProjectPath = Split-Path -Parent $ScriptPath
 
 # 目標部署路徑
-$TargetPath = "C:\SCADA\Web\App"
+$TargetPath = "C:\JOULARIS\Web\App"
 
 # Service configuration
 $ServiceName = "JoularisWeb"
@@ -103,7 +103,7 @@ function Install-Service {
         Copy-Item -Path "$publishPath\*" -Destination $TargetPath -Recurse -Force
         Write-Host "Application files copied." -ForegroundColor Green
 
-        # dbSetting.json is NOT copied here: Web reads the machine-wide C:\SCADA\Shared\dbSetting.json
+        # dbSetting.json is NOT copied here: Web reads the machine-wide C:\JOULARIS\Shared\dbSetting.json
         # (DbSettingLocator, same resolution as Engine / Gateway). Install.bat creates / migrates that file.
         $enginePath = Join-Path (Split-Path -Parent $ProjectPath) "ScadaEngine.Engine"
 
@@ -142,8 +142,8 @@ function Install-Service {
         Write-Host "========================================" -ForegroundColor Green
         Write-Host ""
         Write-Host "Configuration files:"
-        Write-Host "  - ..\..\Shared\dbSetting.json  (DB connection, C:\SCADA\Shared - shared with Engine)"
-        Write-Host "  - ..\..\Shared\EmailSetting.json / SmsSetting.json / LineSetting.json  (notify configs, C:\SCADA\Shared - Web UI writes, Engine hot-reloads)"
+        Write-Host "  - ..\..\Shared\dbSetting.json  (DB connection, C:\JOULARIS\Shared - shared with Engine)"
+        Write-Host "  - ..\..\Shared\EmailSetting.json / SmsSetting.json / LineSetting.json  (notify configs, C:\JOULARIS\Shared - Web UI writes, Engine hot-reloads)"
         Write-Host "  - MqttSetting\MqttSetting.json (MQTT broker)"
         Write-Host ""
         Write-Host "Next: Run '.\DeployWebService.ps1 start' to start the service"
@@ -291,7 +291,7 @@ function Update-Service {
 
         # Sync config files
         $enginePath = Join-Path (Split-Path -Parent $ProjectPath) "ScadaEngine.Engine"
-        # (dbSetting.json deliberately absent: Web reads C:\SCADA\Shared\dbSetting.json, never a local copy)
+        # (dbSetting.json deliberately absent: Web reads C:\JOULARIS\Shared\dbSetting.json, never a local copy)
         $configsToCopy = @(
             @{ Src = (Join-Path $enginePath "DatabaseSchema\DatabaseSchema.json"); Dst = (Join-Path $TargetPath "DatabaseSchema\DatabaseSchema.json") },
             @{ Src = (Join-Path $ProjectPath "MqttSetting\MqttSetting.json"); Dst = (Join-Path $TargetPath "MqttSetting\MqttSetting.json") }

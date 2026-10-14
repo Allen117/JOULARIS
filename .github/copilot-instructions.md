@@ -149,7 +149,7 @@
 
 ### 6.1 檔案存放路徑 (Output Path)
 為了方便現場維護，設定檔採分類存放，程式讀取路徑應相對於執行檔目錄：
-* **資料庫設定**：生產機 `C:\SCADA\Shared\dbSetting.json`（Engine / Web / Gateway 共用一份）、開發 `ScadaEngine.Engine/Setting/dbSetting.json`；解析順序見 docs/架構.md §共用設定檔解析順序
+* **資料庫設定**：生產機 `C:\JOULARIS\Shared\dbSetting.json`（Engine / Web / Gateway 共用一份）、開發 `ScadaEngine.Engine/Setting/dbSetting.json`；解析順序見 docs/架構.md §共用設定檔解析順序
 * **Modbus 點位設定**：`./Modbus/modbus.json`
 
 ### 6.2 專案配置 (csproj)

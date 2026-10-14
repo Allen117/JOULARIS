@@ -8,7 +8,7 @@ public enum DbSettingSource
 {
     /// <summary>環境變數 JOULARIS_DBSETTING 指定的絕對路徑（測試 / 多實例覆寫）</summary>
     EnvironmentVariable,
-    /// <summary>生產機共用檔 &lt;BaseDirectory&gt;\..\..\Shared\dbSetting.json（= C:\SCADA\Shared\）</summary>
+    /// <summary>生產機共用檔 &lt;BaseDirectory&gt;\..\..\Shared\dbSetting.json（= C:\JOULARIS\Shared\）</summary>
     Shared,
     /// <summary>本機 App\Setting\dbSetting.json（單機獨立安裝，例如 Gateway 裝在遠端機器）</summary>
     LocalSetting,

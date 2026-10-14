@@ -6,7 +6,7 @@ namespace ScadaEngine.Tests.Common;
 /// <summary>
 /// 鎖住共用設定檔（EmailSetting / SmsSetting / LineSetting）的解析順序：
 /// ..\..\Shared → 本機 Setting → 開發 repo（通知三檔無環境變數層）。
-/// 每個測試用獨立暫存目錄模擬 C:\SCADA\&lt;App&gt;\App\ 佈局與 repo 佈局。
+/// 每個測試用獨立暫存目錄模擬 C:\JOULARIS\&lt;App&gt;\App\ 佈局與 repo 佈局。
 /// 重點：Shared 存在時本機 Setting 複本「一定輸」，且 Engine / Web 兩個 BaseDirectory 解析到同一份。
 /// </summary>
 public class SharedSettingLocatorTests : IDisposable

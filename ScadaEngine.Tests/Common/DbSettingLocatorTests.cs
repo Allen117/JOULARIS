@@ -5,14 +5,14 @@ namespace ScadaEngine.Tests.Common;
 
 /// <summary>
 /// 鎖住 dbSetting.json 四層解析順序（環境變數 → ..\..\Shared → 本機 Setting → 開發 repo）。
-/// 每個測試用獨立暫存目錄模擬 C:\SCADA\&lt;App&gt;\App\ 佈局與 repo 佈局，不碰真實環境變數。
+/// 每個測試用獨立暫存目錄模擬 C:\JOULARIS\&lt;App&gt;\App\ 佈局與 repo 佈局，不碰真實環境變數。
 /// 重點：Shared 存在時本機 Setting 複本「一定輸」— 這是當年 Web 讀到 stale 複本的 bug 根因。
 /// </summary>
 public class DbSettingLocatorTests : IDisposable
 {
     private readonly string _szRoot;
 
-    // 模擬 C:\SCADA\<App>\App\ 佈局：Root\Engine\App\ 為 BaseDirectory，Root\Shared\ 為共用檔位置
+    // 模擬 C:\JOULARIS\<App>\App\ 佈局：Root\Engine\App\ 為 BaseDirectory，Root\Shared\ 為共用檔位置
     private readonly string _szBaseDir;
     private readonly string _szSharedFile;
     private readonly string _szLocalFile;
@@ -181,7 +181,7 @@ public class DbSettingLocatorTests : IDisposable
     [Fact]
     public void Three_Apps_On_Same_Machine_Resolve_To_Same_Shared_File()
     {
-        // C:\SCADA\Engine\App、C:\SCADA\Web\App、C:\SCADA\ModbusServer\App 三個 BaseDirectory → 同一份 Shared
+        // C:\JOULARIS\Engine\App、C:\JOULARIS\Web\App、C:\JOULARIS\ModbusServer\App 三個 BaseDirectory → 同一份 Shared
         Touch(_szSharedFile);
         var szWebBase = Path.Combine(_szRoot, "Web", "App");
         var szGwBase = Path.Combine(_szRoot, "ModbusServer", "App");

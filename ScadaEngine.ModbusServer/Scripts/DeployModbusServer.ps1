@@ -10,7 +10,7 @@ $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ProjectPath = Split-Path -Parent $ScriptPath
 
 # 目標部署路徑
-$TargetPath = "C:\SCADA\ModbusServer\App"
+$TargetPath = "C:\JOULARIS\ModbusServer\App"
 
 # Service configuration
 $ServiceName = "JoularisModbusGateway"
@@ -120,7 +120,7 @@ function Install-GatewayService {
         Write-Host "Service installed to: $TargetPath" -ForegroundColor Green
         Write-Host "Config files:"
         Write-Host '  - Setting\ModbusServerSetting.json  (ports / word order / segments)'
-        Write-Host '  - ..\..\Shared\dbSetting.json       (SQL connection; same box as Engine/Web -> C:\SCADA\Shared)'
+        Write-Host '  - ..\..\Shared\dbSetting.json       (SQL connection; same box as Engine/Web -> C:\JOULARIS\Shared)'
         Write-Host '  - Setting\dbSetting.json            (SQL connection; standalone box only, seeded from dbSetting.example.json)'
         Write-Host '  - MqttSetting\MqttSetting.json      (MQTT broker)'
         Write-Host '  - AddressMap.json                   (auto-generated, DO NOT delete: address assignments)'

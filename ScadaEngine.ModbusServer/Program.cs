@@ -63,7 +63,7 @@ try
     builder.Services.AddSingleton(setting);
     builder.Services.AddSingleton(mqttSetting);
     // dbSetting.json 路徑由 Common 的 DbSettingLocator 統一解析（環境變數 → ..\..\Shared → 本機 Setting → 開發 repo）
-    // 同機裝在 C:\SCADA\ModbusServer\App 時讀 C:\SCADA\Shared\；裝在別台機器時落到本機 Setting\dbSetting.json
+    // 同機裝在 C:\JOULARIS\ModbusServer\App 時讀 C:\JOULARIS\Shared\；裝在別台機器時落到本機 Setting\dbSetting.json
     builder.Services.AddSingleton(sp =>
         new DatabaseConfigService(sp.GetRequiredService<ILogger<DatabaseConfigService>>(), DbSettingLocator.Resolve()));
     builder.Services.AddSingleton<GatewayRepository>();

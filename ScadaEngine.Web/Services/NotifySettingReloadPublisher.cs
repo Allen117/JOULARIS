@@ -8,7 +8,7 @@ namespace ScadaEngine.Web.Services;
 
 /// <summary>
 /// Web 端通知設定熱重載 MQTT 發布者
-/// Web 存完 EmailSetting / SmsSetting（寫到 C:\SCADA\Shared\）後發 SCADA/Sys/Notify/Reload，
+/// Web 存完 EmailSetting / SmsSetting（寫到 C:\JOULARIS\Shared\）後發 SCADA/Sys/Notify/Reload，
 /// Engine 的 NotifySettingReloadSubscriber 重讀同一份並套用，不必重啟 Engine。
 /// 結果由 Engine 回 SCADA/Sys/Notify/Status（<see cref="NotifyReloadStatusCache"/> 依 requestId 配對）。
 /// 連線模式比照 SmsCommandPublisher（QoS=1、Retain=false、失敗只記 log）。

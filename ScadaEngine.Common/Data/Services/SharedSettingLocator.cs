@@ -7,7 +7,7 @@ public enum SharedSettingSource
 {
     /// <summary>環境變數指定的絕對路徑（僅 dbSetting.json 有此層；測試 / 多實例覆寫）</summary>
     EnvironmentVariable,
-    /// <summary>生產機共用檔 &lt;BaseDirectory&gt;\..\..\Shared\&lt;檔名&gt;（= C:\SCADA\Shared\）</summary>
+    /// <summary>生產機共用檔 &lt;BaseDirectory&gt;\..\..\Shared\&lt;檔名&gt;（= C:\JOULARIS\Shared\）</summary>
     Shared,
     /// <summary>本機 App\Setting\&lt;檔名&gt;（單機獨立安裝，例如 Gateway 裝在遠端機器）</summary>
     LocalSetting,
@@ -43,13 +43,13 @@ public sealed record SharedSettingLocation(
 /// 皆走同一套順序，Engine / Web / ModbusServer 三個 app 解析結果一致，第一個「檔案存在」的候選勝出：
 /// <list type="number">
 ///   <item>環境變數（僅在呼叫端給了 <c>szEnvOverride</c> 時列入；絕對路徑；存在但檔不在 → 略過往下找）</item>
-///   <item><c>&lt;BaseDirectory&gt;\..\..\Shared\&lt;檔名&gt;</c>（生產機 C:\SCADA\&lt;App&gt;\App\ → C:\SCADA\Shared\）</item>
+///   <item><c>&lt;BaseDirectory&gt;\..\..\Shared\&lt;檔名&gt;</c>（生產機 C:\JOULARIS\&lt;App&gt;\App\ → C:\JOULARIS\Shared\）</item>
 ///   <item><c>&lt;BaseDirectory&gt;\Setting\&lt;檔名&gt;</c>（單機獨立安裝 / 舊佈局）</item>
 ///   <item><c>&lt;CWD&gt;\..\ScadaEngine.Engine\Setting\&lt;檔名&gt;</c>，找不到再從 BaseDirectory 逐層往上找
 ///         <c>&lt;祖先&gt;\ScadaEngine.Engine\Setting\&lt;檔名&gt;</c>（開發模式 dotnet run / F5，不依賴 CWD）</item>
 /// </list>
 /// 第 2 層刻意排在第 3 層之前：共用檔存在就一定贏過本機複本，杜絕 stale 複本被優先讀到。
-/// 程式碼不出現 C:\SCADA 等寫死磁碟路徑，全靠 BaseDirectory 相對推算。
+/// 程式碼不出現 C:\JOULARIS 等寫死磁碟路徑，全靠 BaseDirectory 相對推算。
 /// 詳見 docs/架構.md §共用設定檔解析順序。
 /// </summary>
 public static class SharedSettingLocator

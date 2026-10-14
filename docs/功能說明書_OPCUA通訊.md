@@ -36,12 +36,13 @@ Engine OpcUaReloadSubscriber → OpcUaCommunicationService.ReloadAsync()
 
   ```json
   "EngineOpcUaConfig": {
-    "WatchedFolder": "C:/SCADA/Engine/App/OpcUaPoint",   // Engine 實際讀取的部署資料夾（主寫入目標）
-    "MirrorFolder": "../ScadaEngine.Engine/OpcUaPoint"   // 可選，dev 用 — 鏡像寫回 repo，rebuild/重打包不倒退
+    "WatchedFolder": "../../Engine/App/OpcUaPoint"   // Engine 實際讀取的部署資料夾（主寫入目標），相對 Web\App → <安裝根目錄>\Engine\App
   }
   ```
 
   相對路徑以 Web ContentRoot 為基準；`WatchedFolder` 未設定時存檔直接報錯（不亂寫）。鏡像寫回/刪檔失敗僅記 log，不影響主寫入。
+  正式環境用相對路徑、不寫死安裝根目錄（26.6.0 起）；`appsettings.Development.json` 覆寫為 `../ScadaEngine.Engine/OpcUaPoint`（dev Engine `dotnet run` 讀 repo 這份），不碰生產 Engine 資料夾。`MirrorFolder`（可選）仍支援但兩者皆未設。
+
 - **原子寫檔**：先寫 `*.json.tmp` 再 `File.Replace` 原子替換（留 `*.json.bak` 備份），Engine reload 任何瞬間讀到的都是完整舊檔或完整新檔。
 - Web 與 Engine 需**同機部署**（分機部署需改走 DB 或 API）。
 

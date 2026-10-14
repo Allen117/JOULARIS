@@ -20,7 +20,7 @@ public class LicenseService : BackgroundService
 
     private const string PIPE_NAME  = "ScadaEngineLicense";
     private const string BRIDGE_SVC = "JoularisLicense";
-    private const string BRIDGE_EXE = @"C:\SCADA\LicenseBridge\ScadaEngine.LicenseBridge.exe";
+    private const string BRIDGE_EXE_NAME = "ScadaEngine.LicenseBridge.exe";
     private const string MQTT_STATUS_TOPIC = "SCADA/Sys/License/Status";
 
     private readonly ILogger<LicenseService> _logger;
@@ -29,6 +29,19 @@ public class LicenseService : BackgroundService
     private readonly MqttPublishService _mqttPublishService;
 
     private bool _wasSuspended = false;
+
+    // 部署佈局 <root>\Engine\App\ → <root>\LicenseBridge\；不寫死安裝根目錄（Install.bat 的 %_ROOT% 為唯一真相）
+    private readonly string _szBridgeExePath = ResolveBridgeExePath(AppContext.BaseDirectory);
+
+    /// <summary>
+    /// 由 Engine 執行檔目錄推算 Bridge exe 路徑：上兩層（安裝根目錄）\LicenseBridge\ScadaEngine.LicenseBridge.exe。
+    /// 不檢查存在與否 — 開發 bin 下推算出的路徑不存在屬正常，僅供 log 與 sc create 使用。
+    /// </summary>
+    public static string ResolveBridgeExePath(string szBaseDir)
+    {
+        string szRoot = Path.GetFullPath(Path.Combine(szBaseDir, "..", ".."));
+        return Path.Combine(szRoot, "LicenseBridge", BRIDGE_EXE_NAME);
+    }
 
     public LicenseService(
         ILogger<LicenseService> logger,
@@ -44,7 +57,7 @@ public class LicenseService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("授權守衛服務啟動，等待 MQTT/DB 初始化 (5 秒)...");
+        _logger.LogInformation("授權守衛服務啟動，Bridge 路徑: {Path}，等待 MQTT/DB 初始化 (5 秒)...", _szBridgeExePath);
         await Task.Delay(5000, stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -172,7 +185,7 @@ public class LicenseService : BackgroundService
         if (!exists)
         {
             _logger.LogInformation("Bridge 服務不存在，建立服務...");
-            RunSc($"create {BRIDGE_SVC} binPath= \"{BRIDGE_EXE}\" DisplayName= \"JOULARIS License Bridge\" start= auto");
+            RunSc($"create {BRIDGE_SVC} binPath= \"{_szBridgeExePath}\" DisplayName= \"JOULARIS License Bridge\" start= auto");
         }
 
         _logger.LogInformation("啟動 Bridge 服務...");

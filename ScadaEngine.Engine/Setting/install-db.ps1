@@ -6,7 +6,7 @@
     以「執行者的 Windows 帳號」透過 Integrated Security 連線 SQL Server（安裝 SQL Server 時
     安裝者帳號預設即為 sysadmin），全程不需 sa 密碼。執行內容：
 
-      1. 建立資料夾 C:\Scada\Database、C:\Scada\Backup（路徑讀 DbMaintenanceSetting.json）
+      1. 建立資料夾 C:\JOULARIS\Database、C:\JOULARIS\Backup（路徑讀 DbMaintenanceSetting.json）
          並授予 SQL Server 服務帳號寫入權限（CREATE DATABASE / BACKUP 的檔案 I/O 由 SQL 服務進程執行）
       2. 資料庫不存在 → 建立於指定路徑 + 設 RECOVERY SIMPLE
          資料庫已存在 → 跳過建立；若復原模式為 FULL 印出警告（不自動更改既有 DB 狀態）
@@ -42,7 +42,7 @@ function Read-JsonFile([string]$path) {
 
 # ─── 1. 讀取設定檔補齊參數 ───────────────────────────────────────────────
 # dbSetting.json 與 DbSettingLocator 同序：環境變數 JOULARIS_DBSETTING → 機器共用檔
-# （本腳本在 C:\SCADA\Engine\App\Setting\，往上三層 = C:\SCADA\Shared\）→ 同資料夾（舊佈局 / 開發 repo）
+# （本腳本在 C:\JOULARIS\Engine\App\Setting\，往上三層 = C:\JOULARIS\Shared\）→ 同資料夾（舊佈局 / 開發 repo）
 $dbSettingPath = $null
 foreach ($cand in @(
     $env:JOULARIS_DBSETTING,
@@ -60,8 +60,8 @@ if (-not $ServerInstance) { $ServerInstance = if ($dbSetting) { $dbSetting.Datab
 if (-not $DatabaseName)   { $DatabaseName   = if ($dbSetting) { $dbSetting.DataBaseName }   else { 'wsnCsharp' } }
 if (-not $AppLogin)       { $AppLogin       = if ($dbSetting) { $dbSetting.DataBaseAccount } else { 'wsn' } }
 if (-not $AppPassword)    { $AppPassword    = if ($dbSetting) { $dbSetting.DataBasePassword } else { '' } }
-if (-not $DataFolder)     { $DataFolder     = if ($maintSetting) { $maintSetting.DataFileFolder } else { 'C:\Scada\Database' } }
-if (-not $BackupFolder)   { $BackupFolder   = if ($maintSetting) { $maintSetting.BackupFolder }   else { 'C:\Scada\Backup' } }
+if (-not $DataFolder)     { $DataFolder     = if ($maintSetting) { $maintSetting.DataFileFolder } else { 'C:\JOULARIS\Database' } }
+if (-not $BackupFolder)   { $BackupFolder   = if ($maintSetting) { $maintSetting.BackupFolder }   else { 'C:\JOULARIS\Backup' } }
 
 Write-Host "=== ScadaEngine 資料庫安裝 ===" -ForegroundColor Cyan
 Write-Host "SQL Server : $ServerInstance"

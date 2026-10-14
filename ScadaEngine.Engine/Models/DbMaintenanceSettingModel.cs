@@ -12,10 +12,10 @@ namespace ScadaEngine.Engine.Models;
 public class DbMaintenanceSettingModel
 {
     /// <summary>自動建 DB 時 MDF/LDF 存放資料夾（僅新建 DB 時使用，不影響既有 DB）</summary>
-    public string DataFileFolder { get; set; } = @"C:\Scada\Database";
+    public string DataFileFolder { get; set; } = @"C:\JOULARIS\Database";
 
     /// <summary>備份檔（.bak）存放資料夾</summary>
-    public string BackupFolder { get; set; } = @"C:\Scada\Backup";
+    public string BackupFolder { get; set; } = @"C:\JOULARIS\Backup";
 
     /// <summary>每週自動備份總開關 — false 時排程服務閒置，不影響其他功能</summary>
     public bool BackupEnabled { get; set; } = true;
@@ -46,7 +46,7 @@ public class DbMaintenanceSettingModel
     /// 載入 DbMaintenanceSetting.json — 路徑偵測與 LineSetting/EmailSetting 同邏輯，
     /// 另加開發模式相對路徑 fallback（Web dotnet run 時讀 repo 內 Engine 那份）。
     /// 本檔為 Engine 專屬設定、不走 DbSettingLocator 的 Shared\ 機制（那只管 dbSetting.json）。
-    /// 檔案不存在或解析失敗時回傳預設值（C:\Scada 路徑 + 週日 03:00）。
+    /// 檔案不存在或解析失敗時回傳預設值（C:\JOULARIS 路徑 + 週日 03:00）。
     /// </summary>
     public static DbMaintenanceSettingModel LoadFromDefaultPaths(ILogger logger)
     {

@@ -8,7 +8,7 @@ namespace ScadaEngine.Web.Services
     /// <summary>
     /// EmailSetting.json 讀寫服務 — Web UI 編輯 SMTP 設定時直接寫 JSON 檔
     /// 路徑由 Common 的 SharedSettingLocator 解析（..\..\Shared → 本機 Setting → 開發 repo），與 Engine 同一套：
-    /// 生產機 = C:\SCADA\Shared\EmailSetting.json、開發模式 = repo 的 ScadaEngine.Engine/Setting/EmailSetting.json。
+    /// 生產機 = C:\JOULARIS\Shared\EmailSetting.json、開發模式 = repo 的 ScadaEngine.Engine/Setting/EmailSetting.json。
     /// 讀寫走同一條解析路徑，不會再有「讀 Engine 那份、寫 Web 複本」的分家。
     /// 存檔後由 controller 發 MQTT SCADA/Sys/Notify/Reload 讓 Engine 熱重載。
     /// 密碼空字串時保留既有密碼（避免每次儲存都要重輸入）
