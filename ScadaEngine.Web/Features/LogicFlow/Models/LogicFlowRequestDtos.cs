@@ -27,6 +27,13 @@ public class CopyNodeDto
     public int? TargetParentId { get; set; }
 }
 
+/// <summary>搬移節點請求（拖曳）：TargetParentId = null 代表根層；SortOrder = 在目標層的插入位置（0 起算）</summary>
+public class MoveNodeDto
+{
+    public int? TargetParentId { get; set; }
+    public int SortOrder { get; set; }
+}
+
 /// <summary>排序更新請求</summary>
 public class SortOrderDto
 {

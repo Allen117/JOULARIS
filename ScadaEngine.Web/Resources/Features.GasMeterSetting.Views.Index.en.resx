@@ -127,4 +127,10 @@
   <data name="gasmeter.err.sort_failed" xml:space="preserve"><value>Sort update failed</value></data>
   <data name="gasmeter.err.unknown" xml:space="preserve"><value>Unknown error</value></data>
   <data name="gasmeter.form.name_filter_hint" xml:space="preserve"><value>Cannot find your gas meter point? Two likely causes: (1) the point name carries no natural-gas keyword — rename it in point management to include e.g. "天然氣 / 瓦斯 / gas"; (2) the unit is not a cumulative gas volume unit (e.g. it is Nm³/h flow) — change it to Nm³ or m³. The name-keyword filter exists to keep out electricity points, whose unit is also labelled "度".</value></data>
+  <data name="gasmeter.err.sort_cycle" xml:space="preserve"><value>A circuit cannot be moved under its own descendant</value></data>
+  <data name="gasmeter.err.sort_multi_root" xml:space="preserve"><value>Only one root (whole plant) is allowed; cannot create a second root</value></data>
+  <data name="gasmeter.err.sort_missing_node" xml:space="preserve"><value>Node not found, please reload the page</value></data>
+  <data name="gasmeter.err.sort_missing_parent" xml:space="preserve"><value>Target circuit not found, please reload the page</value></data>
+  <data name="gasmeter.msg.confirm_move" xml:space="preserve"><value>Move "{name}" under "{parent}"?&#10;Parent circuit totals and reports change immediately.</value></data>
+  <data name="gasmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>⚠ Target is a physical gas meter: once it has children it is summed together with itself.</value></data>
 </root>

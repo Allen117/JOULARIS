@@ -150,4 +150,10 @@
   <data name="watermeter.err.has_children" xml:space="preserve"><value>This circuit has child nodes; deletion will remove all descendants</value></data>
   <data name="watermeter.err.sort_failed" xml:space="preserve"><value>Sort update failed</value></data>
   <data name="watermeter.err.unknown" xml:space="preserve"><value>Unknown error</value></data>
+  <data name="watermeter.err.sort_cycle" xml:space="preserve"><value>A circuit cannot be moved under its own descendant</value></data>
+  <data name="watermeter.err.sort_multi_root" xml:space="preserve"><value>Only one root (whole plant) is allowed; cannot create a second root</value></data>
+  <data name="watermeter.err.sort_missing_node" xml:space="preserve"><value>Node not found, please reload the page</value></data>
+  <data name="watermeter.err.sort_missing_parent" xml:space="preserve"><value>Target circuit not found, please reload the page</value></data>
+  <data name="watermeter.msg.confirm_move" xml:space="preserve"><value>Move "{name}" under "{parent}"?&#10;Parent circuit totals and reports change immediately.</value></data>
+  <data name="watermeter.msg.confirm_move_into_meter" xml:space="preserve"><value>⚠ Target is a physical water meter: once it has children it is summed together with itself.</value></data>
 </root>

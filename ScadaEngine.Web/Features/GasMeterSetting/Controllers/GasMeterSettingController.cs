@@ -245,6 +245,11 @@ public class GasMeterSettingController : Controller
             await _service.UpdateSortOrderAsync(dtoList.Select(d => (d.id, d.parentId, d.sortOrder)));
             return Ok(new { success = true });
         }
+        catch (TreeSortException ex)
+        {
+            // 樹防呆（循環 / 節點不存在 / 父節點不存在 / 多根）→ 400 + 錯誤代碼
+            return BadRequest(new { success = false, message = ex.Code });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "更新 GasMeterCircuit 排序失敗");

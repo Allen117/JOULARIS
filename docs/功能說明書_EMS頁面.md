@@ -10,7 +10,7 @@
 | 自來水迴路資訊 | `/WaterCircuitInfo` |
 | 氣迴路資訊 | `/GasCircuitInfo` |
 | 空調水系統迴路 | `/ChilledWaterCircuitInfo` |
-| 空調水系統迴路設定 | `/ChilledWaterSystem` |
+| 空調水系統迴路設定 | `/ChilledWaterSystem` |（樹可拖曳搬移，無 Sign、允許多根 → [功能說明書_階層樹拖曳搬移.md](功能說明書_階層樹拖曳搬移.md)）
 | 電表/迴路設定 | `/EnergyMeter` |
 | 用電報表 | `/EnergyReport` |
 | 電費報表 | `/ElectricityCostReport` |

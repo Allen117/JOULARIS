@@ -249,4 +249,10 @@ Automatically connect a constant 0 to return pressure (p_ret)?</value></data>
   <data name="logicflow.pp.option.demand_point" xml:space="preserve"><value>Demand Points</value></data>
   <data name="logicflow.pp.option.demand_point_desc" xml:space="preserve"><value>15-min circuit demand (kW, read-only)</value></data>
   <data name="logicflow.pp.title_select_demand_point" xml:space="preserve"><value>Select Demand Point</value></data>
+  <data name="logicflow.err.sort_cycle" xml:space="preserve"><value>An item cannot be moved under its own descendant</value></data>
+  <data name="logicflow.err.move_missing_node" xml:space="preserve"><value>Item not found, please reload the page</value></data>
+  <data name="logicflow.err.move_target_not_folder" xml:space="preserve"><value>Items can only be dropped into a folder or the root level</value></data>
+  <data name="logicflow.err.move_failed" xml:space="preserve"><value>Move failed</value></data>
+  <data name="logicflow.error.move_failed" xml:space="preserve"><value>Move failed: {msg}</value></data>
+  <data name="logicflow.confirm.move_into_disabled" xml:space="preserve"><value>Target folder "{name}" is disabled.&#10;All logic moved into it will be disabled as well (Engine stops running them immediately). Continue?</value></data>
 </root>

@@ -284,6 +284,104 @@ public class LogicFlowService
         }
     }
 
+    public const string ErrMoveMissingNode = "move_missing_node";
+    public const string ErrMoveTargetNotFolder = "move_target_not_folder";
+
+    /// <summary>
+    /// 搬移節點（前端拖曳）：改 ParentId + 插到目標層第 nSortOrder 位，新舊兩層 SortOrder 重新編號。
+    /// 防呆（違規丟 <see cref="TreeSortException"/>）：
+    ///   - 目標父層必須存在且為 folder（logic 不能有子項）；null = 根層
+    ///   - 不能搬到自己或自己的子孫底下（循環）
+    ///   - 目標資料夾已停用 → 搬入的子樹一併停用（Engine 只看每條 logic 自己的 IsEnabled，
+    ///     不看父資料夾；不連動會變成「UI 看起來關了、Engine 還在跑」）
+    /// </summary>
+    /// <returns>因目標資料夾停用而被一併停用的節點數（0 = 無連動）</returns>
+    public async Task<int> MoveNodeAsync(int nId, int? nTargetParentId, int nSortOrder)
+    {
+        using var conn = await GetConnectionAsync();
+        using var tran = conn.BeginTransaction();
+        try
+        {
+            var all = (await conn.QueryAsync<LogicFlowTreeNode>(
+                "SELECT Id, ParentId, Name, NodeType, SortOrder, IsEnabled FROM LogicFlowTree",
+                transaction: tran)).ToList();
+
+            var node = all.FirstOrDefault(n => n.Id == nId)
+                ?? throw new TreeSortException(ErrMoveMissingNode);
+
+            LogicFlowTreeNode? target = null;
+            if (nTargetParentId.HasValue)
+            {
+                target = all.FirstOrDefault(n => n.Id == nTargetParentId.Value);
+                if (target == null || target.NodeType != "folder")
+                    throw new TreeSortException(ErrMoveTargetNotFolder);
+            }
+
+            // 循環 / 存在性
+            TreeSortValidator.Validate(
+                all.Select(n => (n.Id, n.ParentId)),
+                new[] { (nId, nTargetParentId, nSortOrder) },
+                allowMultiRoot: true);
+
+            var oldParentId = node.ParentId;
+            var isParentChanged = oldParentId != nTargetParentId;
+
+            // 新層：排除自己後依現有順序插入
+            var siblings = all.Where(n => n.ParentId == nTargetParentId && n.Id != nId)
+                .OrderBy(n => n.SortOrder).ThenBy(n => n.Id).ToList();
+            var nInsertAt = Math.Clamp(nSortOrder, 0, siblings.Count);
+            siblings.Insert(nInsertAt, node);
+
+            for (var i = 0; i < siblings.Count; i++)
+            {
+                await conn.ExecuteAsync(
+                    "UPDATE LogicFlowTree SET ParentId = @ParentId, SortOrder = @SortOrder, UpdatedAt = GETDATE() WHERE Id = @Id",
+                    new { Id = siblings[i].Id, ParentId = nTargetParentId, SortOrder = i }, tran);
+            }
+
+            // 舊層補洞
+            if (isParentChanged)
+            {
+                var oldSiblings = all.Where(n => n.ParentId == oldParentId && n.Id != nId)
+                    .OrderBy(n => n.SortOrder).ThenBy(n => n.Id).ToList();
+                for (var i = 0; i < oldSiblings.Count; i++)
+                {
+                    await conn.ExecuteAsync(
+                        "UPDATE LogicFlowTree SET SortOrder = @SortOrder, UpdatedAt = GETDATE() WHERE Id = @Id",
+                        new { Id = oldSiblings[i].Id, SortOrder = i }, tran);
+                }
+            }
+
+            // 目標資料夾停用 → 子樹連動停用
+            var nDisabled = 0;
+            if (target != null && !target.IsEnabled)
+            {
+                nDisabled = await conn.ExecuteAsync(@"
+                    WITH CTE AS (
+                        SELECT Id FROM LogicFlowTree WHERE Id = @Id
+                        UNION ALL
+                        SELECT t.Id FROM LogicFlowTree t INNER JOIN CTE c ON t.ParentId = c.Id
+                    )
+                    UPDATE LogicFlowTree SET IsEnabled = 0, UpdatedAt = GETDATE()
+                    WHERE Id IN (SELECT Id FROM CTE) AND IsEnabled = 1", new { Id = nId }, tran);
+            }
+
+            tran.Commit();
+            return nDisabled;
+        }
+        catch (TreeSortException)
+        {
+            tran.Rollback();
+            throw;
+        }
+        catch (Exception ex)
+        {
+            tran.Rollback();
+            _logger.LogError(ex, "搬移 LogicFlowTree 節點 {Id} 到父層 {ParentId} 時發生錯誤", nId, nTargetParentId);
+            throw;
+        }
+    }
+
     // ============ Diagram CRUD ============
 
     /// <summary>取得流程圖 JSON</summary>

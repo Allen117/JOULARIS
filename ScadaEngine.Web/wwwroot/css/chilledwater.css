@@ -114,3 +114,14 @@
     color: #055160;
     font-size: 0.75rem;
 }
+
+/* 拖曳搬移（共用 TreeDnd）：before / after = 插在目標前後；into = 變成子節點 */
+#treeContainer .tree-node.dragging { opacity: 0.4; }
+#treeContainer .tree-node.drop-before { box-shadow: inset 0 2px 0 var(--bs-primary); }
+#treeContainer .tree-node.drop-after { box-shadow: inset 0 -2px 0 var(--bs-primary); }
+#treeContainer .tree-node.drop-into {
+    outline: 2px dashed var(--bs-primary);
+    outline-offset: -2px;
+    background: rgba(13, 110, 253, 0.08);
+}
+#treeContainer.drop-root { outline: 2px dashed var(--bs-primary); outline-offset: -2px; }

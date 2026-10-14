@@ -13,6 +13,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
+        bindTreeDnd();
         g_modal = new bootstrap.Modal(document.getElementById('circuitModal'));
         document.getElementsByName('cwType').forEach(r => r.addEventListener('change', updatePointFieldsVisibility));
         document.getElementById('cwDevice').addEventListener('change', onDeviceChange);
@@ -70,6 +71,59 @@
         renderSidOptionsForDevice(document.getElementById('cwDevice').value);
     }
 
+    // ============ 拖曳搬移（共用 TreeDnd；跨層可搬、允許多根、無正負號）============
+    // 規則：不能拖到自己 / 子孫底下（TreeDnd.plan 擋）；放到綁點位的節點底下或跨層搬動前先確認；
+    // 後端 TreeSortValidator 再驗循環 / 節點存在
+    function bindTreeDnd() {
+        if (!window.TreeDnd) return;
+        window.TreeDnd.bind({
+            container: document.getElementById('treeContainer'),
+            nodeSelector: '.tree-node',
+            getNodes: () => g_nodes,
+            canDrop: () => true,
+            onDrop: dropNode
+        });
+    }
+
+    function sortErrorMessage(json) {
+        const code = json && json.message ? json.message : 'unknown';
+        const key = 'chilledwater.err.' + code;
+        const s = t(key);
+        return s === key ? code : s;
+    }
+
+    async function dropNode(nDragId, nTargetId, pos) {
+        const r = window.TreeDnd.plan(g_nodes, nDragId, nTargetId, pos);
+        if (!r.ok) {
+            if (r.error === 'cycle') alert(t('chilledwater.err.sort_cycle'));
+            return;
+        }
+        if (!r.changed) return;
+        if (r.parentChanged) {
+            const drag = g_nodes.find(n => n.id === nDragId);
+            const parent = g_nodes.find(n => n.id === r.parentId);
+            let msg = parent
+                ? t('chilledwater.msg.confirm_move', { name: drag.name, parent: parent.name })
+                : t('chilledwater.msg.confirm_move_root', { name: drag.name });
+            if (parent && parent.sid) msg += '\n' + t('chilledwater.msg.confirm_move_into_point');
+            if (!confirm(msg)) return;
+        }
+        try {
+            const res = await fetch('/ChilledWaterSystem/api/tree/sort', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(r.items)
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(sortErrorMessage(err));
+            }
+            await loadTree();
+        } catch (err) {
+            alert(t('chilledwater.msg.sort_failed', { msg: err.message }));
+        }
+    }
+
     function renderTree() {
         const root = document.getElementById('treeContainer');
         const roots = g_nodes.filter(n => n.parentId == null).sort((a, b) => a.sortOrder - b.sortOrder);
@@ -89,7 +143,7 @@
         const hasChildren = children.length > 0;
 
         return `<div class="tree-item">
-            <div class="tree-node ${g_selectedId === node.id ? 'active' : ''}" data-id="${node.id}">
+            <div class="tree-node ${g_selectedId === node.id ? 'active' : ''}" data-id="${node.id}" draggable="true">
                 <i class="fas fa-caret-down tree-toggle ${hasChildren ? '' : 'invisible'}"></i>
                 <i class="fas ${isPoint ? 'fa-snowflake is-point' : 'fa-folder'} tree-icon"></i>
                 <span class="tree-name">${escapeHtml(node.name)}</span>

@@ -137,13 +137,23 @@ public class WaterCircuitService
         return nCount > 0;
     }
 
+    /// <summary>
+    /// 批次搬移 / 排序（前端拖曳完成後整批送回，每筆含 ParentId 才能處理跨層搬動）。
+    /// 寫入前先以 <see cref="TreeSortValidator"/> 驗整棵樹（節點 / 父節點存在、無循環、允許多根）。
+    /// 防呆違規丟 <see cref="TreeSortException"/>（Controller 轉 400 + 錯誤代碼）；其他例外 rollback 後回 false。
+    /// </summary>
     public async Task<bool> UpdateSortOrderAsync(IEnumerable<(int nId, int? nParentId, int nSortOrder)> sortList)
     {
+        var items = sortList.ToList();
         using var conn = await GetConnectionAsync();
         using var tran = conn.BeginTransaction();
         try
         {
-            foreach (var (nId, nParentId, nSortOrder) in sortList)
+            var current = (await conn.QueryAsync<(int nId, int? nParentId)>(
+                "SELECT Id, ParentId FROM WaterCircuit", transaction: tran)).ToList();
+            TreeSortValidator.Validate(current, items, allowMultiRoot: true);
+
+            foreach (var (nId, nParentId, nSortOrder) in items)
             {
                 await conn.ExecuteAsync(@"
                     UPDATE WaterCircuit
@@ -153,6 +163,11 @@ public class WaterCircuitService
             }
             tran.Commit();
             return true;
+        }
+        catch (TreeSortException)
+        {
+            tran.Rollback();
+            throw;
         }
         catch (Exception ex)
         {

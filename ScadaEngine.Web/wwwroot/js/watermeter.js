@@ -10,7 +10,6 @@
     let g_selectedId = null;
     let g_modal = null;
     let g_ppModal = null;       // 兩步驟選點器 Modal
-    let g_dragId = null;        // 拖曳排序中的節點 id
 
     // ============ 初始化 ============
     function init() {
@@ -20,6 +19,7 @@
         const maxVolEl = document.getElementById('wmMaxVolume');
         maxVolEl.addEventListener('input', () => { maxVolEl.value = formatThousand(maxVolEl.value); });
         document.getElementById('ppSearch').addEventListener('input', renderPickerPointList);
+        bindTreeDnd();
         Promise.all([loadTree(), loadSidOptions()]);
     }
 
@@ -144,64 +144,56 @@
                 el.classList.add('active');
                 renderDetail(nId);
             });
-
-            // ── 拖曳排序（限同層兄弟間重排）──
-            el.addEventListener('dragstart', (e) => {
-                g_dragId = parseInt(el.dataset.id, 10);
-                el.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                try { e.dataTransfer.setData('text/plain', String(g_dragId)); } catch (_) { /* IE 相容 */ }
-            });
-            el.addEventListener('dragend', () => {
-                g_dragId = null;
-                document.querySelectorAll('#treeContainer .tree-node').forEach(n =>
-                    n.classList.remove('dragging', 'drop-target'));
-            });
-            el.addEventListener('dragover', (e) => {
-                if (!isValidDropTarget(el)) return;
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                el.classList.add('drop-target');
-            });
-            el.addEventListener('dragleave', () => el.classList.remove('drop-target'));
-            el.addEventListener('drop', async (e) => {
-                e.preventDefault();
-                el.classList.remove('drop-target');
-                if (!isValidDropTarget(el)) return;
-                await reorderBefore(g_dragId, parseInt(el.dataset.id, 10));
-            });
         });
     }
 
-    // 只允許放到「同一父層的其他節點」前面
-    function isValidDropTarget(el) {
-        if (g_dragId == null) return false;
-        const nTargetId = parseInt(el.dataset.id, 10);
-        if (nTargetId === g_dragId) return false;
-        const drag = g_nodes.find(n => n.id === g_dragId);
-        const target = g_nodes.find(n => n.id === nTargetId);
-        return !!drag && !!target && (drag.parentId ?? null) === (target.parentId ?? null);
+    // ============ 拖曳搬移（共用 TreeDnd；跨層可搬）============
+    // 規則：
+    //   - 單一根（全廠）：不能拖成第二個根 → 根節點不可拖、不能放到根節點前後、不能放到空白處
+    //   - 不能拖到自己 / 自己的子孫底下（TreeDnd.plan 擋）
+    //   - 放到「實體表」底下會讓該表連自身一起加總 → 放下前確認
+    //   - 跨層搬動會立刻改變上層迴路加總 → 放下前確認
+    //   - 後端 TreeSortValidator 再驗一次（循環 / 多根 / 節點存在），根節點 Sign 強制 +1
+    function bindTreeDnd() {
+        if (!window.TreeDnd) return;
+        window.TreeDnd.bind({
+            container: document.getElementById('treeContainer'),
+            nodeSelector: '.tree-node',
+            getNodes: () => g_nodes,
+            canDrop: canDropNode,
+            onDrop: dropNode
+        });
     }
 
-    // 把 dragId 插到 targetId 之前，重排該層 sortOrder 後整批送回
-    async function reorderBefore(nDragId, nTargetId) {
+    function canDropNode(nDragId, nTargetId, pos) {
         const drag = g_nodes.find(n => n.id === nDragId);
+        if (!drag || drag.parentId == null) return false;          // 根節點不可拖
+        if (pos === 'root') return false;                             // 單一根：不給變第二個根
         const target = g_nodes.find(n => n.id === nTargetId);
-        if (!drag || !target) return;
+        if (!target) return false;
+        if ((pos === 'before' || pos === 'after') && target.parentId == null) return false;
+        return true;
+    }
 
-        const siblings = g_nodes.filter(n => (n.parentId ?? null) === (drag.parentId ?? null))
-            .sort((a, b) => a.sortOrder - b.sortOrder);
-        const order = siblings.filter(n => n.id !== nDragId);
-        const nInsertAt = order.findIndex(n => n.id === nTargetId);
-        if (nInsertAt < 0) return;
-        order.splice(nInsertAt, 0, drag);
-
-        const payload = order.map((n, i) => ({ id: n.id, parentId: n.parentId, sortOrder: i }));
+    async function dropNode(nDragId, nTargetId, pos) {
+        const r = window.TreeDnd.plan(g_nodes, nDragId, nTargetId, pos);
+        if (!r.ok) {
+            if (r.error === 'cycle') alert(t('watermeter.err.sort_cycle'));
+            return;
+        }
+        if (!r.changed) return;
+        if (r.parentChanged) {
+            const drag = g_nodes.find(n => n.id === nDragId);
+            const parent = g_nodes.find(n => n.id === r.parentId);
+            let msg = t('watermeter.msg.confirm_move', { name: drag.name, parent: parent ? parent.name : '' });
+            if (parent && parent.sid) msg += '\n' + t('watermeter.msg.confirm_move_into_meter');
+            if (!confirm(msg)) return;
+        }
         try {
             const res = await fetch('/WaterMeterSetting/api/tree/sort', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(r.items)
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));

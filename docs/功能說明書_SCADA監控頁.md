@@ -191,7 +191,7 @@ DOMContentLoaded
 1. 呼叫 `GET /Designer/Load` 取得已發布設計
 2. 建構 `nodeMap`（以 `szPageSid` 為 key）
 3. 透過 `szParentPageSid` 建構父子關係，形成多層樹結構
-4. 依 `nSortOrder` 排序
+4. 依 `nSortOrder` 排序（Designer 頁面樹可**拖曳搬移 / 換序**，按「儲存」後以陣列 index 寫回 `SortOrder`；第一個根頁面即預設首頁 → [功能說明書_階層樹拖曳搬移.md](功能說明書_階層樹拖曳搬移.md)）
 5. **權限篩選**：非 Admin 使用者只能看到 `canView=true` 的頁面
 6. 渲染左側頁面樹，自動選取第一頁
 

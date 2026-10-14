@@ -160,8 +160,15 @@ public class ChilledWaterSystemController : Controller
     [HttpPut("api/tree/sort")]
     public async Task<IActionResult> UpdateSort([FromBody] List<WaterCircuitSortDto> dtoList)
     {
-        var sortList = dtoList.Select(d => (d.id, d.parentId, d.sortOrder));
-        var ok = await _service.UpdateSortOrderAsync(sortList);
-        return ok ? Ok(new { success = true }) : StatusCode(500, new { success = false });
+        try
+        {
+            var ok = await _service.UpdateSortOrderAsync(dtoList.Select(d => (d.id, d.parentId, d.sortOrder)));
+            return ok ? Ok(new { success = true }) : StatusCode(500, new { success = false, message = "sort_failed" });
+        }
+        catch (TreeSortException ex)
+        {
+            // 樹防呆（循環 / 節點不存在 / 父節點不存在）→ 400 + 錯誤代碼
+            return BadRequest(new { success = false, message = ex.Code });
+        }
     }
 }

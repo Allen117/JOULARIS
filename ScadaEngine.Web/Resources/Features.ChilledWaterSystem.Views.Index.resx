@@ -97,4 +97,12 @@
   <data name="chilledwater.error.sid_required" xml:space="preserve"><value>實體點位必須選擇對應 SID</value></data>
   <data name="chilledwater.error.save_failed" xml:space="preserve"><value>儲存失敗：{msg}</value></data>
   <data name="chilledwater.error.delete_failed" xml:space="preserve"><value>刪除失敗：{msg}</value></data>
+  <data name="chilledwater.err.sort_cycle" xml:space="preserve"><value>不能把迴路搬到自己的子迴路底下</value></data>
+  <data name="chilledwater.err.sort_missing_node" xml:space="preserve"><value>節點不存在，請重新整理頁面</value></data>
+  <data name="chilledwater.err.sort_missing_parent" xml:space="preserve"><value>目標迴路不存在，請重新整理頁面</value></data>
+  <data name="chilledwater.err.sort_failed" xml:space="preserve"><value>排序更新失敗</value></data>
+  <data name="chilledwater.msg.confirm_move" xml:space="preserve"><value>確定把「{name}」搬到「{parent}」底下？&#10;搬動後上層迴路的冷凍噸加總與報表會立即改變。</value></data>
+  <data name="chilledwater.msg.confirm_move_root" xml:space="preserve"><value>確定把「{name}」搬到最上層？&#10;搬動後上層迴路的冷凍噸加總與報表會立即改變。</value></data>
+  <data name="chilledwater.msg.confirm_move_into_point" xml:space="preserve"><value>⚠ 目標已綁定點位：掛子節點後，該節點會連自身一起加總。</value></data>
+  <data name="chilledwater.msg.sort_failed" xml:space="preserve"><value>搬移失敗：{msg}</value></data>
 </root>

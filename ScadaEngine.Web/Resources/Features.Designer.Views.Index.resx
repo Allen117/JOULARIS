@@ -563,4 +563,6 @@
   <data name="designer.equip.no_candidates" xml:space="preserve"><value>此設備的點位名稱皆無法對應角色，請改選其他設備或於 Modbus 來源頁填妥 Device 欄。</value></data>
   <data name="designer.equip.confirm_overwrite" xml:space="preserve"><value>將以「{device}」的點位覆蓋目前綁定，未命中的槽位會清空。確定？</value></data>
   <data name="designer.equip.toast_applied" xml:space="preserve"><value>已帶入 {n} / {m} 個槽位</value></data>
+  <data name="designer.page.move_cycle" xml:space="preserve"><value>不能把頁面搬到自己的子頁面底下</value></data>
+  <data name="designer.page.home_changed" xml:space="preserve"><value>首頁已變更為「{name}」（監控頁預設開啟第一個根頁面），按「儲存」後生效</value></data>
 </root>

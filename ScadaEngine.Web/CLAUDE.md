@@ -75,6 +75,10 @@ View discovery is configured in `Program.cs` to look in both `/Views/{1}/{0}.csh
 
 「SID → 站號內子設備」的解析（`split(',')` 拆 `szModbusID`/`szDeviceName` + `CoordinatorId*65536 + ModbusId*256` 落點）**不要在各頁重寫**——一律走 `window.PointGrouping`（`parseCoord` 吸收 Hungarian/camelCase 兩種欄位命名、`subOfSid`、`pointDeviceLabel` 四級 fallback、`coordDeviceGroups` 盤點單站號 Device 分群）。designer/logicflow/calcpoint/eventlog/energy-baseline/history 皆已改走它。載入順序須在各頁主 JS 之前。詳見 [docs/功能說明書_Modbus來源管理.md](../docs/功能說明書_Modbus來源管理.md) §站號內子設備分群。
 
+## 階層樹拖曳搬移單一真相：`js/common/tree-dnd.js` + `Services/TreeSortValidator.cs`
+
+有父子階層的設定頁（EnergyMeter / ChilledWaterSystem / WaterMeterSetting / GasMeterSetting / LogicFlow 樹 / Designer 頁面樹）拖曳搬移**不要各頁重寫**——前端一律 `window.TreeDnd`（`plan` 算兩層新順序含循環判定、`bind` 事件委派三區落點 before / after / into + 空白處 root），後端批次排序 / 搬移在交易內先 `TreeSortValidator.Validate`（存在性 / 循環 / 單一根）再寫入，違規丟 `TreeSortException(code)` 由 Controller 轉 400。載入順序須在各頁主 JS 之前。詳見 [docs/功能說明書_階層樹拖曳搬移.md](../docs/功能說明書_階層樹拖曳搬移.md)。
+
 ## Key Patterns & Pitfalls（Web 端）
 
 ### MQTT JSON Parsing

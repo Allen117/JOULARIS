@@ -150,4 +150,10 @@
   <data name="gasmeter.err.sort_failed" xml:space="preserve"><value>排序更新失敗</value></data>
   <data name="gasmeter.err.unknown" xml:space="preserve"><value>未知錯誤</value></data>
   <data name="gasmeter.form.name_filter_hint" xml:space="preserve"><value>找不到你的氣表點位？兩種可能：① 點位名稱沒帶天然氣關鍵字 → 請在點位管理把名稱改成含「天然氣 / 瓦斯 / 用氣量」等字樣；② 單位不是累積氣量單位（如標成 Nm³/h 流量）→ 請改標 Nm³ 或 m³。名稱關鍵字這道過濾是為了擋掉單位同樣標「度」的電表點位。</value></data>
+  <data name="gasmeter.err.sort_cycle" xml:space="preserve"><value>不能把迴路搬到自己的子迴路底下</value></data>
+  <data name="gasmeter.err.sort_multi_root" xml:space="preserve"><value>只允許一個全廠根節點，不能搬成第二個根</value></data>
+  <data name="gasmeter.err.sort_missing_node" xml:space="preserve"><value>節點不存在，請重新整理頁面</value></data>
+  <data name="gasmeter.err.sort_missing_parent" xml:space="preserve"><value>目標迴路不存在，請重新整理頁面</value></data>
+  <data name="gasmeter.msg.confirm_move" xml:space="preserve"><value>確定把「{name}」搬到「{parent}」底下？&#10;搬動後上層迴路的加總與報表會立即改變。</value></data>
+  <data name="gasmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>⚠ 目標是實體氣表：掛子迴路後，該氣表會連自身一起加總。</value></data>
 </root>

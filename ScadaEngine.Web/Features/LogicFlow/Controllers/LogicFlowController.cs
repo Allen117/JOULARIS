@@ -84,6 +84,25 @@ public class LogicFlowController : Controller
         return ok ? Ok(new { success = true }) : NotFound();
     }
 
+    /// <summary>拖曳搬移節點：改父層 + 插入位置；防呆失敗回 400 + 錯誤代碼（前端 `logicflow.err.{code}`）</summary>
+    [HttpPut("api/tree/{nId}/move")]
+    public async Task<IActionResult> MoveNode(int nId, [FromBody] MoveNodeDto dto)
+    {
+        try
+        {
+            var nDisabled = await _service.MoveNodeAsync(nId, dto.TargetParentId, dto.SortOrder);
+            return Ok(new { success = true, disabledCount = nDisabled });
+        }
+        catch (TreeSortException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Code });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { success = false, message = "move_failed" });
+        }
+    }
+
     [HttpPut("api/tree/sort")]
     public async Task<IActionResult> UpdateSortOrder([FromBody] List<SortOrderDto> dtoList)
     {

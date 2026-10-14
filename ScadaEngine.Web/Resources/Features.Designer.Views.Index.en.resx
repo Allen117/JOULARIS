@@ -564,4 +564,6 @@
   <data name="designer.equip.no_candidates" xml:space="preserve"><value>No point names under this equipment map to a role. Pick another equipment or fill the Device column on the Modbus Source page.</value></data>
   <data name="designer.equip.confirm_overwrite" xml:space="preserve"><value>This will overwrite current bindings with points from "{device}"; unmatched slots will be cleared. Continue?</value></data>
   <data name="designer.equip.toast_applied" xml:space="preserve"><value>Applied {n} / {m} slots</value></data>
+  <data name="designer.page.move_cycle" xml:space="preserve"><value>A page cannot be moved under its own sub-page</value></data>
+  <data name="designer.page.home_changed" xml:space="preserve"><value>Home page is now "{name}" (the SCADA viewer opens the first root page); takes effect after Save</value></data>
 </root>

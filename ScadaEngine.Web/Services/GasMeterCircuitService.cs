@@ -313,22 +313,36 @@ public class GasMeterCircuitService
         return nCount > 0;
     }
 
-    /// <summary>批次更新排序（拖曳完成後整批送回，每筆需含 ParentId 才能正確處理跨層搬動）。失敗時 rollback 並 rethrow。</summary>
-    public async Task UpdateSortOrderAsync(IEnumerable<(int nId, int? nParentId, int nSortOrder)> items)
+    /// <summary>
+    /// 批次搬移 / 排序（前端拖曳完成後整批送回，每筆含 ParentId 才能處理跨層搬動）。
+    /// 寫入前先以 <see cref="TreeSortValidator"/> 驗整棵樹（節點 / 父節點存在、無循環、只允許單一根（全廠））；根節點強制 Sign=+1。
+    /// 防呆違規丟 <see cref="TreeSortException"/>（Controller 轉 400 + 錯誤代碼）；其他例外 rollback 後rethrow。
+    /// </summary>
+    public async Task UpdateSortOrderAsync(IEnumerable<(int nId, int? nParentId, int nSortOrder)> sortList)
     {
+        var items = sortList.ToList();
         using var conn = await GetConnectionAsync();
         using var tran = conn.BeginTransaction();
         try
         {
+            var current = (await conn.QueryAsync<(int nId, int? nParentId)>(
+                "SELECT Id, ParentId FROM GasMeterCircuit", transaction: tran)).ToList();
+            TreeSortValidator.Validate(current, items, allowMultiRoot: false);
+
             foreach (var (nId, nParentId, nSortOrder) in items)
             {
                 await conn.ExecuteAsync(@"
                     UPDATE GasMeterCircuit
-                    SET    ParentId = @ParentId, SortOrder = @SortOrder, UpdatedAt = GETDATE()
+                    SET    ParentId = @ParentId, SortOrder = @SortOrder, [Sign] = CASE WHEN @ParentId IS NULL THEN 1 ELSE [Sign] END, UpdatedAt = GETDATE()
                     WHERE  Id = @Id",
                     new { Id = nId, ParentId = nParentId, SortOrder = nSortOrder }, tran);
             }
             tran.Commit();
+        }
+        catch (TreeSortException)
+        {
+            tran.Rollback();
+            throw;
         }
         catch (Exception ex)
         {

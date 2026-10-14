@@ -26,6 +26,7 @@
 
     // ============ 初始化 ============
     document.addEventListener('DOMContentLoaded', async () => {
+        bindTreeDnd();
         g_modal = new bootstrap.Modal(document.getElementById('circuitModal'));
         g_miModal = new bootstrap.Modal(document.getElementById('meterInfoModal'));
         g_ppModal = new bootstrap.Modal(document.getElementById('emPointPickerModal'));
@@ -172,6 +173,53 @@
         renderSidOptions(optionsForDeviceKey(szKey).filter(o => (o.deviceName || '') === szSub));
     }
 
+    // ============ 拖曳搬移（共用 TreeDnd；跨層可搬、允許多根）============
+    // 規則：不能拖到自己 / 子孫底下（TreeDnd.plan 擋）；放到實體電表底下或跨層搬動前先確認；
+    // 後端 TreeSortValidator 再驗循環 / 節點存在，搬到根層的節點 Sign 強制 +1
+    function bindTreeDnd() {
+        if (!window.TreeDnd) return;
+        window.TreeDnd.bind({
+            container: document.getElementById('treeContainer'),
+            nodeSelector: '.tree-node',
+            getNodes: () => g_nodes,
+            canDrop: () => true,
+            onDrop: dropNode
+        });
+    }
+
+    async function dropNode(nDragId, nTargetId, pos) {
+        const r = window.TreeDnd.plan(g_nodes, nDragId, nTargetId, pos);
+        if (!r.ok) {
+            if (r.error === 'cycle') alert('不能把迴路搬到自己的子迴路底下');
+            return;
+        }
+        if (!r.changed) return;
+        if (r.parentChanged) {
+            const drag = g_nodes.find(n => n.id === nDragId);
+            const parent = g_nodes.find(n => n.id === r.parentId);
+            let msg = parent
+                ? `確定把「${drag.name}」搬到「${parent.name}」底下？\n搬動後上層迴路的加總與報表會立即改變。`
+                : `確定把「${drag.name}」搬到最上層？\n搬動後上層迴路的加總與報表會立即改變，且其貢獻方向會重設為正向。`;
+            if (parent && parent.sid) msg += '\n⚠ 目標是實體電表：掛子迴路後，該電表會連自身一起加總。';
+            if (!confirm(msg)) return;
+        }
+        try {
+            const res = await fetch('/EnergyMeter/api/tree/sort', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(r.items)
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                const map = { sort_cycle: '不能把迴路搬到自己的子迴路底下', sort_missing_node: '節點不存在，請重新整理', sort_missing_parent: '目標迴路不存在，請重新整理' };
+                throw new Error(map[err.message] || err.message || '排序更新失敗');
+            }
+            await loadTree();
+        } catch (err) {
+            alert('搬移失敗：' + err.message);
+        }
+    }
+
     // ============ 樹渲染 ============
     function renderTree() {
         const root = document.getElementById('treeContainer');
@@ -199,7 +247,7 @@
             : '';
 
         return `<div class="tree-item">
-            <div class="tree-node ${g_selectedId === node.id ? 'active' : ''}" data-id="${node.id}">
+            <div class="tree-node ${g_selectedId === node.id ? 'active' : ''}" data-id="${node.id}" draggable="true">
                 <i class="fas fa-caret-down tree-toggle ${hasChildren ? '' : 'invisible'}"></i>
                 <i class="fas ${isMeter ? 'fa-bolt is-meter' : 'fa-folder'} tree-icon"></i>
                 ${signBadge}${mainStar}

@@ -16,6 +16,7 @@ function renderPageTree() {
     const wrap = document.getElementById('pageTreeWrap');
     wrap.innerHTML = '';
     arrPageTree.forEach(p => renderPageNode(wrap, p, 0));
+    bindPageTreeDnd(wrap);
 
     // 空白區域：右鍵 → 新增根頁面
     const blankZone = document.createElement('div');
@@ -34,6 +35,7 @@ function renderPageNode(container, page, nDepth) {
     const el = document.createElement('div');
     el.className = 'page-node' + (isActive ? ' active' : '');
     el.dataset.id = page.szId;
+    el.draggable = true;
     el.style.paddingLeft = (8 + nDepth * 14) + 'px';
 
     const szIconClass = page.szIcon || (hasChildren ? 'fa-folder-open' : 'fa-file-alt');
@@ -151,6 +153,60 @@ function restoreWidget(ws) {
     }
     renderWidget(el);
     canvas.appendChild(el);
+}
+
+// ============================================================
+// 頁面樹 — 拖曳搬移（共用 TreeDnd；純前端記憶體，按「儲存」才落 DB）
+// ============================================================
+// 防呆：
+//   - 不能拖到自己 / 自己的子頁底下（TreeDnd.plan 擋）
+//   - 第一個根頁面 = 監控頁預設首頁，搬動後若首頁換人，toast 提醒
+//   - 畫布 drop 只認 widgetType，頁面拖到畫布不會誤建元件
+function bindPageTreeDnd(wrap) {
+    if (!window.TreeDnd) return;
+    window.TreeDnd.bind({
+        container: wrap,
+        nodeSelector: '.page-node',
+        idOf: el => el.dataset.id,
+        getNodes: () => flattenPageTree(arrPageTree, null),
+        canDrop: () => true,
+        onDrop: dropPageNode
+    });
+}
+
+// 遞迴樹 → 平坦清單（TreeDnd.plan 用）
+function flattenPageTree(arr, szParentId, out) {
+    out = out || [];
+    (arr || []).forEach((p, idx) => {
+        out.push({ id: p.szId, parentId: szParentId, sortOrder: idx });
+        flattenPageTree(p.arrChildren, p.szId, out);
+    });
+    return out;
+}
+
+function dropPageNode(szDragId, szTargetId, pos) {
+    const r = TreeDnd.plan(flattenPageTree(arrPageTree, null), szDragId, szTargetId, pos);
+    if (!r.ok) {
+        if (r.error === 'cycle') alert(t('designer.page.move_cycle'));
+        return;
+    }
+    if (!r.changed) return;
+
+    const page = findPage(szDragId);
+    if (!page) return;
+    const szHomeBefore = arrPageTree[0] ? arrPageTree[0].szId : null;
+
+    removeFromTree(szDragId, arrPageTree);
+    const arrTarget = r.parentId == null ? arrPageTree : (findPage(r.parentId) || {}).arrChildren;
+    if (!arrTarget) { renderPageTree(); return; }
+    const nInsertAt = Math.min(r.items.find(i => i.id === szDragId).sortOrder, arrTarget.length);
+    arrTarget.splice(nInsertAt, 0, page);
+    renderPageTree();
+
+    const szHomeAfter = arrPageTree[0] ? arrPageTree[0].szId : null;
+    if (szHomeAfter !== szHomeBefore && typeof showDesignToast === 'function') {
+        showDesignToast('warning', escHtml(t('designer.page.home_changed', { name: arrPageTree[0].szName })));
+    }
 }
 
 // ============================================================

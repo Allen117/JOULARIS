@@ -70,7 +70,7 @@
             }
 
             html += '<div class="tree-node">';
-            html += `<div class="tree-item${isActive}${isDisabled}" data-id="${n.id}" onclick="window._lf.select(${n.id})" ondblclick="window._lf.toggle(${n.id})">`;
+            html += `<div class="tree-item${isActive}${isDisabled}" data-id="${n.id}" draggable="true" onclick="window._lf.select(${n.id})" ondblclick="window._lf.toggle(${n.id})">`;
 
             if (isFolder) {
                 html += `<span class="tree-toggle" onclick="event.stopPropagation(); window._lf.toggle(${n.id})">`;
@@ -256,6 +256,69 @@
         } catch (e) { alert(S.t('logicflow.error.copy_failed', { msg: e.message })); }
     }
 
+    // =========== 拖曳搬移（決策：只能放進資料夾 / 根層；邏輯不能有子項） ===========
+    // 防呆：
+    //   - 'into' 只允許目標為資料夾（logic 不能有子項）；放到空白處 = 搬到根層末端
+    //   - 不能搬到自己 / 自己的子孫底下（TreeDnd.plan 擋，後端 TreeSortValidator 再擋一次）
+    //   - 目標資料夾已停用 → 先確認，搬入後子樹由後端一併停用（Engine 只看每條 logic 自己的 IsEnabled）
+    function canDropNode(nDragId, nTargetId, pos) {
+        if (pos === 'root') return true;
+        const target = S.flatNodes.find(n => n.id === nTargetId);
+        if (!target) return false;
+        if (pos === 'into') return target.nodeType === 'folder';
+        return true;
+    }
+
+    function moveErrorMessage(e) {
+        // apiFetch 失敗時丟 Error(回應原文)；後端 400 帶 { message: code }
+        let code = null;
+        try { code = JSON.parse(e.message).message; } catch (_) { /* 非 JSON */ }
+        if (!code) return e.message;
+        const key = 'logicflow.err.' + code;
+        const txt = S.t(key);
+        return txt === key ? code : txt;
+    }
+
+    function subtreeHasEnabled(nRootId) {
+        const stack = [nRootId];
+        while (stack.length) {
+            const nId = stack.pop();
+            const n = S.flatNodes.find(x => x.id === nId);
+            if (!n) continue;
+            if (n.isEnabled) return true;
+            S.flatNodes.filter(c => c.parentId === nId).forEach(c => stack.push(c.id));
+        }
+        return false;
+    }
+
+    async function dropNode(nDragId, nTargetId, pos) {
+        const r = window.TreeDnd.plan(S.flatNodes, nDragId, nTargetId, pos);
+        if (!r.ok) {
+            if (r.error === 'cycle') alert(S.t('logicflow.err.sort_cycle'));
+            return;
+        }
+        if (!r.changed) return;
+
+        const parent = r.parentId != null ? S.flatNodes.find(n => n.id === r.parentId) : null;
+        if (parent && !parent.isEnabled && subtreeHasEnabled(nDragId)) {
+            if (!confirm(S.t('logicflow.confirm.move_into_disabled', { name: parent.name }))) return;
+        }
+
+        const nSortOrder = r.items.find(i => i.id === nDragId).sortOrder;
+        try {
+            const res = await S.apiFetch(`/tree/${nDragId}/move`, {
+                method: 'PUT',
+                body: JSON.stringify({ targetParentId: r.parentId, sortOrder: nSortOrder })
+            });
+            if (r.parentId != null) S.expandedSet.add(r.parentId);
+            await loadTree();
+            // 連動停用可能改到目前開啟的邏輯 → 重新載入右側（標題徽章 / 啟用狀態）
+            if (res && res.disabledCount > 0 && S.selectedId != null) {
+                updateContent(S.findNode(S.selectedId, S.treeData));
+            }
+        } catch (e) { alert(S.t('logicflow.error.move_failed', { msg: moveErrorMessage(e) })); }
+    }
+
     // ── 右鍵選單 ──
     function showTreeCtxMenu(e, targetId) {
         e.preventDefault();
@@ -295,6 +358,17 @@
             const item = e.target.closest('.tree-item');
             showTreeCtxMenu(e, item ? parseInt(item.dataset.id) : null);
         });
+
+        // 拖曳搬移（共用 TreeDnd；委派綁一次，樹重繪不用重綁）
+        if (window.TreeDnd) {
+            window.TreeDnd.bind({
+                container,
+                nodeSelector: '.tree-item',
+                getNodes: () => S.flatNodes,
+                canDrop: canDropNode,
+                onDrop: dropNode
+            });
+        }
 
         const menu = document.getElementById('treeCtxMenu');
         if (!menu) return;

@@ -97,4 +97,12 @@
   <data name="chilledwater.error.sid_required" xml:space="preserve"><value>A physical point must select an SID</value></data>
   <data name="chilledwater.error.save_failed" xml:space="preserve"><value>Save failed: {msg}</value></data>
   <data name="chilledwater.error.delete_failed" xml:space="preserve"><value>Delete failed: {msg}</value></data>
+  <data name="chilledwater.err.sort_cycle" xml:space="preserve"><value>A circuit cannot be moved under its own descendant</value></data>
+  <data name="chilledwater.err.sort_missing_node" xml:space="preserve"><value>Node not found, please reload the page</value></data>
+  <data name="chilledwater.err.sort_missing_parent" xml:space="preserve"><value>Target circuit not found, please reload the page</value></data>
+  <data name="chilledwater.err.sort_failed" xml:space="preserve"><value>Sort update failed</value></data>
+  <data name="chilledwater.msg.confirm_move" xml:space="preserve"><value>Move "{name}" under "{parent}"?&#10;Parent circuit RT totals and reports change immediately.</value></data>
+  <data name="chilledwater.msg.confirm_move_root" xml:space="preserve"><value>Move "{name}" to the top level?&#10;Parent circuit RT totals and reports change immediately.</value></data>
+  <data name="chilledwater.msg.confirm_move_into_point" xml:space="preserve"><value>⚠ Target is bound to a point: once it has children it is summed together with itself.</value></data>
+  <data name="chilledwater.msg.sort_failed" xml:space="preserve"><value>Move failed: {msg}</value></data>
 </root>
