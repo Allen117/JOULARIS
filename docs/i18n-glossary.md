@@ -854,6 +854,14 @@
 | 正交 | Orthogonal | 任兩相鄰節點共 x 或共 y（僅水平/垂直段） |
 | 流向 | Flow direction | pipe 正向/逆向 |
 | 流速 | Flow speed | pipe 1..5 檔 |
+| 設備級自動綁定 | Equipment-level auto-binding | 泵浦 / 馬達型元件拖放即問 Device、整台帶入（2026-10-14） |
+| 選擇設備 | Select Equipment | 設備模式 picker 標題（與點位 picker 的 Select Device 區分：此處選的是「一台設備」而非站） |
+| 重新指定設備 | Reassign Equipment | 設備型元件屬性面板按鈕（整台覆蓋） |
+| 槽位 | Slot | 設備元件的綁定欄位（運轉 / 故障 / 頻率…） |
+| 命中 {n} / {m} 個槽位 | Matched {n} / {m} slots | 設備預覽頂部 |
+| 未找到 | Not found | 設備預覽槽位 tag |
+| 多筆命中（取第一筆） | Multiple matches (first used) | 設備預覽槽位 tag |
+| 已帶入 {n} / {m} 個槽位 | Applied {n} / {m} slots | toast |
 
 ## EMS 卡片顯示設定 (EmsCardSetting)
 

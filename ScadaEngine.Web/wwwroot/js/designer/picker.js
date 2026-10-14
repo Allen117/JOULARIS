@@ -44,6 +44,14 @@ let _pumpPickerNameKey = '';   // 對應的名稱 key（如 'szRunName'、'szSta
 // 管路綁定模式（'di' | 'analog'，二擇一互斥；使用者正在綁哪一種）
 let _pipePickerMode    = '';
 
+// 設備模式（plan 2026-10-14-designer-equipment-autobind）：
+// 泵浦 / 冷卻水塔 / 空調箱風扇 / 冰機 拖放或「重新指定設備」時為 true，
+// picker 停在設備葉節點、就地預覽各槽位命中、確認整台帶入（不下鑽到點位清單）
+let _equipDeviceMode    = false;
+let _equipConfirmed     = false;   // 本次開啟是否已按確認（hidden 事件據此判斷取消 → 仍建空元件）
+let _equipPreviewResult = null;    // _equipAutobind.buildEquipSuggestions 結果
+let _equipPickedLabel   = '';      // 目前葉節點標籤（寫入 szTitle）
+
 // SID 格式: {coordinatorId*65536 + modbusId*256 + 1}-S{N}
 // 某設備所屬 SID 的數字前綴落在 [Id*65536, (Id+1)*65536-1] 範圍內
 // 以下三個 helper 委派共用層 window.PointGrouping（分群解析單一真相）
@@ -78,6 +86,7 @@ async function openPointPicker(x, y, szWidgetType) {
     pendingGaugeX      = x;
     pendingGaugeY      = y;
     szPickerWidgetType = szWidgetType || 'gauge';
+    _equipDeviceMode   = false;
     szPickedSid        = null;
     nPickedDevId       = -1;
     nPickedModbusId    = null;
@@ -282,7 +291,8 @@ function _showPickerStep0() {
         const bShowCircuit = szPickerWidgetType === 'realtimeValue' || szPickerWidgetType === 'tableCell';
         srcCircuit.style.display = bShowCircuit ? '' : 'none';
     }
-    document.getElementById('ppModalTitle').textContent = t('designer.picker.title.source');
+    document.getElementById('ppModalTitle').textContent =
+        t(_equipDeviceMode ? 'designer.equip.title.device' : 'designer.picker.title.source');
     document.getElementById('btnConfirmPoint').disabled = true;
     renderDeviceList();
     if (!_pointPickerModal) {
@@ -294,6 +304,131 @@ function _showPickerStep0() {
 function _showPickerStep1() {
     _showPickerStep0();
 }
+
+// ============================================================
+// 設備模式（plan 2026-10-14-designer-equipment-autobind）
+// ============================================================
+
+// 從工具箱拖放四種設備型別時呼叫（widget-core.js drop handler）
+async function openEquipDevicePicker(x, y, szWidgetType) {
+    pendingGaugeX       = x;
+    pendingGaugeY       = y;
+    szPickerWidgetType  = szWidgetType;
+    _equipDeviceMode    = true;
+    _equipConfirmed     = false;
+    _equipPreviewResult = null;
+    _equipPickedLabel   = '';
+    szPickedSid         = null;
+    nPickedDevId        = -1;
+    nPickedModbusId     = null;
+    nPickedCalcGroup    = null;
+    szPickedDbGroup     = null;
+    szPickedDeviceGroup = null;
+    nPickedCircuitId    = null;
+    nPickedScheduleId   = null;
+    szPickedScheduleName = '';
+    szPickerSourceMode  = 'point';
+    _updateSourceToggleVisibility();
+    try {
+        await _ensurePickerData();
+    } catch (_) {
+        // 清單載不到：維持舊行為直接建空元件，不卡人
+        _equipDeviceMode = false;
+        createWidget(szWidgetType, x, y);
+        return;
+    }
+    _showPickerStep0();
+}
+
+// 從屬性面板「重新指定設備」呼叫（整台覆蓋：命中槽位覆蓋、未命中清空）
+async function rerouteEquipDevice() {
+    if (!selectedEl || !window._equipAutobind || !window._equipAutobind.isEquipType(selectedEl.dataset.type)) return;
+    pendingGaugeX       = -1;
+    pendingGaugeY       = -1;
+    szPickerWidgetType  = selectedEl.dataset.type;
+    _equipDeviceMode    = true;
+    _equipConfirmed     = false;
+    _equipPreviewResult = null;
+    _equipPickedLabel   = '';
+    szPickedSid         = null;
+    nPickedDevId        = -1;
+    nPickedModbusId     = null;
+    nPickedCalcGroup    = null;
+    szPickedDbGroup     = null;
+    szPickedDeviceGroup = null;
+    nPickedCircuitId    = null;
+    szPickerSourceMode  = 'point';
+    _updateSourceToggleVisibility();
+    try {
+        await _ensurePickerData();
+        _showPickerStep0();
+    } catch (_) { _equipDeviceMode = false; /* 已在 _ensurePickerData 顯示 alert */ }
+}
+
+// 葉節點選定後：一般模式列點位清單；設備模式改顯示命中預覽
+function _afterLeafSelected() {
+    if (_equipDeviceMode) _showEquipPreview();
+    else _renderFilteredPoints('');
+}
+
+// 設備模式：把 ppStep2 的點位清單容器當預覽區（搜尋框隱藏）
+function _showEquipPreview() {
+    const arrCand = (arrAllPoints || []).filter(_pointInPickedDevice);
+    _equipPickedLabel   = document.getElementById('ppDeviceName').textContent || '';
+    _equipPreviewResult = window._equipAutobind.buildEquipSuggestions(arrCand, szPickerWidgetType);
+    const search = document.getElementById('ppPointSearch');
+    if (search) search.style.display = 'none';
+    document.getElementById('ppModalTitle').textContent = t('designer.equip.title.device');
+    window._equipAutobind.renderEquipPreview(document.getElementById('pointListContainer'), _equipPreviewResult);
+    document.getElementById('btnConfirmPoint').disabled = _equipPreviewResult.nHit === 0;
+}
+
+// 離開預覽（返回 / 關閉）：還原搜尋框
+function _resetEquipPreviewUi() {
+    _equipPreviewResult = null;
+    const search = document.getElementById('ppPointSearch');
+    if (search) search.style.display = '';
+}
+
+// 設備模式確認：新建 → 建元件 + 整台帶入；重綁 → 有綁定先 confirm → 整台覆蓋
+function _confirmEquipPick() {
+    const result = _equipPreviewResult;
+    if (!result || result.nHit === 0) return;
+    const szLabel = _equipPickedLabel;
+    if (pendingGaugeX === -1) {
+        if (!selectedEl || selectedEl.dataset.type !== szPickerWidgetType) return;
+        if (window._equipAutobind.hasAnyBinding(selectedEl.widgetProps, szPickerWidgetType) &&
+            !confirm(t('designer.equip.confirm_overwrite', { device: szLabel }))) {
+            return;   // 取消 → 完全不改，picker 留在預覽
+        }
+        _equipConfirmed = true;
+        _pointPickerModal.hide();
+        window._equipAutobind.applyToWidget(selectedEl, result, szLabel, true);
+    } else {
+        _equipConfirmed = true;
+        _pointPickerModal.hide();
+        const el = createWidget(szPickerWidgetType, pendingGaugeX, pendingGaugeY);
+        window._equipAutobind.applyToWidget(el, result, szLabel, false);
+    }
+}
+
+// picker 關閉（確認 / 取消 / X 皆會觸發）：設備模式新建且未確認 → 仍建立未綁定元件（決策 4）
+function _onPickerHidden() {
+    if (!_equipDeviceMode) return;
+    const bWasConfirmed = _equipConfirmed;
+    const bIsNew        = pendingGaugeX !== -1;
+    const szType = szPickerWidgetType, x = pendingGaugeX, y = pendingGaugeY;
+    _equipDeviceMode = false;
+    _equipConfirmed  = false;
+    _resetEquipPreviewUi();
+    if (!bWasConfirmed && bIsNew) createWidget(szType, x, y);
+}
+
+// 僅註冊 listener（不呼叫跨檔函數；handler 內引用於事件觸發時才解析）
+(function () {
+    const modalEl = document.getElementById('pointPickerModal');
+    if (modalEl) modalEl.addEventListener('hidden.bs.modal', _onPickerHidden);
+})();
 
 function showDeviceStep() {
     nPickedDevId     = -1;
@@ -389,7 +524,7 @@ function selectCalcGroup(szGroup) {
     document.getElementById('ppModalTitle').textContent = t('designer.picker.title.calc_point');
     document.getElementById('ppPointSearch').value = '';
     document.getElementById('btnConfirmPoint').disabled = true;
-    _renderFilteredPoints('');
+    _afterLeafSelected();
 }
 
 function _showCalcPointsFlat() {
@@ -401,7 +536,7 @@ function _showCalcPointsFlat() {
     document.getElementById('ppDeviceIcon').className = 'fas fa-calculator me-1';
     document.getElementById('ppPointSearch').value = '';
     document.getElementById('btnConfirmPoint').disabled = true;
-    _renderFilteredPoints('');
+    _afterLeafSelected();
 }
 
 // ---- 需量虛擬點位（DMD-{kWhSID}，數量少 → 免群組層直接平鋪）----
@@ -420,7 +555,7 @@ function showDemandPointStep() {
     document.getElementById('ppDeviceIcon').className = 'fas fa-bolt me-1';
     document.getElementById('ppPointSearch').value = '';
     document.getElementById('btnConfirmPoint').disabled = true;
-    _renderFilteredPoints('');
+    _afterLeafSelected();
 }
 
 // ---- DB 來源點位 ----
@@ -486,7 +621,7 @@ function selectDbGroup(szGroup) {
     document.getElementById('ppModalTitle').textContent = t('designer.picker.title.db_point');
     document.getElementById('ppPointSearch').value = '';
     document.getElementById('btnConfirmPoint').disabled = true;
-    _renderFilteredPoints('');
+    _afterLeafSelected();
 }
 
 // ---- 能源迴路來源（plan 2026-07-23 迴路指標）----
@@ -569,7 +704,8 @@ function goBackToStep0() {
     document.getElementById('ppStep0').style.display = '';
     document.getElementById('ppStep1').style.display = 'none';
     document.getElementById('ppStep2').style.display = 'none';
-    document.getElementById('ppModalTitle').textContent = t('designer.picker.title.source');
+    document.getElementById('ppModalTitle').textContent =
+        t(_equipDeviceMode ? 'designer.equip.title.device' : 'designer.picker.title.source');
     document.getElementById('btnConfirmPoint').disabled = true;
     szPickedSid = null;
     nPickedCircuitId = null;
@@ -807,7 +943,7 @@ function selectDeviceItem(el, nDevId, szLabel, nModbusId) {
     document.getElementById('ppPointSearch').value = '';
     szPickedSid = null;
     document.getElementById('btnConfirmPoint').disabled = true;
-    _renderFilteredPoints('');
+    _afterLeafSelected();
 }
 
 // 選取單站號 Coordinator 內某 Device 子設備（szGroup=''＝未分群桶）
@@ -824,10 +960,11 @@ function selectDeviceGroupItem(el, nDevId, szGroup) {
     document.getElementById('ppPointSearch').value = '';
     szPickedSid = null;
     document.getElementById('btnConfirmPoint').disabled = true;
-    _renderFilteredPoints('');
+    _afterLeafSelected();
 }
 
 function goBackToDevices() {
+    _resetEquipPreviewUi();
     if (nPickedDevId === CALC_DEVICE_ID) {
         if (nPickedCalcGroup != null) {
             // 從計算點位列表返回群組列表
@@ -859,33 +996,38 @@ function filterPointList(szKeyword) {
     document.getElementById('btnConfirmPoint').disabled = true;
 }
 
+// 點位是否屬於目前選定的葉節點（單站號整站 / 多站號子站 / Device 子群 / 未分群桶 /
+// 計算群組 / DB 群組 / 需量）— 第二步點位清單與設備模式候選集合共用同一條件
+function _pointInPickedDevice(p) {
+    if (nPickedDevId === CALC_DEVICE_ID && nPickedCalcGroup != null) {
+        // 計算點位群組篩選
+        if (!isCalcPoint(p.szSid)) return false;
+        if ((p.szGroupName || '') !== nPickedCalcGroup) return false;
+    } else if (nPickedDevId === DB_DEVICE_ID) {
+        // DB 來源點位：依 Coordinator 群組篩選（null=全部 DB 點位）
+        if (!isDbPoint(p.szSid)) return false;
+        if (szPickedDbGroup != null && (p.szGroupName || '') !== szPickedDbGroup) return false;
+    } else if (nPickedDevId === DMD_DEVICE_ID) {
+        // 需量虛擬點位（平鋪，無群組層）
+        if (!isDmdPoint(p.szSid)) return false;
+    } else if (nPickedModbusId != null) {
+        const nPfx = getSidNumericPrefix(p.szSid);
+        const base = nPickedDevId * 65536 + nPickedModbusId * 256;
+        if (nPfx < base || nPfx >= base + 256) return false;
+    } else if (szPickedDeviceGroup != null) {
+        // 單站號內依 Device 分群篩選（''＝未分群桶）
+        if (!isPointOfDevice(p.szSid, nPickedDevId)) return false;
+        if (window.PointGrouping.getDeviceGroup(p) !== szPickedDeviceGroup) return false;
+    } else {
+        if (!isPointOfDevice(p.szSid, nPickedDevId)) return false;
+    }
+    return true;
+}
+
 function _renderFilteredPoints(szKeyword) {
     const szQ = szKeyword.trim().toLowerCase();
-    const filtered = (arrAllPoints || []).filter(p => {
-        if (nPickedDevId === CALC_DEVICE_ID && nPickedCalcGroup != null) {
-            // 計算點位群組篩選
-            if (!isCalcPoint(p.szSid)) return false;
-            if ((p.szGroupName || '') !== nPickedCalcGroup) return false;
-        } else if (nPickedDevId === DB_DEVICE_ID) {
-            // DB 來源點位：依 Coordinator 群組篩選（null=全部 DB 點位）
-            if (!isDbPoint(p.szSid)) return false;
-            if (szPickedDbGroup != null && (p.szGroupName || '') !== szPickedDbGroup) return false;
-        } else if (nPickedDevId === DMD_DEVICE_ID) {
-            // 需量虛擬點位（平鋪，無群組層）
-            if (!isDmdPoint(p.szSid)) return false;
-        } else if (nPickedModbusId != null) {
-            const nPfx = getSidNumericPrefix(p.szSid);
-            const base = nPickedDevId * 65536 + nPickedModbusId * 256;
-            if (nPfx < base || nPfx >= base + 256) return false;
-        } else if (szPickedDeviceGroup != null) {
-            // 單站號內依 Device 分群篩選（''＝未分群桶）
-            if (!isPointOfDevice(p.szSid, nPickedDevId)) return false;
-            if (window.PointGrouping.getDeviceGroup(p) !== szPickedDeviceGroup) return false;
-        } else {
-            if (!isPointOfDevice(p.szSid, nPickedDevId)) return false;
-        }
-        return !szQ || p.szName.toLowerCase().includes(szQ);
-    });
+    const filtered = (arrAllPoints || []).filter(p =>
+        _pointInPickedDevice(p) && (!szQ || p.szName.toLowerCase().includes(szQ)));
     const container = document.getElementById('pointListContainer');
     if (filtered.length === 0) {
         container.innerHTML = '<div style="color:#888;font-size:12px;text-align:center;padding:20px;">' +
@@ -915,6 +1057,8 @@ function selectPointItem(el, szSid) {
 }
 
 function confirmPointPick() {
+    // 設備模式分支（泵浦 / 馬達型元件整台帶入；plan 2026-10-14）
+    if (_equipDeviceMode) { _confirmEquipPick(); return; }
     // 排程綁定分支（僅 DI widget 在 'schedule' 模式時觸發）
     if (szPickerWidgetType === 'diPoint' && szPickerSourceMode === 'schedule') {
         if (nPickedScheduleId == null) return;

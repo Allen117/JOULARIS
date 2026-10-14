@@ -1083,6 +1083,17 @@ main { padding: 0 !important; min-height: 0 !important; }
     border-color: #6b2f2f;
     background: #3a1c1c;
 }
+/* 設備級自動綁定預覽（picker 內；plan 2026-10-14-designer-equipment-autobind） */
+.row-template-body .rt-tag.rt-multi {
+    color: #ffc107;
+    border-color: #6b5a2f;
+    background: #3a2f10;
+}
+.row-template-body .rt-detected.rt-detected-none {
+    color: #ff8888;
+    background: #3a1c1c;
+    border-color: #6b2f2f;
+}
 .row-template-body .rt-empty {
     text-align: center;
     color: #666;

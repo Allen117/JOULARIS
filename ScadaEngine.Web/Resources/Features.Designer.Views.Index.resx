@@ -552,4 +552,15 @@
   <data name="designer.picker.source.demand" xml:space="preserve"><value>需量點位</value></data>
   <data name="designer.picker.source.demand_desc" xml:space="preserve"><value>電表迴路 15 分鐘需量（kW，每分鐘更新）</value></data>
   <data name="designer.picker.title.demand_point" xml:space="preserve"><value>選擇需量點位</value></data>
+  <!-- 設備級自動綁定（plan 2026-10-14-designer-equipment-autobind） -->
+  <data name="designer.equip.title.device" xml:space="preserve"><value>選擇設備</value></data>
+  <data name="designer.equip.reassign_btn" xml:space="preserve"><value>重新指定設備</value></data>
+  <data name="designer.equip.preview_hits" xml:space="preserve"><value>命中 {n} / {m} 個槽位</value></data>
+  <data name="designer.equip.preview_title" xml:space="preserve"><value>槽位 → 命中點位</value></data>
+  <data name="designer.equip.preview_hint" xml:space="preserve"><value>依點位名稱比對；未命中的槽位可於屬性面板逐一「重選」補綁。</value></data>
+  <data name="designer.equip.not_found" xml:space="preserve"><value>未找到</value></data>
+  <data name="designer.equip.multi_hit" xml:space="preserve"><value>多筆命中（取第一筆）</value></data>
+  <data name="designer.equip.no_candidates" xml:space="preserve"><value>此設備的點位名稱皆無法對應角色，請改選其他設備或於 Modbus 來源頁填妥 Device 欄。</value></data>
+  <data name="designer.equip.confirm_overwrite" xml:space="preserve"><value>將以「{device}」的點位覆蓋目前綁定，未命中的槽位會清空。確定？</value></data>
+  <data name="designer.equip.toast_applied" xml:space="preserve"><value>已帶入 {n} / {m} 個槽位</value></data>
 </root>

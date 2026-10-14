@@ -110,4 +110,89 @@
         byAlias:     _byAlias,      // 單 token
         normalize:   _normalize
     };
+
+    // ============================================================
+    // 設備角色別名表（plan 2026-10-14-designer-equipment-autobind）
+    // 掛 window._equipRoleAliases + window._equipRoleMatch
+    // ============================================================
+    // 使用端：designer/equip-autobind.js（泵浦 / 冷卻水塔 / 空調箱風扇 / 冰機
+    // 拖到畫布後，在同一台 Device 的點位集合內依名稱比對各槽位）。
+    // 與上方電表角色（_roleAliases / _roleMatch）完全獨立，互不影響。
+    //
+    // 比對規則（resolveEquipRole，整名 → 尾 token → 字尾式）：
+    //   (a) 整名命中別名           → 吃「運轉」「故障」「頻率設定」這類純角色命名
+    //   (b) 以 - _ 空白 切 tokens，tokens ≥ 2 時尾 token 命中
+    //                               → PUMP-1-RUN、冰水泵1_運轉
+    //   (c) 單 token 且前綴非空時，依「別名長度由長到短」試 endsWith
+    //                               → CH1RUN、CWP1ALARM、冰水泵1頻率設定
+    //   `on / st / sp / fb` 這類短別名只在前綴非空（(b)/(c)）時成立，
+    //   單獨 `ON` / `SP` 不算角色，壓低誤判。
+    //   `出水溫` 同時在 CHWOUT 與 WATERTEMP：呼叫端以 arrRoles 限定該元件
+    //   型別需要的角色（冰機不找 WATERTEMP、冷卻塔不找 CHWOUT），不衝突。
+    // ============================================================
+
+    window._equipRoleAliases = {
+        RUN:       ['run', 'running', 'on', 'status', 'st', '運轉', '運行', '啟動狀態'],
+        FAULT:     ['alarm', 'alm', 'fault', 'flt', 'trip', 'err', 'error', 'fail', '故障', '警報', '跳脫'],
+        MODE:      ['moa', 'hoa', 'mode', 'auto', 'am', 'ma', 'remote', 'rem', 'local', 'loc',
+                    '手自動', '遠端', '現場', '模式'],
+        FREQ:      ['hz', 'freq', 'frequency', 'spd', 'speed', 'fb', 'hzfb', 'rpm', '頻率', '轉速'],
+        STARTSTOP: ['cmd', 'start', 'startstop', 'ss', 'onoff', 'runcmd', '啟停', '啟動', '開關'],
+        FREQSET:   ['sp', 'hzsp', 'freqsp', 'speedsp', 'sethz', 'setfreq', '頻率設定', '設定頻率'],
+        LOAD:      ['load', 'pct', 'rla', '負載'],
+        CHWOUT:    ['chws', 'chwout', 'chwst', 'lchwt', '冰水出水', '出水溫'],
+        SETTEMP:   ['chwsp', 'tsp', 'settemp', '設定溫度', '溫度設定'],
+        WATERTEMP: ['cwout', 'cws', 'cwst', '出水溫', '冷卻水出水']
+    };
+
+    // 只能在「前綴非空」時成立的短別名（整名單獨出現不算）
+    const _EQUIP_SHORT_ALIASES = new Set(['on', 'st', 'sp', 'fb']);
+
+    // 依 arrRoles（null = 全部）取得 [role, alias] 平鋪清單，別名長度由長到短（字尾式用）
+    function _equipAliasPairs(arrRoles) {
+        const roles = arrRoles || Object.keys(window._equipRoleAliases);
+        const pairs = [];
+        roles.forEach(role => {
+            (window._equipRoleAliases[role] || []).forEach(alias => pairs.push([role, alias]));
+        });
+        pairs.sort((x, y) => y[1].length - x[1].length);
+        return pairs;
+    }
+
+    // 整字命中（szTok 已 lower-case）→ role 或 null；bAllowShort=false 時排除短別名
+    function _equipByAlias(szTok, arrRoles, bAllowShort) {
+        if (!szTok) return null;
+        if (!bAllowShort && _EQUIP_SHORT_ALIASES.has(szTok)) return null;
+        const roles = arrRoles || Object.keys(window._equipRoleAliases);
+        for (const role of roles) {
+            const arr = window._equipRoleAliases[role];
+            if (arr && arr.indexOf(szTok) >= 0) return role;
+        }
+        return null;
+    }
+
+    // 點位名 → 設備角色（RUN / FAULT / …）或 null
+    // arrRoles：限定要解析的角色（省略 = 全部）
+    function resolveEquipRole(szRaw, arrRoles) {
+        const szNorm = _normalize(szRaw);
+        if (!szNorm) return null;
+        // (a) 整名（短別名不算）
+        let r = _equipByAlias(szNorm, arrRoles, false);
+        if (r) return r;
+        const toks = _tokenize(szNorm);
+        if (toks.length >= 2) {
+            // (b) 尾 token（前綴非空 → 短別名可）
+            return _equipByAlias(toks[toks.length - 1], arrRoles, true);
+        }
+        // (c) 字尾式：單 token、前綴非空
+        for (const [role, alias] of _equipAliasPairs(arrRoles)) {
+            if (szNorm.length > alias.length && szNorm.endsWith(alias)) return role;
+        }
+        return null;
+    }
+
+    window._equipRoleMatch = {
+        resolveEquipRole: resolveEquipRole,   // 整名 → 尾 token → 字尾式
+        normalize:        _normalize
+    };
 })();

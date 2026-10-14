@@ -48,6 +48,9 @@ canvas.addEventListener('drop', e => {
     if (szType === 'gauge' || szType === 'controlBtn' || szType === 'realtimeValue' || szType === 'diPoint' || szType === 'aoPoint' || szType === 'doPoint' || szType === 'trendChart') {
         // 儀錶板 / 控制按鈕 / AI點位 / DI點位 / AO點位 / 即時曲線 需先選擇綁定點位
         openPointPicker(x, y, szType);
+    } else if (szType === 'pump' || szType === 'coolingTower' || szType === 'ahuFan' || szType === 'chiller') {
+        // 設備型元件：先問「這是哪台 Device」，整台點位自動帶入（取消仍建空元件）
+        openEquipDevicePicker(x, y, szType);
     } else {
         createWidget(szType, x, y);
     }
@@ -84,6 +87,7 @@ function createWidget(szType, x, y) {
     renderWidget(el);
     canvas.appendChild(el);
     selectWidget(el);
+    return el;
 }
 
 // ============================================================

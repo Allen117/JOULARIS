@@ -658,6 +658,7 @@ function renderPropPanel(el) {
         }
 
         szHtml += `
+        ${_equipReassignBtnHtml()}
         <div style="font-size:11px;color:#aaa;margin-bottom:4px;letter-spacing:1px;">${escHtml(t('designer.prop.pump.sid_monitor'))}</div>
         ${pumpBindRow(t('designer.prop.pump.run_status'),   'szSidRun',   'szRunName',   'btn-outline-info')}
         ${pumpBindRow(t('designer.prop.pump.fault_status'), 'szSidFault', 'szFaultName', 'btn-outline-danger')}
@@ -975,6 +976,7 @@ function renderPropPanel(el) {
             ? t('designer.prop.motor.remote_local')
             : t('designer.prop.pump.mode_status');
         szHtml += `
+        ${_equipReassignBtnHtml()}
         <div style="font-size:11px;color:#aaa;margin-bottom:4px;letter-spacing:1px;">${escHtml(t('designer.prop.pump.sid_monitor'))}</div>
         ${motorBindRow(t('designer.prop.pump.run_status'),   'szSidRun',   'szRunName',   'btn-outline-info')}
         ${motorBindRow(t('designer.prop.pump.fault_status'), 'szSidFault', 'szFaultName', 'btn-outline-danger')}
@@ -2381,6 +2383,17 @@ function onDoPointBgTransparentChange(isChecked) {
         setProp('szBgColor', szColor);
         if (picker) picker.style.display = '';
     }
+}
+
+// 設備型元件（pump / coolingTower / ahuFan / chiller）屬性面板頂部「重新指定設備」按鈕
+// → picker.js rerouteEquipDevice()：停在設備葉節點、預覽各槽位命中、確認整台覆蓋
+function _equipReassignBtnHtml() {
+    return `<div class="prop-group">
+        <button class="btn btn-outline-warning btn-sm w-100" style="font-size:11px;"
+                onclick="rerouteEquipDevice()">
+            <i class="fas fa-magic me-1"></i>${escHtml(t('designer.equip.reassign_btn'))}
+        </button>
+    </div>`;
 }
 
 function onPumpBgTransparentChange(isChecked) {

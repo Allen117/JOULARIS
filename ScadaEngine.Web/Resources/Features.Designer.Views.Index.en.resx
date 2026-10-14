@@ -553,4 +553,15 @@
   <data name="designer.picker.source.demand" xml:space="preserve"><value>Demand Points</value></data>
   <data name="designer.picker.source.demand_desc" xml:space="preserve"><value>15-min circuit demand (kW), updated every minute</value></data>
   <data name="designer.picker.title.demand_point" xml:space="preserve"><value>Select Demand Point</value></data>
+  <!-- Equipment-level auto-binding (plan 2026-10-14-designer-equipment-autobind) -->
+  <data name="designer.equip.title.device" xml:space="preserve"><value>Select Equipment</value></data>
+  <data name="designer.equip.reassign_btn" xml:space="preserve"><value>Reassign Equipment</value></data>
+  <data name="designer.equip.preview_hits" xml:space="preserve"><value>Matched {n} / {m} slots</value></data>
+  <data name="designer.equip.preview_title" xml:space="preserve"><value>Slot → Matched Point</value></data>
+  <data name="designer.equip.preview_hint" xml:space="preserve"><value>Matched by point name; unmatched slots can be bound later with "Reselect" in the property panel.</value></data>
+  <data name="designer.equip.not_found" xml:space="preserve"><value>Not found</value></data>
+  <data name="designer.equip.multi_hit" xml:space="preserve"><value>Multiple matches (first used)</value></data>
+  <data name="designer.equip.no_candidates" xml:space="preserve"><value>No point names under this equipment map to a role. Pick another equipment or fill the Device column on the Modbus Source page.</value></data>
+  <data name="designer.equip.confirm_overwrite" xml:space="preserve"><value>This will overwrite current bindings with points from "{device}"; unmatched slots will be cleared. Continue?</value></data>
+  <data name="designer.equip.toast_applied" xml:space="preserve"><value>Applied {n} / {m} slots</value></data>
 </root>

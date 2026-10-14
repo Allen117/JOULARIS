@@ -524,6 +524,17 @@ props 命名沿用 pump 慣例（`szSidXxx` + `szXxxName` 成對）：共同 `sz
 
 > **設計決策**：採「抽共用核心」策略——三設備共用一份 `MotorEquip` 圖形模組與一套執行期邏輯（右鍵 / 拖曳 / 輪詢），並重用 pump 既有 helper（`_buildModeBadgeHtml` / `_pumpStartStop` 等）。水泵本身未遷移以避免生產回歸風險。詳見 `docs/plans/_archive/2026-07-07-designer-冰機冷卻水塔空調箱風扇元件.md`。
 
+**設備級自動綁定（Designer，2026-10-14；pump / coolingTower / ahuFan / chiller 共用）**
+
+綁定單位從「點位」提升到「設備」：元件 = 某台設備的一個實例，使用者只回答「這是哪台 Device」，各槽位點位自動對上（Ignition UDT + Template / WinCC Faceplate 的實例化心智模型）。純前端、不動儲存格式。
+
+- **流程**：工具箱拖四種設備元件到畫布 → 開既有 picker（標題「選擇設備」）→ 走到設備**葉節點**（單站號整站 / 多站號子站 / 單站號 Device 子群 / 未分群桶 / DB 來源群組 / 計算點位群組）時**不進點位清單**，改在同一區就地顯示**命中預覽**（每個槽位 → 命中點位名 / 「未找到」/ 「多筆命中（取第一筆）」，頂部「命中 N / M 個槽位」）→「確認」建立元件並整台帶入（`szTitle` = 葉節點標籤、各槽位 `szSid*/szCid*` + `sz*Name`、頻率 / 頻率設定 / 負載的 min/max 依點位 fMin/fMax 帶入，規則與單槽位重選相同）→ toast「已帶入 N / M」。「返回」可換設備；**關閉 picker（取消 / X）仍建立未綁定元件**（保留先排版後綁點的工作流）。
+- **重新指定設備**：屬性面板 SID 監控段頂部按鈕 → 同一流程；元件已有任一槽位綁定時確認前先 confirm「將以『X』的點位覆蓋目前綁定，未命中的槽位會清空」→ 命中槽位覆蓋、未命中清空（元件 = 設備實例，換設備就整台換；要補單一槽位仍用既有「重選」）。
+- **候選集合** = picker 第二步原本會列的那組點位（`picker.js` 的 `_pointInPickedDevice`，與點位清單同一條篩選）。Device 欄空白的站 → 候選 = 整站，同角色多筆命中機率高（面板會標示、取第一筆），在 Modbus 來源頁補 Device 欄即自動變好。
+- **槽位 → 角色對照**（`js/designer/equip-autobind.js` 的 `EQUIP_SLOT_ROLES`，只解析該型別需要的角色）：pump = RUN / FAULT / MODE / FREQ / STARTSTOP / FREQSET；coolingTower 另加 WATERTEMP；ahuFan 同 pump；chiller = RUN / FAULT / MODE / LOAD / CHWOUT / STARTSTOP / SETTEMP。
+- **點位名 → 設備角色**（`role-aliases.js` 的 `window._equipRoleAliases` + `_equipRoleMatch.resolveEquipRole`，與電表角色 `_roleMatch.resolveRole` **完全獨立**）：正規化（全形→半形、去尾括號單位、小寫）後依「**整名 → 尾 token（以 `- _ 空白` 切、≥ 2 段）→ 字尾式（單段、別名長度由長到短 endsWith）**」三段比對。三種命名風格皆吃：純角色 `運轉` / `故障` / `頻率設定`、分隔符 `PUMP-1-RUN` / `冰水泵1_運轉`、字尾式 `CH1RUN` / `CH1MOA` / `CWP1ALARM`。`on / st / sp / fb` 短別名只在前綴非空時成立（`CH1ON` ✓、單獨 `ON` ✗）；`出水溫` 同時在 CHWOUT 與 WATERTEMP，靠型別白名單不衝突。現場要加詞只改 `_equipRoleAliases` 一張表。
+- **限制**：名稱不含任何角色字（如 `Modbus61`）→「未找到」，v1 不猜；整台帶入不新增任何 props key，複製頁面清空綁定規則（`isDesignerBindingKey`）自動涵蓋。
+
 #### (11) pipe — 管路流動元件（正交折線）
 
 **正交折線（orthogonal polyline）管路**（2026-07 改版）：一條管由一串節點（`arrPoints`）組成，每段仍為水平或垂直（不變量：任兩相鄰節點共 x 或共 y），可自由拉出 L 型／ㄇ 型／多轉角走線 — **一條折線管＝一個元件＝一份綁定**，取代舊「多段直管拼接」做法（轉角流動不連續、綁定分散）。
