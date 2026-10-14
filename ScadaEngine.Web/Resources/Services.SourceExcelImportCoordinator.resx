@@ -79,4 +79,31 @@
   <data name="srcxl.err.numeric_required" xml:space="preserve"><value>{0} 必須是數字</value></data>
   <data name="srcxl.err.too_many_points" xml:space="preserve"><value>點位超過上限 {0} 點</value></data>
   <data name="srcxl.warn.blank_row_skipped" xml:space="preserve"><value>名稱空白，該列已略過</value></data>
+  <data name="srcxl.svc.web_edit_unacknowledged" xml:space="preserve"><value>「{0}」在網頁修改過，匯入會蓋掉這些修改，請先勾選「我了解會覆寫網頁上的修改」</value></data>
+  <data name="srcxl.svc.delete_not_supported" xml:space="preserve"><value>此來源不支援由匯入流程刪除，請用頁面上的「刪除 Server」按鈕</value></data>
+  <data name="srcxl.err.opcua_name_invalid" xml:space="preserve"><value>工作表名稱（= Server 名稱）只能用英數字、底線、連字號，1～50 字</value></data>
+  <data name="srcxl.err.header_endpoint_invalid" xml:space="preserve"><value>EndpointUrl 必須以 opc.tcp:// 開頭且不含空白</value></data>
+  <data name="srcxl.err.header_timeout_min" xml:space="preserve"><value>ConnectTimeout 不可小於 {0} 毫秒</value></data>
+  <data name="srcxl.err.header_polling_min" xml:space="preserve"><value>PollingInterval 不可小於 {0} 毫秒</value></data>
+  <data name="srcxl.err.header_maxnodes_invalid" xml:space="preserve"><value>MaxNodesPerRead 必須是 0 或正整數（0 = 依 Server 限制）</value></data>
+  <data name="srcxl.err.nodeid_required" xml:space="preserve"><value>TagName（NodeId）必填</value></data>
+  <data name="srcxl.err.nodeid_invalid" xml:space="preserve"><value>TagName 不是合法的 NodeId（例：ns=2;s=D1.T）</value></data>
+  <data name="srcxl.err.controltype_invalid" xml:space="preserve"><value>ControlType 只能留空、AO 或 DO</value></data>
+  <data name="srcxl.err.ratio_zero" xml:space="preserve"><value>Ratio 不可為 0</value></data>
+  <data name="srcxl.err.minmax_invalid" xml:space="preserve"><value>Min 必須小於 Max</value></data>
+  <data name="srcxl.err.seq_invalid" xml:space="preserve"><value>Seq 必須是正整數；新增點位請留空</value></data>
+  <data name="srcxl.err.seq_duplicate" xml:space="preserve"><value>Seq {0} 在同一工作表重複</value></data>
+  <data name="srcxl.err.seq_unknown" xml:space="preserve"><value>未知的 Seq {0}（既有設定中沒有此點位）；新增點位請留空</value></data>
+  <data name="srcxl.warn.seq_matched_by_nodeid" xml:space="preserve"><value>未填 Seq，已依 TagName 對回既有點位 Seq {0}</value></data>
+  <data name="srcxl.svc.folder_name_invalid" xml:space="preserve"><value>無法以「{0}」作為匯出檔名</value></data>
+  <data name="srcxl.svc.folder_exported" xml:space="preserve"><value>已匯出到 {0}</value></data>
+  <data name="srcxl.svc.folder_locked" xml:space="preserve"><value>「{0}」正在 Excel 中開啟，請先關閉 Excel 再匯出</value></data>
+  <data name="srcxl.svc.folder_confirm_unimported" xml:space="preserve"><value>資料夾內的「{0}」有尚未匯入的修改，覆寫會遺失這些修改（舊檔會另存為 .bak）。確定要覆寫？</value></data>
+  <data name="srcxl.svc.folder_confirm_not_exported" xml:space="preserve"><value>資料夾內已有「{0}」且不是本系統匯出的檔案，覆寫後原檔會另存為 .bak。確定要覆寫？</value></data>
+  <data name="srcxl.svc.folder_file_not_found" xml:space="preserve"><value>來源資料夾內找不到「{0}」</value></data>
+  <data name="srcxl.svc.folder_refresh_skipped" xml:space="preserve"><value>設定已存檔，但資料夾內的 Excel 未自動更新：{0}</value></data>
+  <data name="srcxl.svc.folder_reason_locked" xml:space="preserve"><value>{0}（Excel 開啟中）</value></data>
+  <data name="srcxl.svc.folder_reason_unimported" xml:space="preserve"><value>{0}（有尚未匯入的修改）</value></data>
+  <data name="srcxl.svc.folder_reason_not_exported" xml:space="preserve"><value>{0}（非本系統匯出的檔案）</value></data>
+  <data name="srcxl.svc.folder_no_matching" xml:space="preserve"><value>沒有來源 Excel 為「{0}」的設定可匯出</value></data>
 </root>

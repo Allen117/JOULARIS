@@ -79,4 +79,31 @@
   <data name="srcxl.err.numeric_required" xml:space="preserve"><value>{0} must be numeric</value></data>
   <data name="srcxl.err.too_many_points" xml:space="preserve"><value>More than the maximum of {0} points</value></data>
   <data name="srcxl.warn.blank_row_skipped" xml:space="preserve"><value>Name is blank; row skipped</value></data>
+  <data name="srcxl.svc.web_edit_unacknowledged" xml:space="preserve"><value>"{0}" was edited on the web; importing will overwrite those edits. Tick "I understand web edits will be overwritten" first</value></data>
+  <data name="srcxl.svc.delete_not_supported" xml:space="preserve"><value>This source cannot be deleted through import; use the "Delete Server" button on the page</value></data>
+  <data name="srcxl.err.opcua_name_invalid" xml:space="preserve"><value>Worksheet name (= server name) may only contain letters, digits, underscore and hyphen, 1–50 characters</value></data>
+  <data name="srcxl.err.header_endpoint_invalid" xml:space="preserve"><value>EndpointUrl must start with opc.tcp:// and contain no whitespace</value></data>
+  <data name="srcxl.err.header_timeout_min" xml:space="preserve"><value>ConnectTimeout must be at least {0} ms</value></data>
+  <data name="srcxl.err.header_polling_min" xml:space="preserve"><value>PollingInterval must be at least {0} ms</value></data>
+  <data name="srcxl.err.header_maxnodes_invalid" xml:space="preserve"><value>MaxNodesPerRead must be 0 or a positive integer (0 = server limit)</value></data>
+  <data name="srcxl.err.nodeid_required" xml:space="preserve"><value>TagName (NodeId) is required</value></data>
+  <data name="srcxl.err.nodeid_invalid" xml:space="preserve"><value>TagName is not a valid NodeId (e.g. ns=2;s=D1.T)</value></data>
+  <data name="srcxl.err.controltype_invalid" xml:space="preserve"><value>ControlType must be blank, AO or DO</value></data>
+  <data name="srcxl.err.ratio_zero" xml:space="preserve"><value>Ratio cannot be 0</value></data>
+  <data name="srcxl.err.minmax_invalid" xml:space="preserve"><value>Min must be less than Max</value></data>
+  <data name="srcxl.err.seq_invalid" xml:space="preserve"><value>Seq must be a positive integer; leave blank for new points</value></data>
+  <data name="srcxl.err.seq_duplicate" xml:space="preserve"><value>Seq {0} is duplicated within the worksheet</value></data>
+  <data name="srcxl.err.seq_unknown" xml:space="preserve"><value>Unknown Seq {0} (not in the existing configuration); leave blank for new points</value></data>
+  <data name="srcxl.warn.seq_matched_by_nodeid" xml:space="preserve"><value>Seq blank; matched to existing point Seq {0} by TagName</value></data>
+  <data name="srcxl.svc.folder_name_invalid" xml:space="preserve"><value>"{0}" cannot be used as the export file name</value></data>
+  <data name="srcxl.svc.folder_exported" xml:space="preserve"><value>Exported to {0}</value></data>
+  <data name="srcxl.svc.folder_locked" xml:space="preserve"><value>"{0}" is open in Excel; close Excel and export again</value></data>
+  <data name="srcxl.svc.folder_confirm_unimported" xml:space="preserve"><value>"{0}" in the folder has changes that have not been imported; overwriting will lose them (the old file is kept as .bak). Overwrite anyway?</value></data>
+  <data name="srcxl.svc.folder_confirm_not_exported" xml:space="preserve"><value>"{0}" already exists in the folder and was not exported by this system; the original is kept as .bak. Overwrite anyway?</value></data>
+  <data name="srcxl.svc.folder_file_not_found" xml:space="preserve"><value>"{0}" was not found in the source folder</value></data>
+  <data name="srcxl.svc.folder_refresh_skipped" xml:space="preserve"><value>Configuration saved, but these Excel files in the folder were not updated: {0}</value></data>
+  <data name="srcxl.svc.folder_reason_locked" xml:space="preserve"><value>{0} (open in Excel)</value></data>
+  <data name="srcxl.svc.folder_reason_unimported" xml:space="preserve"><value>{0} (has changes not yet imported)</value></data>
+  <data name="srcxl.svc.folder_reason_not_exported" xml:space="preserve"><value>{0} (not exported by this system)</value></data>
+  <data name="srcxl.svc.folder_no_matching" xml:space="preserve"><value>No configuration comes from the source workbook "{0}"</value></data>
 </root>

@@ -103,12 +103,11 @@ Write-Host "  dbSetting / EmailSetting / SmsSetting / LineSetting -> package roo
 # 現場資料夾（Modbus / DBPoint / OpcUaPoint）：dotnet publish 會依 Engine csproj 的
 # CopyToOutputDirectory 把 repo 的 dev 裝置定義（*.json）與範例（*.json.example）帶進 Engine\App。
 # 這些是各站台自有的現場資料，不該隨 release 外流到客戶伺服器。作法：清掉整個資料夾內容，
-# 只回填 repo 內的範本 / 產生工具：
-#   - Modbus / DBPoint：空白 Excel 範本（*.xlsx）— 現場在 Web「Modbus 來源」「DB 來源」頁匯入，不再用巨集
-#   - OpcUaPoint：仍附 Excel 產生工具（*.xlsm）
+# 只回填 repo 內的空白 Excel 範本（*.xlsx）：
+#   - Modbus / DBPoint / OpcUaPoint 三者都在 Web 對應來源頁匯入（舊 .xlsm 巨集已全部移除，舊巨集產的檔仍可直接上傳）
 # 資料夾（含範本）都在，Install.bat 靠「Modbus 資料夾是否存在」判斷升級的哨兵照常運作，
 # 升級時現場既有設定也照樣被備份/還原。
-$siteToolPatterns = @{ "Modbus" = "*.xlsx"; "DBPoint" = "*.xlsx"; "OpcUaPoint" = "*.xlsm" }
+$siteToolPatterns = @{ "Modbus" = "*.xlsx"; "DBPoint" = "*.xlsx"; "OpcUaPoint" = "*.xlsx" }
 foreach ($siteDir in @("Modbus", "DBPoint", "OpcUaPoint")) {
     $sitePath = "$ReleasePath\Engine\App\$siteDir"
     if (Test-Path $sitePath) { Remove-Item $sitePath -Recurse -Force }
@@ -380,6 +379,7 @@ exit /b 1
 :DOTNET_OK
 echo [OK] .NET 8 runtime detected (base + ASP.NET Core).
 echo.
+
 :: ── Install root ──
 :: ONE place defines where JOULARIS lives; every path below derives from it (the apps themselves
 :: resolve Shared / LicenseBridge / Algorithms relative to their own exe, so they never hard-code it).
@@ -416,7 +416,6 @@ if errorlevel 1 (
 )
 echo.
 :ROOT_MIGRATE_DONE
-
 
 :: ── Detect upgrade: backup site-specific configs ──
 set "_BACKUP=%_ROOT%\_ConfigBackup"
@@ -505,8 +504,8 @@ sc create JoularisEngine binPath= "\"%_ROOT%\Engine\App\ScadaEngine.Engine.exe\"
 :: sc create is a no-op when the service already exists (upgrade); force start type back
 :: to auto so a previously disabled service doesn't survive the reinstall and block net start,
 :: and force binPath to %_ROOT% so a service registered by an older installer (other root) follows
-sc config JoularisEngine binPath= "\"%_ROOT%\Engine\App\ScadaEngine.Engine.exe\"" >nul
 sc config JoularisEngine start= auto >nul
+sc config JoularisEngine binPath= "\"%_ROOT%\Engine\App\ScadaEngine.Engine.exe\"" >nul
 sc description JoularisEngine "JOULARIS Engine | Backend - data collection (Modbus/DB/OPC UA -> MQTT/SQL) | v$AppVersion | $BuildDate"
 sc failure JoularisEngine reset= 86400 actions= restart/5000/restart/10000/restart/30000
 echo Engine installed.
@@ -518,8 +517,8 @@ echo.
 if exist "%_ROOT%\Web\App" for %%F in ("%_ROOT%\Web\App\*") do del /Q "%%F" >nul 2>&1
 xcopy /E /I /Y "%~dp0Web\App" "%_ROOT%\Web\App"
 sc create JoularisWeb binPath= "\"%_ROOT%\Web\App\ScadaEngine.Web.exe\"" DisplayName= "JOULARIS Web" start= auto
-sc config JoularisWeb binPath= "\"%_ROOT%\Web\App\ScadaEngine.Web.exe\"" >nul
 sc config JoularisWeb start= auto >nul
+sc config JoularisWeb binPath= "\"%_ROOT%\Web\App\ScadaEngine.Web.exe\"" >nul
 sc description JoularisWeb "JOULARIS Web | Frontend - web dashboard (http://0.0.0.0:5038, https 7189) | v$AppVersion | $BuildDate"
 sc failure JoularisWeb reset= 86400 actions= restart/5000/restart/10000/restart/30000
 echo Web installed.
@@ -530,8 +529,8 @@ echo.
 :: net48 x86 bridge; Engine resolves it as <Engine\App>\..\..\LicenseBridge\ (no \App subfolder) - keep the layout
 xcopy /E /I /Y "%~dp0LicenseBridge\App" "%_ROOT%\LicenseBridge"
 sc create JoularisLicense binPath= "\"%_ROOT%\LicenseBridge\ScadaEngine.LicenseBridge.exe\"" DisplayName= "JOULARIS License Bridge" start= auto
-sc config JoularisLicense binPath= "\"%_ROOT%\LicenseBridge\ScadaEngine.LicenseBridge.exe\"" >nul
 sc config JoularisLicense start= auto >nul
+sc config JoularisLicense binPath= "\"%_ROOT%\LicenseBridge\ScadaEngine.LicenseBridge.exe\"" >nul
 sc description JoularisLicense "JOULARIS License Bridge | Backend - 32-bit HASP verification (Named Pipe, Engine only) | v$AppVersion | $BuildDate"
 sc failure JoularisLicense reset= 86400 actions= restart/5000/restart/10000/restart/30000
 echo License Bridge installed.
@@ -771,6 +770,7 @@ set "_BACKUP=%_ROOT%\_ModbusGatewayBackup"
 set "_SVC=JoularisModbusGateway"
 set "_OLDSVC=ScadaModbusGatewayService"
 set "_IS_UPGRADE=0"
+
 :: -- Migrate an old install root first (same script as Install.bat; the whole folder incl. Engine/Web/Shared
 ::    moves together, otherwise the gateway would land in %_ROOT% while Shared\dbSetting.json stays behind) --
 if not exist "%_OLDROOT%" goto ROOT_MIGRATE_DONE
@@ -786,7 +786,6 @@ if errorlevel 1 (
     exit /b 1
 )
 :ROOT_MIGRATE_DONE
-
 
 :: -- Detect upgrade: backup site config + AddressMap.json (address assignments must survive) --
 if exist "%_APP%\Setting" (
@@ -876,9 +875,9 @@ if %errorLevel% NEQ 0 (
 )
 :: upgrade path skips the create block above; force start type back to auto so a
 :: previously disabled service doesn't block the net start below
+sc config %_SVC% start= auto >nul
 :: binPath too: a service registered by an older installer (other install root) must follow %_ROOT%
 sc config %_SVC% binPath= "\"%_APP%\ScadaEngine.ModbusServer.exe\"" >nul
-sc config %_SVC% start= auto >nul
 :: description carries version + build date, so refresh it on every install (not only on create)
 sc description %_SVC% "JOULARIS Modbus Gateway | Backend - Modbus TCP gateway (FC4 input registers, float32) | v__APPVERSION__ | __BUILDDATE__"
 

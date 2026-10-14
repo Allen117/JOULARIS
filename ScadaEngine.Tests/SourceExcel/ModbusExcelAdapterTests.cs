@@ -42,6 +42,33 @@ public class ModbusExcelAdapterTests
         Set(1, name); Set(2, address); Set(3, type); Set(4, ratio); Set(5, unit); Set(6, min); Set(7, max); Set(8, device);
     }
 
+    // ── 匯出版面 ──
+
+    [Fact]
+    public void WriteSheet_LongModbusIdList_ColumnWideEnough()
+    {
+        // F 欄預設寬 10（Min 欄），"1,2,3,4,5,6,7,8" 15 字會被 G1 標籤遮住看起來像截斷
+        var sheet = new ParsedSourceSheet { SheetName = "Dev1" };
+        sheet.Header["IP"] = "192.168.147.100"; sheet.Header["Port"] = "502";
+        sheet.Header["ModbusId"] = "1,2,3,4,5,6,7,8"; sheet.Header["ConnectTimeout"] = "500";
+
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Dev1");
+        _adapter.WriteSheet(ws, sheet);
+
+        Assert.Equal(XLDataType.Text, ws.Cell("F1").Value.Type);
+        Assert.Equal("1,2,3,4,5,6,7,8", ws.Cell("F1").GetText());
+        Assert.True(ws.Column(6).Width >= "1,2,3,4,5,6,7,8".Length + 2, $"F 欄寬 {ws.Column(6).Width}");
+        Assert.True(ws.Column(2).Width >= "192.168.147.100".Length + 2, $"B 欄寬 {ws.Column(2).Width}");
+
+        // 資料欄（Min）仍不受短值影響：短 ModbusID 不會把欄縮窄
+        var sheet2 = new ParsedSourceSheet { SheetName = "Dev2" };
+        sheet2.Header["IP"] = "10.0.0.1"; sheet2.Header["ModbusId"] = "1";
+        var ws2 = wb.Worksheets.Add("Dev2");
+        _adapter.WriteSheet(ws2, sheet2);
+        Assert.Equal(10, ws2.Column(6).Width, 1);
+    }
+
     // ── 正常解析 ──
 
     [Fact]

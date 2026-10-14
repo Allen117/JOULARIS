@@ -23,6 +23,9 @@ public class SourceConfigFileIo
     /// <summary>appsettings 區段名稱 — DB 來源</summary>
     public const string DBPOINT_SECTION = "EngineDbPointConfig";
 
+    /// <summary>appsettings 區段名稱 — OPC UA 來源（OpcUaCoordinatorService 熱編輯與 Excel 匯入共用同一資料夾）</summary>
+    public const string OPCUA_SECTION = "EngineOpcUaConfig";
+
     /// <summary>刪除備份子資料夾名稱</summary>
     public const string DELETED_SUBFOLDER = "_deleted";
 

@@ -169,7 +169,10 @@ public class ModbusCoordinatorController : Controller
             }
         }
 
-        return Ok(new { success = true, changedCount = result.changes.Count });
+        // 重產來源資料夾內對應的 xlsx（Excel 開著 / 有未匯入修改 → 不覆寫，回傳提示；不影響存檔結果）
+        var szWorkbookNotice = await _importCoordinator.RefreshFolderWorkbooksAsync(_excelAdapter);
+
+        return Ok(new { success = true, changedCount = result.changes.Count, workbookNotice = szWorkbookNotice });
     }
 
     // ───────────────────────────── Excel 匯入 / 匯出 / 刪除（流程見 SourceExcelImportCoordinator） ─────────────────────────────
@@ -189,6 +192,30 @@ public class ModbusCoordinatorController : Controller
             ? $"{_excelAdapter.ExportFileNamePrefix}_{szStamp}.xlsx"
             : $"{Path.GetFileNameWithoutExtension(workbook)}_{szStamp}.xlsx";
         return File(bytes, XLSX_MIME, szFileName);
+    }
+
+    /// <summary>匯出現行設定並寫進 Engine 來源資料夾（固定檔名覆寫）；Excel 開著或需確認覆寫回 409</summary>
+    [HttpPost("/ModbusCoordinator/ExportToFolder")]
+    public async Task<IActionResult> ExportToFolder(string? workbook, bool force = false)
+    {
+        var result = await _importCoordinator.ExportToFolderAsync(_excelAdapter, workbook, force, User.Identity?.Name ?? "anonymous");
+        if (result.Success) return Ok(result);
+        return result.Locked || result.NeedsConfirm ? StatusCode(409, result) : BadRequest(result);
+    }
+
+    /// <summary>來源資料夾內的 Excel 檔（從資料夾匯入下拉 + 未匯入修改提示用）</summary>
+    [HttpGet("/ModbusCoordinator/FolderWorkbooks")]
+    public IActionResult FolderWorkbooks() => Ok(_importCoordinator.ListFolderWorkbooks(_excelAdapter));
+
+    /// <summary>以來源資料夾內的 Excel 預覽（不經瀏覽器上傳），之後同樣走 ImportCommit</summary>
+    [HttpPost("/ModbusCoordinator/ImportPreviewFromFolder")]
+    public async Task<IActionResult> ImportPreviewFromFolder([FromBody] SourceExcelFolderImportRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.FileName))
+            return BadRequest(new { success = false, message = _l["modbuscoordinator.api.param_error"].Value });
+
+        var result = await _importCoordinator.PreviewFromFolderAsync(_excelAdapter, request.FileName, User.Identity?.Name ?? "anonymous");
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>上傳 Excel → 解析、驗證、比對既有設定 → 回傳預覽與 token（不寫檔）</summary>

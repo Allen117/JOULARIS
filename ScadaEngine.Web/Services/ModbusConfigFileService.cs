@@ -183,6 +183,10 @@ public class ModbusConfigFileService
                 tag["Device"] = (p.Device ?? string.Empty).Trim();
             }
 
+            // 記錄網頁修改時間：之後拿「修改前匯出的舊 Excel」重匯時，預覽會警告「會蓋掉網頁修改」
+            if (root is JsonObject rootObj)
+                SourceJsonStamp.StampWebEdited(rootObj);
+
             var szNewJson = root.ToJsonString(new JsonSerializerOptions
             {
                 WriteIndented = true,

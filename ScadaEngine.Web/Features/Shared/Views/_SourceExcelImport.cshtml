@@ -1,7 +1,7 @@
 @model ScadaEngine.Web.Features.Shared.Models.SourceExcelImportViewModel
 @*
     Excel 匯入 / 匯出 / 範本 共用 partial（Modbus 來源、DB 來源兩頁共用；OPC UA 日後可直接沿用）。
-    內含：工具列（下載範本 / 匯出 Excel / 匯入 Excel）+ 預覽 Modal + 確認 Modal。
+    內含：工具列（下載範本 / 匯出 Excel 到來源資料夾或下載 / 匯入 Excel 從瀏覽器或來源資料夾）+ 預覽 Modal + 確認 Modal。
     行為全在 wwwroot/js/common/source-excel-import.js，以 data-srcxl-base 參數化 Controller 路由前綴。
     逐台刪除由各頁按鈕呼叫 window.SourceExcelImport.deleteSource(name)。
 *@
@@ -12,29 +12,51 @@
     <a class="btn btn-outline-secondary btn-sm" href="@Model.BaseUrl/ImportTemplate" title="@Localizer["srcxl.btn.template_hint"]">
         <i class="fas fa-file-download me-1"></i>@Localizer["srcxl.btn.template"]
     </a>
+    <!-- 匯出：主按鈕寫進 Engine 來源資料夾（固定檔名覆寫）；下拉保留「下載到瀏覽器」供遠端操作取檔 -->
     <div class="btn-group">
-        <a class="btn btn-outline-secondary btn-sm" href="@Model.BaseUrl/ExportExcel" title="@Localizer["srcxl.btn.export_hint"]">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="srcxlBtnExport" title="@Localizer["srcxl.btn.export_hint"]">
             <i class="fas fa-file-export me-1"></i>@Localizer["srcxl.btn.export_all"]
-        </a>
-        @if (Model.Workbooks.Count > 0)
-        {
-            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="visually-hidden">@Localizer["srcxl.export.by_workbook"]</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><h6 class="dropdown-header">@Localizer["srcxl.export.by_workbook"]</h6></li>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split"
+                data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="visually-hidden">@Localizer["srcxl.export.by_workbook"]</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            @if (Model.Workbooks.Count > 0)
+            {
+                <li><h6 class="dropdown-header">@Localizer["srcxl.export.to_folder_by_workbook"]</h6></li>
                 @foreach (var szWorkbook in Model.Workbooks)
                 {
-                    <li><a class="dropdown-item small" href="@Model.BaseUrl/ExportExcel?workbook=@Uri.EscapeDataString(szWorkbook)">@szWorkbook</a></li>
+                    <li><button type="button" class="dropdown-item small srcxl-export-folder" data-workbook="@szWorkbook">@szWorkbook</button></li>
                 }
-            </ul>
-        }
+                <li><hr class="dropdown-divider" /></li>
+            }
+            <li><h6 class="dropdown-header">@Localizer["srcxl.export.download"]</h6></li>
+            <li><a class="dropdown-item small" href="@Model.BaseUrl/ExportExcel">@Localizer["srcxl.export.download_all"]</a></li>
+            @foreach (var szWorkbook in Model.Workbooks)
+            {
+                <li><a class="dropdown-item small" href="@Model.BaseUrl/ExportExcel?workbook=@Uri.EscapeDataString(szWorkbook)">@szWorkbook</a></li>
+            }
+        </ul>
     </div>
-    <button type="button" class="btn btn-primary btn-sm" id="srcxlBtnImport" title="@Localizer["srcxl.btn.import_hint"]">
-        <i class="fas fa-file-upload me-1"></i>@Localizer["srcxl.btn.import"]
-    </button>
+    <!-- 匯入：主按鈕從瀏覽器選檔；下拉列出來源資料夾內的 Excel（開啟時才向伺服器讀清單） -->
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary btn-sm" id="srcxlBtnImport" title="@Localizer["srcxl.btn.import_hint"]">
+            <i class="fas fa-file-upload me-1"></i>@Localizer["srcxl.btn.import"]
+        </button>
+        <button type="button" class="btn btn-primary btn-sm dropdown-toggle dropdown-toggle-split" id="srcxlBtnFolderMenu"
+                data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="visually-hidden">@Localizer["srcxl.import.from_folder"]</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end srcxl-folder-menu" id="srcxlFolderMenu">
+            <li><h6 class="dropdown-header">@Localizer["srcxl.import.from_folder"]</h6></li>
+        </ul>
+    </div>
     <input type="file" id="srcxlFileInput" accept=".xlsx,.xlsm" class="d-none" />
+    <!-- 資料夾內有「匯出後又在 Excel 存檔、尚未匯入」的檔案時顯示（Engine 只讀 JSON，Excel 存檔不會生效） -->
+    <span class="small text-warning-emphasis" id="srcxlPendingHint" style="display:none;">
+        <i class="fas fa-exclamation-triangle me-1"></i>@Localizer["srcxl.pending.hint"]<span id="srcxlPendingList"></span>
+    </span>
 </div>
 
 <!-- 預覽 Modal：上傳後先比對，不寫檔；使用者勾選確認後才提交 -->
@@ -56,7 +78,9 @@
                 <div id="srcxlPreviewBody" style="display:none;">
                     <div class="alert alert-danger py-2 small" id="srcxlPreviewError" style="display:none;"></div>
 
-                    <p class="small text-muted mb-2">@Localizer["srcxl.preview.hint"]</p>
+                    <p class="small text-muted mb-1">@Localizer["srcxl.preview.hint"]</p>
+                    <!-- 活頁簿匯出時間（ScadaExportedAt）；沒有 = 範本 / 手工建立，覆寫網頁修改時會要求確認 -->
+                    <p class="small text-muted mb-2" id="srcxlExportedAt"></p>
 
                     <!-- 沒有任何可勾選項目（全部錯誤／無變更、無刪除候選）時說明原因，文字由 JS 依預覽結果填入 -->
                     <div class="alert alert-warning py-2 small fw-bold" id="srcxlNoSelectableBox" style="display:none;"></div>
@@ -100,11 +124,20 @@
                     </div>
 
                     <!-- SID 位移高風險確認 -->
-                    <div class="alert alert-warning py-2 small mb-0" id="srcxlSidShiftBox" style="display:none;">
+                    <div class="alert alert-warning py-2 small mb-2" id="srcxlSidShiftBox" style="display:none;">
                         <div><i class="fas fa-exclamation-triangle me-1"></i>@Localizer["srcxl.sidshift.warning"]</div>
                         <div class="form-check mt-2 mb-0">
                             <input class="form-check-input" type="checkbox" id="srcxlAckSidShift" />
                             <label class="form-check-label fw-bold" for="srcxlAckSidShift">@Localizer["srcxl.sidshift.ack"]</label>
+                        </div>
+                    </div>
+
+                    <!-- 會蓋掉網頁修改（拿修改前匯出的舊 Excel 重匯）確認 -->
+                    <div class="alert alert-danger py-2 small mb-0" id="srcxlWebEditBox" style="display:none;">
+                        <div><i class="fas fa-exclamation-triangle me-1"></i>@Localizer["srcxl.webedit.warning"]</div>
+                        <div class="form-check mt-2 mb-0">
+                            <input class="form-check-input" type="checkbox" id="srcxlAckWebEdit" />
+                            <label class="form-check-label fw-bold" for="srcxlAckWebEdit">@Localizer["srcxl.webedit.ack"]</label>
                         </div>
                     </div>
                 </div>

@@ -9,12 +9,15 @@ namespace ScadaEngine.Web.Services.SourceExcel;
 /// - 設備層欄位變更、逐點欄位變更
 /// - SID 位移偵測：逐點比對 Name。只在尾端增減 → 一般覆寫；中間插入、刪除或換順序 → HasSidShift（高風險，需另外勾選）。
 ///   同位置名稱不同但該名稱在另一側也不存在 → 視為原地改名（不算位移）
+/// - 鍵值式比對（adapter.PointKeyField 非 null，OPC UA 的 Seq）：以 key 對點 → 新增 / 修改 / 移除，不做位移偵測
+/// - 網頁修改衝突：覆寫且有差異時，若既有 JSON 的 WebEditedAt 晚於 Excel 匯出時間（或 Excel 沒有匯出時間）→ HasWebEditConflict（需另外勾選）
 /// - 刪除候選分兩區：既有 JSON 的 SourceWorkbook 與這次上傳的檔名相同（不分大小寫、忽略副檔名）且這次沒有的工作表
 ///   → 刪除候選（預設勾選）；其他未包含的設備 → 另列（預設不勾）
 /// </summary>
 public static class SourceExcelDiffBuilder
 {
-    public static SheetDiff Build(ParsedSourceSheet uploaded, ParsedSourceSheet? existing, ISourceExcelAdapter adapter)
+    /// <param name="exportedAt">上傳 Excel 的匯出時間（活頁簿 ScadaExportedAt）；null = 不明來源</param>
+    public static SheetDiff Build(ParsedSourceSheet uploaded, ParsedSourceSheet? existing, ISourceExcelAdapter adapter, DateTimeOffset? exportedAt = null)
     {
         var diff = new SheetDiff
         {
@@ -22,6 +25,7 @@ public static class SourceExcelDiffBuilder
             NewPointCount = uploaded.Points.Count,
             OldPointCount = existing?.Points.Count ?? 0,
             ExistingSourceWorkbook = existing?.SourceWorkbook,
+            WebEditedAt = existing?.WebEditedAt is { } dtEdited ? SourceJsonStamp.ToDisplay(dtEdited) : null,
         };
         diff.Errors.AddRange(uploaded.Errors);
         diff.Warnings.AddRange(uploaded.Warnings);
@@ -49,7 +53,64 @@ public static class SourceExcelDiffBuilder
                 diff.HeaderChanges.Add($"{szField}: {szOld} → {szNew}");
         }
 
-        // 逐點
+        if (adapter.PointKeyField is { } szKey)
+            BuildKeyedPointChanges(diff, existing, uploaded, adapter, szKey);
+        else
+            BuildPositionalPointChanges(diff, existing, uploaded, adapter);
+
+        var isChanged = diff.HeaderChanges.Count > 0 || diff.PointChanges.Count > 0;
+        diff.Kind = isChanged ? SheetDiffKind.Overwrite : SheetDiffKind.Unchanged;
+        diff.DefaultChecked = isChanged;
+
+        // 網頁修改衝突：只有真的會覆寫時才警告（無變更就不會寫檔，不必嚇人）
+        diff.HasWebEditConflict = isChanged && SourceJsonStamp.IsWebEditConflict(existing.WebEditedAt, exportedAt);
+        return diff;
+    }
+
+    /// <summary>鍵值式：以 key 欄位對點。key 空白的上傳點位視為新增（Reconcile 應已配號，這裡保險）</summary>
+    private static void BuildKeyedPointChanges(SheetDiff diff, ParsedSourceSheet existing, ParsedSourceSheet uploaded, ISourceExcelAdapter adapter, string szKey)
+    {
+        var existingByKey = new Dictionary<string, ParsedSourcePoint>(StringComparer.Ordinal);
+        foreach (var p in existing.Points)
+        {
+            var k = p.Get(szKey);
+            if (k.Length > 0) existingByKey.TryAdd(k, p);
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var p in uploaded.Points)
+        {
+            var k = p.Get(szKey);
+            int.TryParse(k, out var nIndex);
+            if (k.Length > 0 && existingByKey.TryGetValue(k, out var old))
+            {
+                seen.Add(k);
+                var szSummary = BuildPointSummary(old, p, adapter.PointFields);
+                if (szSummary.Length > 0)
+                    diff.PointChanges.Add(new SheetDiffPointChange { Index = nIndex, Name = p.Name, Change = "Modified", Summary = szSummary });
+            }
+            else
+            {
+                diff.PointChanges.Add(new SheetDiffPointChange { Index = nIndex, Name = p.Name, Change = "Added" });
+                diff.TailAddedCount++;
+            }
+        }
+
+        foreach (var (k, old) in existingByKey)
+        {
+            if (seen.Contains(k)) continue;
+            int.TryParse(k, out var nIndex);
+            diff.PointChanges.Add(new SheetDiffPointChange { Index = nIndex, Name = old.Name, Change = "Removed" });
+            diff.KeyedRemovedCount++;
+        }
+
+        // 顯示順序：依 key 數值
+        diff.PointChanges.Sort((a, b) => a.Index.CompareTo(b.Index));
+    }
+
+    /// <summary>位置式：陣列索引 = SID 序號；同位置比欄位、尾端增減另計、偵測 SID 位移</summary>
+    private static void BuildPositionalPointChanges(SheetDiff diff, ParsedSourceSheet existing, ParsedSourceSheet uploaded, ISourceExcelAdapter adapter)
+    {
         var nCommon = Math.Min(existing.Points.Count, uploaded.Points.Count);
         for (var i = 0; i < nCommon; i++)
         {
@@ -83,11 +144,6 @@ public static class SourceExcelDiffBuilder
             diff.HasSidShift = true;
             diff.SidShiftFromIndex = nShiftIndex;
         }
-
-        var isChanged = diff.HeaderChanges.Count > 0 || diff.PointChanges.Count > 0;
-        diff.Kind = isChanged ? SheetDiffKind.Overwrite : SheetDiffKind.Unchanged;
-        diff.DefaultChecked = isChanged;
-        return diff;
     }
 
     /// <summary>「欄位: 舊 → 新」逗號串接；無變更回空字串</summary>

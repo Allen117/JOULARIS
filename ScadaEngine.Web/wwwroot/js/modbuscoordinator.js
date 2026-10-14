@@ -512,6 +512,8 @@
                 if (resp.ok && result.success) {
                     aOriginalPoints = aPoints;
                     setPointsStatus(t('modbuscoordinator.points.msg_save_success'), false);
+                    // 來源資料夾內的 Excel 未能自動重產（Excel 開著 / 有未匯入修改）
+                    if (result.workbookNotice) window.alert(result.workbookNotice);
                 } else {
                     setPointsStatus(result.message || t('modbuscoordinator.msg.save_failed'), true);
                 }

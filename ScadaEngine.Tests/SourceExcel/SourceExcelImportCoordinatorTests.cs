@@ -340,6 +340,209 @@ public class SourceExcelImportCoordinatorTests : IDisposable
         Assert.Contains("file_unreadable", preview.Message);
     }
 
+    // ── 來源資料夾內的 Excel（plan D 段）──
+
+    private string XlsxPathOf(string szFileName) => Path.Combine(_szFolder, szFileName);
+
+    /// <summary>模擬使用者在 Excel 存檔：只把修改時間往後推（內容不變）</summary>
+    private void TouchLater(string szFileName)
+        => File.SetLastWriteTime(XlsxPathOf(szFileName), DateTime.Now.AddMinutes(5));
+
+    private static List<string> SheetNamesOf(string szPath)
+    {
+        using var wb = new ClosedXML.Excel.XLWorkbook(szPath);
+        return wb.Worksheets.Select(w => w.Name).ToList();
+    }
+
+    [Fact]
+    public async Task ExportToFolder_All_WritesFixedName_StampedAndMtimeAligned_JsonUntouched()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), "盤A.xlsx");
+        WriteExisting("GW2", ModbusSheet("GW2", "B"), "盤B.xlsx");
+
+        var result = await _coordinator.ExportToFolderAsync(_modbus, null, false, "eng");
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(XlsxPathOf("Modbus設定.xlsx"), result.Path);
+        Assert.Equal(new[] { "GW1", "GW2" }, SheetNamesOf(result.Path!));
+
+        using (var wb = new ClosedXML.Excel.XLWorkbook(result.Path!))
+        {
+            var exportedAt = SourceJsonStamp.ReadExported(wb);
+            Assert.NotNull(exportedAt);
+            Assert.Equal(exportedAt!.Value.UtcDateTime, File.GetLastWriteTimeUtc(result.Path!));
+        }
+
+        // xlsx 不是設定檔：一覽只有 JSON
+        Assert.Equal(new[] { "GW1", "GW2" }, (await _coordinator.ListExistingAsync(_modbus)).Select(e => e.Name));
+        var list = _coordinator.ListFolderWorkbooks(_modbus);
+        Assert.False(Assert.Single(list).HasUnimportedChanges);
+    }
+
+    [Fact]
+    public async Task ExportToFolder_ByWorkbook_UsesSourceWorkbookName()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), "盤A.xlsm");
+        WriteExisting("GW2", ModbusSheet("GW2", "B"), "盤B.xlsx");
+
+        var result = await _coordinator.ExportToFolderAsync(_modbus, "盤A.xlsm", false, "eng");
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(XlsxPathOf("盤A.xlsx"), result.Path);
+        Assert.Equal(new[] { "GW1" }, SheetNamesOf(result.Path!));
+    }
+
+    [Fact]
+    public async Task ExportToFolder_TemplateNameOrPathEscape_Rejected()
+    {
+        Assert.False((await _coordinator.ExportToFolderAsync(_modbus, "Modbus範本.xlsx", false, "eng")).Success);
+        Assert.False((await _coordinator.ExportToFolderAsync(_modbus, "..\\evil.xlsx", false, "eng")).Success);
+        Assert.Empty(Directory.GetFiles(_szFolder, "*.xlsx"));
+    }
+
+    [Fact]
+    public async Task ExportToFolder_FileOpenInExcel_Locked_FileUnchanged()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), "盤A.xlsx");
+        Assert.True((await _coordinator.ExportToFolderAsync(_modbus, null, false, "eng")).Success);
+        var szPath = XlsxPathOf("Modbus設定.xlsx");
+        var before = File.ReadAllBytes(szPath);
+
+        // Excel 開檔 = 允許他人讀、拒絕寫入
+        using (new FileStream(szPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            var result = await _coordinator.ExportToFolderAsync(_modbus, null, true, "eng");
+            Assert.False(result.Success);
+            Assert.True(result.Locked);
+            Assert.Contains("folder_locked", result.Message);
+        }
+
+        Assert.Equal(before, File.ReadAllBytes(szPath));
+        Assert.False(File.Exists(szPath + ".tmp"));
+    }
+
+    [Fact]
+    public async Task ExportToFolder_UnimportedChangesOrForeignFile_NeedsConfirm_ThenForceOverwrites()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), "盤A.xlsx");
+        Assert.True((await _coordinator.ExportToFolderAsync(_modbus, null, false, "eng")).Success);
+        TouchLater("Modbus設定.xlsx");
+
+        var confirm = await _coordinator.ExportToFolderAsync(_modbus, null, false, "eng");
+        Assert.False(confirm.Success);
+        Assert.True(confirm.NeedsConfirm);
+        Assert.Contains("folder_confirm_unimported", confirm.Message);
+
+        var forced = await _coordinator.ExportToFolderAsync(_modbus, null, true, "eng");
+        Assert.True(forced.Success, forced.Message);
+        Assert.True(File.Exists(XlsxPathOf("Modbus設定.xlsx.bak")));
+
+        // 非系統匯出的同名檔（沒有 ScadaExportedAt）同樣要確認
+        File.WriteAllBytes(XlsxPathOf("盤A.xlsx"), SourceExcelTemplateWriter.Build(_modbus, new[] { ModbusSheet("GW1", "A") }));
+        var foreign = await _coordinator.ExportToFolderAsync(_modbus, "盤A.xlsx", false, "eng");
+        Assert.True(foreign.NeedsConfirm);
+        Assert.Contains("folder_confirm_not_exported", foreign.Message);
+    }
+
+    [Fact]
+    public async Task ListFolderWorkbooks_ExcludesTemplateAndLockFiles_FlagsUnimported()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), "盤A.xlsx");
+        Assert.True((await _coordinator.ExportToFolderAsync(_modbus, null, false, "eng")).Success);
+        Assert.True((await _coordinator.ExportToFolderAsync(_modbus, "盤A.xlsx", false, "eng")).Success);
+        File.WriteAllBytes(XlsxPathOf("Modbus範本.xlsx"), SourceExcelTemplateWriter.BuildTemplate(_modbus));
+        File.WriteAllText(XlsxPathOf("~$盤A.xlsx"), "lock");
+        TouchLater("盤A.xlsx");
+
+        var list = _coordinator.ListFolderWorkbooks(_modbus);
+
+        Assert.Equal(new[] { "盤A.xlsx", "Modbus設定.xlsx" }, list.Select(w => w.Name));   // 修改時間新到舊
+        Assert.True(list[0].HasUnimportedChanges);
+        Assert.False(list[1].HasUnimportedChanges);
+    }
+
+    [Fact]
+    public async Task Refresh_AfterJsonChange_RegeneratesStamped_SkipsUnimportedAndForeign_NeverCreates()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), "盤A.xlsx");
+        Assert.True((await _coordinator.ExportToFolderAsync(_modbus, null, false, "eng")).Success);   // Modbus設定.xlsx
+        Assert.True((await _coordinator.ExportToFolderAsync(_modbus, "盤A.xlsx", false, "eng")).Success); // 盤A.xlsx
+        TouchLater("盤A.xlsx");
+        File.WriteAllBytes(XlsxPathOf("盤B.xlsx"), SourceExcelTemplateWriter.Build(_modbus, new[] { ModbusSheet("GW2", "B") }));
+
+        // 模擬熱編輯新增一台（JSON 已寫好），之後重產
+        WriteExisting("GW2", ModbusSheet("GW2", "B"), "盤B.xlsx");
+        var szNotice = await _coordinator.RefreshFolderWorkbooksAsync(_modbus);
+
+        Assert.Equal(new[] { "GW1", "GW2" }, SheetNamesOf(XlsxPathOf("Modbus設定.xlsx")));   // 全部匯出檔已重產
+        Assert.NotNull(szNotice);
+        Assert.Contains("folder_reason_unimported:盤A.xlsx", szNotice);
+        Assert.Contains("folder_reason_not_exported:盤B.xlsx", szNotice);
+        Assert.False(File.Exists(XlsxPathOf("盤C.xlsx")));
+        Assert.Equal(3, Directory.GetFiles(_szFolder, "*.xlsx").Length);
+    }
+
+    [Fact]
+    public async Task Refresh_NoWorkbooksInFolder_ReturnsNull_CreatesNothing()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), "盤A.xlsx");
+        Assert.Null(await _coordinator.RefreshFolderWorkbooksAsync(_modbus));
+        Assert.Empty(Directory.GetFiles(_szFolder, "*.xlsx"));
+    }
+
+    [Fact]
+    public async Task PreviewFromFolder_FullImport_RegeneratesFile_NoLongerFlaggedUnimported()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), "盤A.xlsx");
+        Assert.True((await _coordinator.ExportToFolderAsync(_modbus, "盤A.xlsx", false, "eng")).Success);
+
+        // 在 Excel 改了點位名稱並存檔
+        File.WriteAllBytes(XlsxPathOf("盤A.xlsx"), SourceExcelTemplateWriter.Build(_modbus, new[] { ModbusSheet("GW1", "A2") }, isExport: true, exportedAt: DateTimeOffset.Now.AddMinutes(-10)));
+        Assert.True(Assert.Single(_coordinator.ListFolderWorkbooks(_modbus)).HasUnimportedChanges);
+
+        var preview = await _coordinator.PreviewFromFolderAsync(_modbus, "盤A.xlsx", "eng");
+        Assert.True(preview.Success, preview.Message);
+        Assert.Equal(SheetDiffKind.Overwrite, Assert.Single(preview.Sheets).Kind);
+
+        var commit = await _coordinator.CommitAsync(_modbus, new SourceExcelCommitRequest { Token = preview.Token, ImportSheets = new() { "GW1" } }, "eng");
+        Assert.True(commit.Success, commit.Message);
+        Assert.Null(commit.WorkbookNotice);
+
+        Assert.Equal("A2", _modbus.ParseJson("GW1", File.ReadAllText(PathOf("GW1")))!.Points[0].Name);
+        Assert.False(Assert.Single(_coordinator.ListFolderWorkbooks(_modbus)).HasUnimportedChanges);
+    }
+
+    [Fact]
+    public async Task PreviewFromFolder_PartialImport_KeepsFile_StillFlaggedUnimported()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), "盤A.xlsx");
+        WriteExisting("GW2", ModbusSheet("GW2", "B"), "盤A.xlsx");
+        Assert.True((await _coordinator.ExportToFolderAsync(_modbus, "盤A.xlsx", false, "eng")).Success);
+
+        File.WriteAllBytes(XlsxPathOf("盤A.xlsx"), SourceExcelTemplateWriter.Build(_modbus,
+            new[] { ModbusSheet("GW1", "A2"), ModbusSheet("GW2", "B2") }, isExport: true, exportedAt: DateTimeOffset.Now.AddMinutes(-10)));
+        var before = File.ReadAllBytes(XlsxPathOf("盤A.xlsx"));
+
+        var preview = await _coordinator.PreviewFromFolderAsync(_modbus, "盤A.xlsx", "eng");
+        var commit = await _coordinator.CommitAsync(_modbus, new SourceExcelCommitRequest { Token = preview.Token, ImportSheets = new() { "GW1" } }, "eng");
+        Assert.True(commit.Success, commit.Message);
+
+        // GW2 的修改還沒進 JSON → 不可重產洗掉
+        Assert.Equal(before, File.ReadAllBytes(XlsxPathOf("盤A.xlsx")));
+        Assert.Contains("folder_reason_unimported:盤A.xlsx", commit.WorkbookNotice);
+        Assert.True(Assert.Single(_coordinator.ListFolderWorkbooks(_modbus)).HasUnimportedChanges);
+    }
+
+    [Fact]
+    public async Task PreviewFromFolder_TemplateOrMissingOrEscape_Fails()
+    {
+        File.WriteAllBytes(XlsxPathOf("Modbus範本.xlsx"), SourceExcelTemplateWriter.BuildTemplate(_modbus));
+        Assert.Contains("folder_file_not_found", (await _coordinator.PreviewFromFolderAsync(_modbus, "Modbus範本.xlsx", "eng")).Message);
+        Assert.Contains("folder_file_not_found", (await _coordinator.PreviewFromFolderAsync(_modbus, "沒有.xlsx", "eng")).Message);
+        Assert.Contains("folder_file_not_found", (await _coordinator.PreviewFromFolderAsync(_modbus, "..\\x.xlsx", "eng")).Message);
+        Assert.Contains("folder_file_not_found", (await _coordinator.PreviewFromFolderAsync(_modbus, "GW1.json", "eng")).Message);
+    }
+
     // ── stubs ──
 
     private sealed class StubEnv : IWebHostEnvironment

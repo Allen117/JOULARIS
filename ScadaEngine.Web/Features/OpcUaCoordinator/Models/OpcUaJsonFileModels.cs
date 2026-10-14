@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ScadaEngine.Web.Features.OpcUaCoordinator.Models;
@@ -25,7 +26,19 @@ public class OpcUaJsonFile
     /// </summary>
     public int NextSeq { get; set; } = 1;
 
+    /// <summary>來源 Excel 檔名（Excel 匯入寫入；「依檔案匯出」篩選用）。null 不輸出</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SourceWorkbook { get; set; }
+
+    /// <summary>最近一次網頁熱編輯時間（ISO 8601；Excel 匯入預覽判斷「拿舊 Excel 會蓋掉網頁修改」）。null 不輸出</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? WebEditedAt { get; set; }
+
     public List<OpcUaJsonDevice> Devices { get; set; } = new();
+
+    /// <summary>其他未知欄位原樣保留（DTO 往返不弄丟手寫或日後新增的頂層欄位）</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Extra { get; set; }
 }
 
 public class OpcUaJsonDevice

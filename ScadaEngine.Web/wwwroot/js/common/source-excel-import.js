@@ -1,11 +1,15 @@
 /**
- * Excel 匯入 / 匯出 / 刪除 共用前端（Modbus 來源、DB 來源兩頁共用）。
+ * Excel 匯入 / 匯出 / 刪除 共用前端（Modbus 來源、DB 來源、OPC UA 來源三頁共用）。
  *
  * 流程：選檔 → POST {base}/ImportPreview（不寫檔）→ 預覽 Modal 列出 新增/覆寫/無變更/錯誤 + 刪除候選 + 其他既有
  *       → 使用者勾選 →（有覆寫或刪除時）確認 Modal 列出名稱 → POST {base}/ImportCommit → 重新整理頁面。
- * SID 位移（中間插入/刪除/重排）需另外勾選「我了解…」才能提交。
+ * SID 位移（中間插入/刪除/重排）需另外勾選「我了解…」才能提交；
+ * 「會蓋掉網頁修改」（JSON 的 WebEditedAt 晚於 Excel 的匯出時間）同樣需另外勾選。
  *
- * 參數化：工具列 [data-srcxl-base] 帶 Controller 路由前綴（/ModbusCoordinator、/DbCoordinator）。
+ * 匯出主按鈕寫進 Engine 來源資料夾（POST {base}/ExportToFolder），下拉保留「下載到瀏覽器」；
+ * 匯入下拉可直接選來源資料夾內的 Excel（POST {base}/ImportPreviewFromFolder），資料夾內有未匯入修改時工具列顯示提示。
+ *
+ * 參數化：工具列 [data-srcxl-base] 帶 Controller 路由前綴（/ModbusCoordinator、/DbCoordinator、/OpcUaCoordinator）。
  * 對外：window.SourceExcelImport.deleteSource(name) — 各頁「刪除設備」按鈕呼叫（確認後 POST {base}/DeleteSource）。
  */
 (function () {
@@ -89,23 +93,42 @@
         uploadForPreview(file);
     });
 
-    async function uploadForPreview(file) {
+    function uploadForPreview(file) {
+        startPreview(file.name, function () {
+            var form = new FormData();
+            form.append('file', file, file.name);
+            return fetch(szBase + '/ImportPreview', { method: 'POST', body: form, credentials: 'same-origin' });
+        });
+    }
+
+    /** 以來源資料夾內的 Excel 預覽（伺服器直接讀檔，不經瀏覽器上傳）；之後的勾選 / 提交流程相同 */
+    function previewFromFolder(szFileName) {
+        startPreview(szFileName, function () {
+            return fetch(szBase + '/ImportPreviewFromFolder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ fileName: szFileName })
+            });
+        });
+    }
+
+    /** 開預覽 Modal → 呼叫 request()（回傳 fetch Promise）→ 渲染預覽結果 */
+    async function startPreview(szDisplayName, request) {
         preview = null;
         szNoSelectableMsg = null;
-        document.getElementById('srcxlWorkbookName').textContent = file.name;
+        document.getElementById('srcxlWorkbookName').textContent = szDisplayName;
         document.getElementById('srcxlPreviewLoading').style.display = '';
         document.getElementById('srcxlPreviewBody').style.display = 'none';
         document.getElementById('srcxlPreviewError').style.display = 'none';
         document.getElementById('srcxlAckSidShift').checked = false;
+        document.getElementById('srcxlAckWebEdit').checked = false;
         btnCommit.disabled = true;
         setStatus('', false);
         bootstrap.Modal.getOrCreateInstance(previewModalEl).show();
 
-        var form = new FormData();
-        form.append('file', file, file.name);
-
         try {
-            var resp = await fetch(szBase + '/ImportPreview', { method: 'POST', body: form, credentials: 'same-origin' });
+            var resp = await request();
             var data = null;
             try { data = await resp.json(); } catch (e) { /* 非 JSON（如 413/500 頁面） */ }
 
@@ -139,7 +162,9 @@
         document.getElementById('srcxlDeleteSection').style.display = 'none';
         document.getElementById('srcxlOtherSection').style.display = 'none';
         document.getElementById('srcxlSidShiftBox').style.display = 'none';
+        document.getElementById('srcxlWebEditBox').style.display = 'none';
         document.getElementById('srcxlNoSelectableBox').style.display = 'none';
+        document.getElementById('srcxlExportedAt').textContent = '';
     }
 
     /**
@@ -163,6 +188,11 @@
     /* ───────────── 預覽渲染 ───────────── */
 
     function renderPreview(data) {
+        // 活頁簿匯出時間：沒有 = 範本 / 手工建立 / 從別的檔複製工作表（覆寫網頁修改時會要求確認）
+        document.getElementById('srcxlExportedAt').textContent = data.exportedAt
+            ? t('srcxl.preview.exported_at', { time: data.exportedAt })
+            : t('srcxl.preview.exported_unknown');
+
         var tbody = document.getElementById('srcxlSheetsBody');
         tbody.innerHTML = (data.sheets || []).map(function (s, i) {
             var isSelectable = s.kind === 'Added' || s.kind === 'Overwrite';
@@ -175,12 +205,20 @@
             if (s.existingSourceWorkbook && s.kind !== 'Added') {
                 detail += '<div class="text-muted">' + escapeHtml(t('srcxl.detail.source_workbook', { name: s.existingSourceWorkbook })) + '</div>';
             }
+            if (s.hasWebEditConflict) {
+                detail += '<div class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>' +
+                    escapeHtml(t('srcxl.detail.web_edited', { time: s.webEditedAt || '' })) + '</div>';
+            }
             if (s.hasSidShift) {
                 detail += '<div class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>' +
                     escapeHtml(t('srcxl.detail.sid_shift', { index: s.sidShiftFromIndex })) + '</div>';
             } else if (s.tailRemovedCount > 0) {
                 detail += '<div class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>' +
                     escapeHtml(t('srcxl.detail.tail_removed', { count: s.tailRemovedCount })) + '</div>';
+            }
+            if (s.keyedRemovedCount > 0) {
+                detail += '<div class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>' +
+                    escapeHtml(t('srcxl.detail.keyed_removed', { count: s.keyedRemovedCount })) + '</div>';
             }
             detail += listHtml(s.headerChanges, 'srcxl-list-change', 10);
             var pointLines = (s.pointChanges || []).map(function (c) {
@@ -255,22 +293,25 @@
     });
 
     document.getElementById('srcxlAckSidShift').addEventListener('change', refreshCommitState);
+    document.getElementById('srcxlAckWebEdit').addEventListener('change', refreshCommitState);
 
     function getSelection() {
         var importSheets = [];
         var overwriteNames = [];
         var isShift = false;
+        var isWebEdit = false;
         document.querySelectorAll('.srcxl-sheet-check:checked').forEach(function (cb) {
             var s = preview.sheets[parseInt(cb.dataset.index, 10)];
             importSheets.push(s.sheetName);
             if (s.kind === 'Overwrite') overwriteNames.push(s.sheetName);
             if (s.hasSidShift) isShift = true;
+            if (s.hasWebEditConflict) isWebEdit = true;
         });
         var deleteNames = [];
         document.querySelectorAll('.srcxl-del-check:checked, .srcxl-other-check:checked').forEach(function (cb) {
             deleteNames.push(cb.dataset.name);
         });
-        return { importSheets: importSheets, overwriteNames: overwriteNames, deleteNames: deleteNames, hasSidShift: isShift };
+        return { importSheets: importSheets, overwriteNames: overwriteNames, deleteNames: deleteNames, hasSidShift: isShift, hasWebEditConflict: isWebEdit };
     }
 
     function refreshCommitState() {
@@ -278,7 +319,10 @@
         var sel = getSelection();
         var shiftBox = document.getElementById('srcxlSidShiftBox');
         shiftBox.style.display = sel.hasSidShift ? '' : 'none';
-        var isAckOk = !sel.hasSidShift || document.getElementById('srcxlAckSidShift').checked;
+        var webEditBox = document.getElementById('srcxlWebEditBox');
+        webEditBox.style.display = sel.hasWebEditConflict ? '' : 'none';
+        var isAckOk = (!sel.hasSidShift || document.getElementById('srcxlAckSidShift').checked)
+                   && (!sel.hasWebEditConflict || document.getElementById('srcxlAckWebEdit').checked);
         var nTotal = sel.importSheets.length + sel.deleteNames.length;
         btnCommit.disabled = isCommitting || nTotal === 0 || !isAckOk;
         if (nTotal === 0 && szNoSelectableMsg) {
@@ -328,7 +372,8 @@
                     token: preview.token,
                     importSheets: sel.importSheets,
                     deleteNames: sel.deleteNames,
-                    acknowledgeSidShift: document.getElementById('srcxlAckSidShift').checked
+                    acknowledgeSidShift: document.getElementById('srcxlAckSidShift').checked,
+                    acknowledgeWebEdit: document.getElementById('srcxlAckWebEdit').checked
                 })
             });
             var data = null;
@@ -336,6 +381,8 @@
 
             if (resp.ok && data && data.success) {
                 setStatus(data.message || t('srcxl.msg.commit_success'), false);
+                // 資料夾內 Excel 未能自動重產（Excel 開著等）→ 頁面重新整理前先告知
+                if (data.workbookNotice) window.alert(data.workbookNotice);
                 // 不能立刻 reload：Engine watcher 去抖 1 秒 + 延遲 0.5 秒才寫 DB，太早渲染會把新設備判成「待 Engine 載入」
                 waitForEngineThenReload(sel.importSheets, function (nRemaining) {
                     setStatus(t('srcxl.msg.waiting_engine', { count: nRemaining }), false);
@@ -377,6 +424,7 @@
                 var data = null;
                 try { data = await resp.json(); } catch (e) { /* ignore */ }
                 var szMsg = (data && data.message) || (resp.ok ? t('srcxl.msg.delete_success') : t('srcxl.msg.delete_failed', { status: resp.status }));
+                if (data && data.workbookNotice) szMsg += '\n\n' + data.workbookNotice;
                 if (typeof onDone === 'function') onDone(resp.ok && data && data.success, szMsg);
                 else {
                     window.alert(szMsg);
@@ -388,6 +436,106 @@
             }
         });
     }
+
+    /* ───────────── 匯出到來源資料夾 ─────────────
+     * POST {base}/ExportToFolder?workbook=&force= → 伺服器寫進 Engine 來源資料夾（固定檔名覆寫、留 .bak），
+     * 回傳實際完整路徑（前端只顯示伺服器訊息，不自行組路徑）。
+     * 409 + needsConfirm：同名檔有未匯入修改 / 非系統匯出 → 確認後帶 force=true 重送；409 + locked：Excel 開著。
+     */
+    async function exportToFolder(szWorkbook, isForce) {
+        var szUrl = szBase + '/ExportToFolder?force=' + (isForce ? 'true' : 'false') +
+            (szWorkbook ? '&workbook=' + encodeURIComponent(szWorkbook) : '');
+        try {
+            var resp = await fetch(szUrl, { method: 'POST', credentials: 'same-origin' });
+            var data = null;
+            try { data = await resp.json(); } catch (e) { /* ignore */ }
+
+            if (resp.ok && data && data.success) {
+                window.alert(data.message);
+                refreshPendingHint();
+                return;
+            }
+            if (resp.status === 409 && data && data.needsConfirm) {
+                showConfirm('<div>' + escapeHtml(data.message) + '</div>', function () { exportToFolder(szWorkbook, true); });
+                return;
+            }
+            window.alert((data && data.message) || t('srcxl.msg.export_failed', { status: resp.status }));
+        } catch (ex) {
+            window.alert(t('srcxl.msg.call_failed_with', { error: ex.message }));
+        }
+    }
+
+    document.getElementById('srcxlBtnExport').addEventListener('click', function () { exportToFolder('', false); });
+    toolbar.querySelectorAll('.srcxl-export-folder').forEach(function (btn) {
+        btn.addEventListener('click', function () { exportToFolder(btn.dataset.workbook, false); });
+    });
+
+    /* ───────────── 從來源資料夾匯入 + 未匯入修改提示（GET {base}/FolderWorkbooks） ───────────── */
+
+    var folderMenu = document.getElementById('srcxlFolderMenu');
+
+    async function fetchFolderWorkbooks() {
+        var resp = await fetch(szBase + '/FolderWorkbooks', { credentials: 'same-origin', cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.json();
+    }
+
+    function setFolderMenuItems(szHtml) {
+        folderMenu.querySelectorAll('.srcxl-folder-item').forEach(function (li) { li.remove(); });
+        folderMenu.insertAdjacentHTML('beforeend', szHtml);
+    }
+
+    function folderMenuText(szText) {
+        return '<li class="srcxl-folder-item"><span class="dropdown-item-text small text-muted">' + escapeHtml(szText) + '</span></li>';
+    }
+
+    async function loadFolderMenu() {
+        setFolderMenuItems(folderMenuText(t('srcxl.import.folder_loading')));
+        try {
+            var list = await fetchFolderWorkbooks();
+            renderPendingHint(list);
+            if (!list.length) { setFolderMenuItems(folderMenuText(t('srcxl.import.folder_empty'))); return; }
+            setFolderMenuItems(list.map(function (w) {
+                return '<li class="srcxl-folder-item"><button type="button" class="dropdown-item small" data-file="' + escapeHtml(w.name) + '">' +
+                    escapeHtml(w.name) +
+                    (w.hasUnimportedChanges ? ' <span class="badge bg-warning text-dark">' + escapeHtml(t('srcxl.import.unimported')) + '</span>' : '') +
+                    '<div class="text-muted srcxl-folder-meta">' + escapeHtml(t('srcxl.import.modified_at', { time: w.modifiedAt })) + '</div>' +
+                '</button></li>';
+            }).join(''));
+        } catch (ex) {
+            setFolderMenuItems(folderMenuText(t('srcxl.msg.folder_list_failed')));
+        }
+    }
+
+    document.getElementById('srcxlBtnFolderMenu').addEventListener('show.bs.dropdown', loadFolderMenu);
+    folderMenu.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-file]');
+        if (btn) previewFromFolder(btn.dataset.file);
+    });
+
+    /** 列出「匯出後又在 Excel 存檔、尚未匯入」的檔名（點檔名直接開預覽）；沒有就隱藏 */
+    function renderPendingHint(list) {
+        var box = document.getElementById('srcxlPendingHint');
+        var pending = (list || []).filter(function (w) { return w.hasUnimportedChanges; });
+        if (!pending.length) { box.style.display = 'none'; return; }
+        document.getElementById('srcxlPendingList').innerHTML = pending.map(function (w) {
+            return '<a href="#" class="srcxl-pending-link ms-1" data-file="' + escapeHtml(w.name) + '">' + escapeHtml(w.name) + '</a>';
+        }).join('、');
+        box.style.display = '';
+    }
+
+    function refreshPendingHint() {
+        fetchFolderWorkbooks().then(renderPendingHint).catch(function () { /* 提示非必要，失敗就不顯示 */ });
+    }
+
+    document.getElementById('srcxlPendingList').addEventListener('click', function (e) {
+        var link = e.target.closest('[data-file]');
+        if (!link) return;
+        e.preventDefault();
+        previewFromFolder(link.dataset.file);
+    });
+
+    refreshPendingHint();
 
     /* ───────────── 等 Engine 載入（輪詢 {base}/SourceStatus） ─────────────
      * 匯入寫檔後 Engine 才非同步載入並寫 DB；頁面清單讀的是 DB。

@@ -7,6 +7,7 @@ using ScadaEngine.Common.Data.Models;
 using ScadaEngine.Engine.Data.Interfaces;
 using ScadaEngine.Engine.Services;
 using ScadaEngine.Web.Features.OpcUaCoordinator.Models;
+using ScadaEngine.Web.Services.SourceExcel;
 
 namespace ScadaEngine.Web.Services;
 
@@ -198,6 +199,7 @@ public class OpcUaCoordinatorService
             file.PollingInterval = request.PollingInterval;
             file.ConnectTimeout = request.ConnectTimeout;
             file.MonitorEnabled = request.MonitorEnabled;
+            file.WebEditedAt = SourceJsonStamp.Now();   // Excel 匯入預覽據此判斷「拿舊 Excel 會蓋掉網頁修改」
 
             await WriteJsonFileAsync(szPath, file);
 
@@ -388,6 +390,7 @@ public class OpcUaCoordinatorService
 
             file.Devices = jsonDevices;
             file.NextSeq = nNextSeq;
+            file.WebEditedAt = SourceJsonStamp.Now();
 
             await WriteJsonFileAsync(szPath, file);
             await _repository.SaveOpcUaPointsAsync(request.Id, pointModels);
@@ -464,6 +467,66 @@ public class OpcUaCoordinatorService
         {
             await OpcUaClientHelper.CloseSessionSafelyAsync(session);
         }
+    }
+
+    /// <summary>
+    /// 以 JSON 為準同步 DB（Excel 匯入提交後呼叫）：UPSERT Coordinator → 依 Devices/Tags 重建 OpcUaPoints。
+    /// 與 SavePointsAsync 落地的效果相同（先 JSON、再 DB、Controller 再發 reload + 同步 Web 快取），
+    /// 若只發 reload，Web 端快取同步可能早於 Engine UPSERT，新點位會暫時不顯示（plan 2026-10-12 決策 7）。
+    /// JSON 不存在或壞掉回 false（匯入框架已驗證過，理論上不會發生）。
+    /// Seq ≤ 0 的點位（手寫檔）比照 Engine loader 補號，不寫回 JSON（Engine reload 會再 UPSERT 一次，冪等）。
+    /// </summary>
+    public async Task<bool> SyncDbFromJsonAsync(string szName)
+    {
+        var szFolder = GetWatchedFolder();
+        if (szFolder == null) return false;
+
+        var szPath = Path.Combine(szFolder, szName + ".json");
+        var file = await ReadJsonFileAsync(szPath);
+        if (file == null) return false;
+
+        var szCoordName = string.IsNullOrWhiteSpace(file.Name) ? szName : file.Name;
+        var nId = await _repository.SaveOpcUaCoordinatorAsync(new OpcUaCoordinatorModel
+        {
+            szName = szCoordName,
+            szEndpointUrl = file.EndpointUrl,
+            szUsername = file.Username,
+            szPassword = file.Password,
+            nPollingInterval = file.PollingInterval > 0 ? file.PollingInterval : 1000,
+            nConnectTimeout = file.ConnectTimeout > 0 ? file.ConnectTimeout : 5000,
+            isMonitorEnabled = file.MonitorEnabled
+        });
+
+        var nMaxSeq = file.Devices.SelectMany(d => d.Tags).Where(t => t.Seq > 0).Select(t => t.Seq).DefaultIfEmpty(0).Max();
+        var pointModels = new List<OpcUaPointModel>();
+        var seenSeq = new HashSet<int>();
+        foreach (var device in file.Devices)
+        {
+            foreach (var tag in device.Tags)
+            {
+                var nSeq = tag.Seq > 0 ? tag.Seq : ++nMaxSeq;
+                if (!seenSeq.Add(nSeq)) continue; // 重複 Seq → 後者跳過（與 Engine loader 一致）
+
+                pointModels.Add(new OpcUaPointModel
+                {
+                    szSID = $"OPC{nId}-S{nSeq}",
+                    nCoordinatorId = nId,
+                    szDeviceName = device.Name,
+                    nSequence = nSeq,
+                    szName = tag.Name,
+                    szTagName = tag.TagName,
+                    szControlType = (tag.ControlType ?? string.Empty).Trim().ToUpperInvariant() is var ct && ct is "AO" or "DO" ? ct : string.Empty,
+                    fRatio = float.TryParse(tag.Ratio, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var f) && f != 0f ? f : 1.0f,
+                    szUnit = tag.Unit ?? string.Empty,
+                    fMin = tag.Min,
+                    fMax = tag.Max
+                });
+            }
+        }
+        await _repository.SaveOpcUaPointsAsync(nId, pointModels);
+
+        _logger.LogInformation("OPC UA 設定已由 JSON 同步至 DB: {Name} (Id={Id}), 點位 {Count}", szCoordName, nId, pointModels.Count);
+        return true;
     }
 
     private static async Task<OpcUaJsonFile?> ReadJsonFileAsync(string szPath)

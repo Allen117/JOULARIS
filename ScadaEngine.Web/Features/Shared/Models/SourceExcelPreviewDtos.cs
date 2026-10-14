@@ -58,6 +58,18 @@ public class SheetDiff
     public int TailAddedCount { get; set; }
     public int TailRemovedCount { get; set; }
 
+    /// <summary>以 key（如 OPC UA 的 Seq）比對時，Excel 裡找不到的既有點位數（將移除；Seq 不回收）</summary>
+    public int KeyedRemovedCount { get; set; }
+
+    /// <summary>既有 JSON 最近一次網頁熱編輯時間（顯示用；null = 沒被網頁改過）</summary>
+    public string? WebEditedAt { get; set; }
+
+    /// <summary>
+    /// true = 這張工作表是「覆寫」且有實際差異，但 JSON 在網頁修改過、而 Excel 匯出時間早於該修改（或 Excel 沒有匯出時間）
+    /// → 匯入會蓋掉網頁上的修改，需另外勾選確認
+    /// </summary>
+    public bool HasWebEditConflict { get; set; }
+
     public List<SheetIssue> Errors { get; } = new();
     public List<SheetIssue> Warnings { get; } = new();
 
@@ -95,6 +107,12 @@ public class SourceExcelPreviewResult
     /// <summary>上傳檔名（含副檔名）</summary>
     public string WorkbookName { get; set; } = string.Empty;
 
+    /// <summary>Excel 活頁簿的匯出時間（ScadaExportedAt 自訂屬性；null = 範本 / 手工建立 / 從別的檔複製工作表）</summary>
+    public string? ExportedAt { get; set; }
+
+    /// <summary>此來源是否支援刪除候選 / 逐台刪除（OPC UA 不支援：刪除走頁面上的刪除按鈕）</summary>
+    public bool SupportsDelete { get; set; } = true;
+
     public List<SheetDiff> Sheets { get; } = new();
 
     /// <summary>同一來源 Excel 先前匯入、這次沒有 → 刪除候選（預設勾選）</summary>
@@ -122,4 +140,7 @@ public class SourceExcelPreviewSession
 
     /// <summary>預覽當下各既有 JSON 的內容指紋（SHA-256 hex；不存在 = 空字串）— 提交前重新比對用</summary>
     public Dictionary<string, string> Fingerprints { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>從來源資料夾匯入時的檔名（瀏覽器上傳為 null）— 全部工作表都進 JSON 後，提交時直接重產該檔</summary>
+    public string? FolderFileName { get; set; }
 }

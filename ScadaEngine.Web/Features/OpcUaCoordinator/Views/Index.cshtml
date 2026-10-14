@@ -1,17 +1,22 @@
+@using ScadaEngine.Web.Features.Shared.Models
 @{
     ViewData["Title"] = Localizer["opcuacoord.title"].Value;
     Layout = "~/Views/Shared/_Layout.cshtml";
     var serverListJson = ViewBag.ServerListJson as string ?? "[]";
+    var sourceExcel = ViewBag.SourceExcel as SourceExcelImportViewModel ?? new SourceExcelImportViewModel { BaseUrl = "/OpcUaCoordinator", Kind = "opcua" };
 }
 
 <link rel="stylesheet" href="~/css/opcuacoordinator.css" asp-append-version="true" />
 
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <h4 class="mb-0"><i class="fas fa-plug me-2"></i>@Localizer["opcuacoord.title"]</h4>
-        <button class="btn btn-primary" onclick="window._opcua.newServer()">
-            <i class="fas fa-plus me-1"></i>@Localizer["opcuacoord.btn.new_server"]
-        </button>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <partial name="~/Features/Shared/Views/_SourceExcelImport.cshtml" model="sourceExcel" />
+            <button class="btn btn-primary btn-sm" onclick="window._opcua.newServer()">
+                <i class="fas fa-plus me-1"></i>@Localizer["opcuacoord.btn.new_server"]
+            </button>
+        </div>
     </div>
 
     <div class="row">
@@ -114,4 +119,5 @@
         window._opcuaData = @Html.Raw(serverListJson);
     </script>
     <script src="~/js/opcuacoordinator.js" asp-append-version="true"></script>
+    <script src="~/js/common/source-excel-import.js" asp-append-version="true"></script>
 }

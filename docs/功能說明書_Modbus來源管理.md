@@ -75,7 +75,10 @@
 | GET  | `/ModbusCoordinator/Points/{name}` | 讀取設備 JSON 點位清單 | **Admin** |
 | POST | `/ModbusCoordinator/UpdatePoints` | 原地更新點位欄位（寫 JSON） | **Admin** |
 | GET  | `/ModbusCoordinator/ImportTemplate` | 下載空白 Excel 範本（`Modbus範本.xlsx`） | Engineer |
-| GET  | `/ModbusCoordinator/ExportExcel?workbook=` | 匯出現行設定為 .xlsx（一個 JSON 一張工作表；`workbook` 省略 = 全部，指定 = 只匯出該來源 Excel 檔的設備） | Engineer |
+| GET  | `/ModbusCoordinator/ExportExcel?workbook=` | 匯出現行設定為 .xlsx **下載到瀏覽器**（一個 JSON 一張工作表；`workbook` 省略 = 全部，指定 = 只匯出該來源 Excel 檔的設備） | Engineer |
+| POST | `/ModbusCoordinator/ExportToFolder?workbook=&force=` | 同上內容但**寫進來源資料夾**（固定檔名覆寫、留 `.bak`），回傳實際完整路徑；Excel 開著（`locked`）或同名檔有未匯入修改 / 非系統匯出（`needsConfirm`，確認後帶 `force=true` 重送）回 **409** | Engineer |
+| GET  | `/ModbusCoordinator/FolderWorkbooks` | 來源資料夾內的 .xlsx/.xlsm（不含範本）：`name / modifiedAt / exportedAt / hasUnimportedChanges` | Engineer |
+| POST | `/ModbusCoordinator/ImportPreviewFromFolder` | `{ fileName }` 以來源資料夾內的 Excel 預覽（不經瀏覽器上傳），之後同樣走 ImportCommit | Engineer |
 | POST | `/ModbusCoordinator/ImportPreview` | 上傳 .xlsx/.xlsm（multipart `file`）→ 解析、驗證、比對既有 JSON → 回傳預覽 + `token`（**不寫檔**） | Engineer |
 | POST | `/ModbusCoordinator/ImportCommit` | `{ token, importSheets[], deleteNames[], acknowledgeSidShift }` → 提交前重新比對 → 寫檔／刪檔；預覽後設定被更動回 **409** | Engineer |
 | POST | `/ModbusCoordinator/DeleteSource` | `{ name }` 逐台刪除（JSON 移到 `_deleted/`） | Engineer |
@@ -86,14 +89,14 @@
 ## 3. 設定（Web appsettings.json）
 
 ```json
-"EngineModbusConfig": {
-  "WatchedFolder": "../ScadaEngine.Engine/bin/Debug/net8.0/Modbus",
-  "MirrorFolder": "../ScadaEngine.Engine/Modbus"
 // appsettings.json（正式環境）
 "EngineModbusConfig": {
   "WatchedFolder": "../../Engine/App/Modbus"
 }
 // appsettings.Development.json（dev 覆寫）
+"EngineModbusConfig": {
+  "WatchedFolder": "../ScadaEngine.Engine/bin/Debug/net8.0/Modbus",
+  "MirrorFolder": "../ScadaEngine.Engine/Modbus"
 }
 ```
 
@@ -127,11 +130,36 @@ Web UI 存檔（Admin）
 
 **第一性原理**：舊巨集只做「儲存格 → 欄位」直接對應，沒有任何邏輯需要 Excel 本身；真正要消除的是「啟用巨集、每張表按一次、手動搬檔」這些人工步驟。JSON 保留為 Engine 內部存檔格式（熱編輯、watcher、升級備份都建立在它上面），使用者不再接觸。
 
+**JSON 是唯一真相，Excel 只是檢視**（plan 2026-10-12 決策 1）：伺服器**不保存**上傳的 Excel，只在記憶體解析成 JSON、頂層留檔名 `SourceWorkbook`。網頁上的點位熱編輯只改 JSON，**不會回寫使用者電腦裡（下載）的 Excel**；來源資料夾內系統匯出的 xlsx 則會自動重產（見下方「來源資料夾內的 Excel」）。要拿最新設定請按「匯出 Excel」（現讀 JSON，網頁修改都會帶上）。為避免拿「修改前匯出的舊 Excel」重匯時無聲蓋掉網頁修改：
+
+- 三種來源（Modbus / DB / OPC UA）的網頁熱編輯都在 JSON 頂層記 `WebEditedAt`（ISO 8601 含時區）
+- 匯出的 Excel 在活頁簿自訂屬性記 `ScadaExportedAt`（在 Excel 內修改、另存新檔都會保留；複製工作表到新檔則沒有）
+- 匯入預覽：某張工作表屬「覆寫」且有實際差異，而 `WebEditedAt` 晚於 `ScadaExportedAt`（或 Excel 沒有匯出時間 — 範本、手工建立）→ 該列紅字「此設定於 {時間} 在網頁修改過，匯入會覆寫」，提交前需另外勾選「我了解會覆寫網頁上的修改」（比照 SID 位移）。先匯出最新版、在 Excel 修改、再匯入 → 不警告；無變更 → 不警告
+- 匯入寫檔不帶 `WebEditedAt`，代表 Excel 與 JSON 重新一致；預覽 Modal 頂部顯示這份 Excel 的匯出時間（或「沒有匯出時間」）
+
+### 來源資料夾內的 Excel（匯出寫入／從資料夾匯入／自動重產）
+
+生產機 = Web 主機 = 操作的機器，「下載再手動搬進資料夾」是多餘的一步，所以**「匯出 Excel」主按鈕直接寫進 Engine 讀的來源資料夾**（appsettings `EngineModbusConfig:WatchedFolder`，依設定即時解析、不寫死路徑）。Engine watcher 只看 `*.json`、頁面設備一覽也只列 `*.json`，資料夾裡的 xlsx 不會被誤讀。JSON 仍是唯一真相，資料夾內 xlsx 只是**最新一次匯出的快照**。
+
+| 項目 | 規則 |
+|------|------|
+| 檔名 | 全部匯出 → `Modbus設定.xlsx`；依來源 Excel 匯出 → 原 `SourceWorkbook` 名（副檔名改 `.xlsx`，如 `天母.xlsx`）。每次覆寫、不堆時間戳記檔；寫檔 tmp → Replace，舊檔留一份 `.bak`。與範本同名或沒有任何設備對得上的來源 Excel 名一律拒絕 |
+| 修改時間 | 寫完把檔案修改時間對齊活頁簿 `ScadaExportedAt`。之後**修改時間晚於匯出時間（容許 2 秒）= 在 Excel 存檔過、還沒在網頁匯入**（「未匯入修改」） |
+| Excel 開著 | 匯出回 409「請先關閉 Excel 再匯出」，JSON 與既有 xlsx 都不動 |
+| 覆寫確認 | 同名檔有未匯入修改、或不是本系統匯出（沒有 `ScadaExportedAt`）→ 確認框說明會遺失／原檔留 `.bak`，確認後才覆寫 |
+| 下載到瀏覽器 | 匯出下拉保留「下載到瀏覽器」（全部／依來源 Excel），遠端電腦操作 Web 時取檔用；檔名帶時間戳記 |
+| 從資料夾匯入 | 匯入按鈕的下拉列出資料夾內 .xlsx/.xlsm（排除範本與 Excel 的 `~$` 暫存鎖檔，修改時間新到舊，未匯入者標「未匯入」）；選了直接走既有預覽 → 勾選 → 提交，不必經瀏覽器選檔。`SourceWorkbook` = 該檔名 |
+| 自動重產 | 網頁熱編輯存檔、Excel 匯入提交、逐台刪除成功後，重產資料夾內**受影響**的 xlsx：`Modbus設定.xlsx`（全部）＋ 檔名對得上某設備 `SourceWorkbook` 的 xlsx。**檔不存在不主動新建**；`.xlsm` 與範本不碰 |
+| 自動重產保護 | Excel 開著、有未匯入修改、非系統匯出 → **不覆寫**，存檔照常成功，網頁跳提示列出檔名與原因 |
+| 匯入後重產 | 從資料夾匯入且**每張工作表都已進 JSON**（匯入或本來就相同）→ 該檔直接重產（重蓋 `ScadaExportedAt`），否則剛匯入的檔會一直被當成「未匯入修改」而不再自動更新；代價是在 Excel 加的格式／額外欄位會被洗掉（Excel 是檢視）。只勾部分工作表時不重產，仍標「未匯入」 |
+| 未匯入提示 | 頁面工具列顯示「來源資料夾內的 Excel 有尚未匯入的修改…：檔名」，點檔名直接開預覽。**在 Excel 存檔不會生效**，Engine 只讀 JSON，必須在網頁匯入 |
+| 不做 | Excel 存檔自動匯入 — 會跳過預覽與 SID 位移、覆寫網頁修改等確認，風險高於多按一次匯入 |
+
 ### 流程
 
 ```
-Install.bat → 填 Modbus範本.xlsx（任何能編輯 xlsx 的軟體；或頁面「匯出 Excel」拿現行設定來改）
-  → Engineer 登入 /ModbusCoordinator → 「匯入 Excel」上傳
+Install.bat → 填 Modbus範本.xlsx（任何能編輯 xlsx 的軟體；或頁面「匯出 Excel」把現行設定寫進來源資料夾再改）
+  → Engineer 登入 /ModbusCoordinator → 「匯入 Excel」上傳（或下拉「從來源資料夾匯入」選檔）
   → POST ImportPreview：ClosedXML 解析每張工作表 → 驗證 → 與既有 JSON 比對 → 預覽（不寫檔；結果以 token 暫存 IMemoryCache 10 分鐘、綁定使用者）
   → 使用者勾選 → 有覆寫／刪除時確認對話框列出名稱 → POST ImportCommit
   → 提交前重新比對既有檔 SHA-256（有人同時熱編輯 → 409 要求重新預覽）
@@ -186,11 +214,12 @@ Install.bat → 填 Modbus範本.xlsx（任何能編輯 xlsx 的軟體；或頁�
 | 元件 | 用途 |
 |------|------|
 | `Services/SourceExcel/SourceConfigFileIo.cs` | 共用檔案 I/O：路徑防護、BOM 編碼偵測、原子寫檔、鏡像、`_deleted/`（熱編輯與匯入共用） |
-| `Services/SourceExcel/ISourceExcelAdapter.cs` + `ModbusExcelAdapter.cs` / `DbPointExcelAdapter.cs` | 各來源版面解析、驗證、JSON 序列化、範本版面（純函數，Singleton） |
-| `Services/SourceExcel/SourceExcelDiffBuilder.cs` | 新增／覆寫／無變更、SID 位移、刪除候選分區 |
+| `Services/SourceExcel/ISourceExcelAdapter.cs` + `ModbusExcelAdapter.cs` / `DbPointExcelAdapter.cs` / `OpcUaExcelAdapter.cs` | 各來源版面解析、驗證、JSON 序列化、範本版面（純函數，Singleton）。介面另有 `PointKeyField`（null = 位置式比對；OPC UA 回 `"Seq"` 走鍵值式）、`SupportsDeleteCandidates`、`Reconcile`（鍵值式對帳）、帶既有 JSON 的 `ToJson` 多載 |
+| `Services/SourceExcel/SourceJsonStamp.cs` | `WebEditedAt`（JSON）／`ScadaExportedAt`（活頁簿自訂屬性）讀寫與衝突判定 |
+| `Services/SourceExcel/SourceExcelDiffBuilder.cs` | 新增／覆寫／無變更、SID 位移（位置式）或新增／修改／移除（鍵值式）、覆寫網頁修改衝突、刪除候選分區 |
 | `Services/SourceExcel/SourceExcelImportCoordinator.cs` | 預覽 → token → 提交前重比對 → 寫檔／刪檔；範本與匯出（Scoped） |
-| `Services/SourceExcel/SourceExcelTemplateWriter.cs` | ClosedXML 組 workbook |
-| `Features/Shared/Views/_SourceExcelImport.cshtml` + `wwwroot/js/common/source-excel-import.js` + `css/source-excel-import.css` | 工具列 + 預覽／確認 Modal（兩頁共用，`data-srcxl-base` 參數化） |
+| `Services/SourceExcel/SourceExcelTemplateWriter.cs` | ClosedXML 組 workbook（匯出時蓋 `ScadaExportedAt`，範本不蓋） |
+| `Features/Shared/Views/_SourceExcelImport.cshtml` + `wwwroot/js/common/source-excel-import.js` + `css/source-excel-import.css` | 工具列 + 預覽／確認 Modal（Modbus / DB / OPC UA 三頁共用，`data-srcxl-base` 參數化） |
 | `ScadaEngine.Engine/Modbus/Modbus範本.xlsx` | 隨 Release 附的空白範本（由 TemplateWriter 產生） |
 | `ScadaEngine.Tests/SourceExcel/*` | 解析／驗證／差異／往返單元測試 |
 

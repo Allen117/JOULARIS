@@ -28,10 +28,9 @@ Engine 的三個資料夾 `Modbus` / `DBPoint` / `OpcUaPoint` 裝的是**各站�
 |--------|-------------|----------------|
 | `Modbus/` | `Modbus範本.xlsx`（空白 Excel 範本） | 所有 `*.json` 裝置定義 |
 | `DBPoint/` | `DB來源範本.xlsx`（空白 Excel 範本） | `*.json`、`*.sql` 測試檔 |
-| `OpcUaPoint/` | `OPCUA通訊檔案產生工具.xlsm` | `*.json`、`*.json.example` 範例 |
+| `OpcUaPoint/` | `OPCUA範本.xlsx`（空白 Excel 範本） | `*.json`、`*.json.example` 範例 |
 
-- Modbus / DBPoint 保留 `*.xlsx` 範本：現場工程師用任何能編輯 xlsx 的軟體填好後，到 Web「Modbus 來源」「DB 來源」頁**匯入 Excel**（預覽差異 → 確認 → 自動生效），不再需要 Office 與巨集；舊 `*.xlsm` 巨集已於 2026-10 移除（舊 xlsm 檔仍可直接上傳）。見 docs/功能說明書_Modbus來源管理.md §4.1、_DB來源管理.md §8.4
-- OpcUaPoint 仍保留 `*.xlsm` 產生工具（見 docs/功能說明書_OPCUA通訊.md）。
+- 三個資料夾都只保留 `*.xlsx` 空白範本：現場工程師用任何能編輯 xlsx 的軟體填好後，到 Web「Modbus 來源」「DB 來源」「OPC UA 來源」頁**匯入 Excel**（預覽差異 → 確認 → 自動生效），不再需要 Office 與巨集；三份舊 `*.xlsm` 巨集已移除（Modbus / DB 於 2026-10-06、OPC UA 於 2026-10-13；舊巨集產的檔仍可直接上傳）。見 docs/功能說明書_Modbus來源管理.md §4.1、_DB來源管理.md §8.4、_OPCUA通訊.md §Excel 範本／匯出／匯入
 - 不帶 `*.json.example`：範例對現場無用，只增雜訊。
 - **資料夾本身保留**（含工具）：`Install.bat` 靠「`C:\JOULARIS\Engine\App\Modbus` 資料夾是否存在」判斷升級與否（見下節），空目錄也必須在，否則第二次安裝會被誤判成首裝。
 
@@ -58,7 +57,7 @@ Install.bat 以 **`C:\JOULARIS\Engine\App\Modbus` 資料夾是否存在**為哨�
 
 | 項目 | 升級後 |
 |------|--------|
-| Modbus / DBPoint 現場裝置定義 | **保留現場版**（release 空資料夾不會蓋掉；`*.xlsx` 範本更新為新版；舊版殘留的 `*.xlsm` 放著無害）；Web 匯入功能建立的 `_deleted/` 備份子資料夾隨整個資料夾一起備份／還原 |
+| Modbus / DBPoint 現場裝置定義 | **保留現場版**（release 空資料夾不會蓋掉；`*.xlsx` 範本更新為新版；舊版殘留的 `*.xlsm` 放著無害）；Web 匯入功能建立的 `_deleted/` 備份子資料夾、「匯出 Excel」寫進資料夾的 `*.xlsx`（及 `.bak`）隨整個資料夾一起備份／還原（xcopy 保留修改時間，不會被誤判為「有未匯入修改」） |
 | OpcUaPoint 現場定義 | **保留現場版**（不在備份清單，但 release 不帶 json、xcopy 不刪，故原封不動） |
 | dbSetting / EmailSetting / SmsSetting / LineSetting | **保留現場版**，但位置改為 **`C:\JOULARIS\Shared\`**（自舊佈局升級時從 `Engine\App\Setting` 自動搬過去、Web 複本刪除，Web 複本內容不同時另存 `.web-backup`；`Shared\` 已存在則完全不動，不會被包內範本蓋掉） |
 | MqttSetting.json | **保留現場版** |
@@ -104,7 +103,7 @@ Install.bat 以 **`C:\JOULARIS\Engine\App\Modbus` 資料夾是否存在**為哨�
 
 ### 首次安裝（`_IS_UPGRADE=0`）
 
-無備份/還原；release 包內容直接落地，`C:\SCADA\Shared\` 四檔由包內範本寫入（dbSetting 現場改這一份即可，三個 app 共用；Email / Sms 到 Web 警報設定頁填、Line 手動填 token）。Modbus / DBPoint 只有 `*.xlsx` 空白範本、OpcUaPoint 只有 `*.xlsm` 工具，無任何裝置定義 → Modbus / DB 由現場工程師填範本後在 Web 匯入（自動寫 `*.json`、免重啟）；OPC UA 用工具產生 `*.json` 後放入對應資料夾。
+無備份/還原；release 包內容直接落地，`C:\JOULARIS\Shared\` 四檔由包內範本寫入（dbSetting 現場改這一份即可，三個 app 共用；Email / Sms 到 Web 警報設定頁填、Line 手動填 token）。Modbus / DBPoint 只有 `*.xlsx` 空白範本、OpcUaPoint 只有 `*.xlsm` 工具，無任何裝置定義 → Modbus / DB 由現場工程師填範本後在 Web 匯入（自動寫 `*.json`、免重啟）；OPC UA 用工具產生 `*.json` 後放入對應資料夾。
 
 ## 四、ModbusServer Gateway（獨立）
 

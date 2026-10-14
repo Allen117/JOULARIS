@@ -267,6 +267,7 @@ builder.Services.AddSingleton<ScadaEngine.Web.Services.ModbusConfigFileService>(
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ScadaEngine.Web.Services.SourceExcel.ModbusExcelAdapter>();
 builder.Services.AddSingleton<ScadaEngine.Web.Services.SourceExcel.DbPointExcelAdapter>();
+builder.Services.AddSingleton<ScadaEngine.Web.Services.SourceExcel.OpcUaExcelAdapter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.SourceExcel.SourceExcelImportCoordinator>();
 // Scoped：依賴 IStringLocalizer<T>（Scoped），且 exporter 本身無狀態
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnergyReportExcelExporter>();

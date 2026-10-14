@@ -643,6 +643,10 @@
 | 刪除設備 / 刪除來源 | Delete Device / Delete Source | ModbusCoordinator / DbCoordinator 詳情卡按鈕 |
 | 設定檔已移除 | Config removed | 側欄徽章（DB 有 Coordinator 但 JSON 不存在） |
 | 來源：{name} | Source: {name} | 既有設定的 SourceWorkbook |
+| Excel 匯出時間 | Workbook exported at | 預覽 Modal 頂部（活頁簿 ScadaExportedAt） |
+| 在網頁修改過 | Edited on the web | 覆寫網頁修改警告（JSON WebEditedAt） |
+| 我了解會覆寫網頁上的修改，仍要匯入 | I understand web edits will be overwritten; import anyway | 確認勾選 |
+| 將移除 {count} 個點位 | {count} point(s) will be removed | OPC UA 鍵值式比對（Seq 不回收） |
 
 ## 計算點位 (CalcPoint)
 

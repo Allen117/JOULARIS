@@ -100,12 +100,16 @@ public class DbCoordinatorController : Controller
             request.Id, request.Sequence, request.NewName, request.NewUnit);
 
         var isReloadSent = false;
+        string? szWorkbookNotice = null;
         if (isSuccess)
         {
             isReloadSent = await _reloadPublisher.PublishReloadAsync();
             if (!isReloadSent)
                 _logger.LogWarning("點位更新成功但 reload MQTT 發布失敗: CoordinatorId={Id}, Seq={Seq}",
                     request.Id, request.Sequence);
+
+            // 重產來源資料夾內對應的 xlsx（Excel 開著 / 有未匯入修改 → 不覆寫，回傳提示）
+            szWorkbookNotice = await _importCoordinator.RefreshFolderWorkbooksAsync(_excelAdapter);
         }
 
         return Json(new
@@ -114,7 +118,8 @@ public class DbCoordinatorController : Controller
             message = isSuccess && !isReloadSent
                 ? _l["dbcoord.api.rename_saved_reload_failed"].Value
                 : szMessage,
-            reloadSent = isReloadSent
+            reloadSent = isReloadSent,
+            workbookNotice = szWorkbookNotice
         });
     }
 
@@ -151,6 +156,30 @@ public class DbCoordinatorController : Controller
             ? $"{_excelAdapter.ExportFileNamePrefix}_{szStamp}.xlsx"
             : $"{Path.GetFileNameWithoutExtension(workbook)}_{szStamp}.xlsx";
         return File(bytes, XLSX_MIME, szFileName);
+    }
+
+    /// <summary>匯出現行設定並寫進 Engine 來源資料夾（固定檔名覆寫）；Excel 開著或需確認覆寫回 409</summary>
+    [HttpPost("/DbCoordinator/ExportToFolder")]
+    public async Task<IActionResult> ExportToFolder(string? workbook, bool force = false)
+    {
+        var result = await _importCoordinator.ExportToFolderAsync(_excelAdapter, workbook, force, User.Identity?.Name ?? "anonymous");
+        if (result.Success) return Ok(result);
+        return result.Locked || result.NeedsConfirm ? StatusCode(409, result) : BadRequest(result);
+    }
+
+    /// <summary>來源資料夾內的 Excel 檔（從資料夾匯入下拉 + 未匯入修改提示用）</summary>
+    [HttpGet("/DbCoordinator/FolderWorkbooks")]
+    public IActionResult FolderWorkbooks() => Ok(_importCoordinator.ListFolderWorkbooks(_excelAdapter));
+
+    /// <summary>以來源資料夾內的 Excel 預覽（不經瀏覽器上傳），之後同樣走 ImportCommit</summary>
+    [HttpPost("/DbCoordinator/ImportPreviewFromFolder")]
+    public async Task<IActionResult> ImportPreviewFromFolder([FromBody] SourceExcelFolderImportRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.FileName))
+            return BadRequest(new { success = false, message = _l["dbcoord.api.param_error"].Value });
+
+        var result = await _importCoordinator.PreviewFromFolderAsync(_excelAdapter, request.FileName, User.Identity?.Name ?? "anonymous");
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>上傳 Excel → 解析、驗證、比對既有設定 → 回傳預覽與 token（不寫檔）</summary>

@@ -197,6 +197,8 @@
                     cancelEdit(tr);
                     flashSaved(tr);
                     if (!data.reloadSent && data.message) alert(data.message);
+                    // 來源資料夾內的 Excel 未能自動重產（Excel 開著 / 有未匯入修改）
+                    if (data.workbookNotice) alert(data.workbookNotice);
                 } else {
                     alert(data.message || t('dbcoord.msg.failure_default'));
                     setBusy(false);

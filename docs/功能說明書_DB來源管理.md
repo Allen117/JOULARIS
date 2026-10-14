@@ -22,7 +22,10 @@ DB 來源是 Modbus / 計算點位之外的**第三類點位來源**。專供「
 | POST | `/DbCoordinator/Reload` | 通知 Engine 重新載入 `DBPoint/*.json`（發 MQTT） | 需登入 |
 | POST | `/DbCoordinator/UpdatePoint` | 更新單一點位名稱+單位（回寫 JSON + UPSERT DBPoints + 自動發 reload MQTT） | 需登入 |
 | GET  | `/DbCoordinator/ImportTemplate` | 下載空白 Excel 範本（`DB來源範本.xlsx`） | Engineer |
-| GET  | `/DbCoordinator/ExportExcel?workbook=` | 匯出現行設定為 .xlsx（一個 JSON 一張工作表；`workbook` 省略 = 全部） | Engineer |
+| GET  | `/DbCoordinator/ExportExcel?workbook=` | 匯出現行設定為 .xlsx **下載到瀏覽器**（一個 JSON 一張工作表；`workbook` 省略 = 全部） | Engineer |
+| POST | `/DbCoordinator/ExportToFolder?workbook=&force=` | 同上但**寫進來源資料夾**（`EngineDbPointConfig:WatchedFolder`，全部 → `DB來源設定.xlsx`、依來源 Excel → 原檔名；覆寫留 `.bak`）；Excel 開著 / 需確認覆寫回 409 | Engineer |
+| GET  | `/DbCoordinator/FolderWorkbooks` | 來源資料夾內的 Excel 檔清單（含是否有未匯入修改） | Engineer |
+| POST | `/DbCoordinator/ImportPreviewFromFolder` | `{ fileName }` 以來源資料夾內的 Excel 預覽，之後同樣走 ImportCommit | Engineer |
 | POST | `/DbCoordinator/ImportPreview` | 上傳 .xlsx/.xlsm → 解析、驗證、比對既有 JSON → 預覽 + `token`（不寫檔） | Engineer |
 | POST | `/DbCoordinator/ImportCommit` | 帶 token + 勾選結果提交 → 寫檔／刪檔 → **自動發 Reload**；預覽後設定被更動回 409 | Engineer |
 | POST | `/DbCoordinator/DeleteSource` | `{ name }` 逐台刪除（JSON 移到 `_deleted/`）→ 自動發 Reload | Engineer |
@@ -245,6 +248,13 @@ Engine 熱重載 → 之後 MQTT payload / Realtime 頁即帶新名稱；依 Uni
 | 刪除 | `DBCoordinator` / `DBPoints` / 歷史資料都保留；頁面標示「設定檔已移除」；同名重新匯入 Id 不變、SID 一致 |
 
 Adapter：`ScadaEngine.Web/Services/SourceExcel/DbPointExcelAdapter.cs`；範本：`ScadaEngine.Engine/DBPoint/DB來源範本.xlsx`；測試：`ScadaEngine.Tests/SourceExcel/DbPointExcelAdapterTests.cs` + `SourceExcelRoundTripTests.cs`。
+
+**與 §8.3 熱編輯的關係**（plan 2026-10-12）：
+
+- 熱編輯改 Name/Unit 以 `JsonNode` **原地修改**（`DbPointConfigFileService.ApplyPointEdit`，比照 Modbus），頂層 `SourceWorkbook` 與任何非 DTO 欄位原樣保留 — 之前走 DTO 反序列化再序列化會弄丟 `SourceWorkbook`，改完後「依檔案匯出」就篩不到該 Coordinator、同檔重匯也不會列為刪除候選
+- 每次熱編輯在頂層記 `WebEditedAt`；拿修改前匯出的舊 Excel 重匯時，預覽會警告「會蓋掉網頁修改」並要求另外勾選（規則見 Modbus §4.1）。伺服器不保存上傳的 Excel，網頁修改不會回寫使用者電腦裡（下載）的檔案，請先「匯出 Excel」再編輯
+- **來源資料夾內的 Excel**：「匯出 Excel」主按鈕直接寫進 `DBPoint` 來源資料夾（下拉保留「下載到瀏覽器」）、匯入下拉可「從來源資料夾匯入」；熱編輯 / 匯入 / 刪除成功後自動重產資料夾內受影響的 xlsx（不新建；Excel 開著或有未匯入修改時不覆寫並提示），頁面提示「有未匯入修改」的檔案。規則同 [Modbus §4.1「來源資料夾內的 Excel」](功能說明書_Modbus來源管理.md#41-excel-匯入匯出刪除取代-xlsm-巨集)
+- 測試：`ScadaEngine.Tests/SourceExcel/DbPointHotEditPreserveTests.cs`、`WebEditedWarningTests.cs`
 
 ---
 

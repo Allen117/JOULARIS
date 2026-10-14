@@ -5,6 +5,7 @@ public enum SourceExcelKind
 {
     Modbus,
     DbPoint,
+    OpcUa,
 }
 
 /// <summary>
@@ -30,6 +31,9 @@ public class ParsedSourceSheet
 
     /// <summary>來源 Excel 檔名（由既有 JSON 的 SourceWorkbook 讀出；Excel 解析時為 null）</summary>
     public string? SourceWorkbook { get; set; }
+
+    /// <summary>最近一次網頁熱編輯時間（由既有 JSON 的 WebEditedAt 讀出；Excel 解析時為 null；匯入寫檔後清除）</summary>
+    public DateTimeOffset? WebEditedAt { get; set; }
 
     public bool IsValid => Errors.Count == 0;
 }

@@ -156,7 +156,7 @@ ScadaEngine.sln
 | `ScadaEngine.Engine/Modbus/Modbus.json` | Modbus device definitions (IP, port, tags) |
 | `ScadaEngine.Engine/DatabaseSchema/DatabaseSchema.json` | 建表 + 欄位自動同步的**唯一真相來源** — 加欄位只改此檔，Engine 與 Web 啟動時自動補缺欄位（只加不減不改，詳見 docs/架構.md §資料庫結構初始化與欄位同步） |
 | `ScadaEngine.Engine/DBPoint/*.json` | DB 來源 Coordinator 點位定義（由 Web「DB 來源」頁**匯入 Excel** 產生，範本 `DB來源範本.xlsx`；Name/Unit 可在頁面熱編輯回寫）。Modbus 同理走「Modbus 來源」頁匯入 `Modbus範本.xlsx`，共用 `ScadaEngine.Web/Services/SourceExcel/`。細節見 docs/架構.md §資料流 + docs/功能說明書_DB來源管理.md §8.4 / _Modbus來源管理.md §4.1 |
-| `ScadaEngine.Engine/OpcUaPoint/*.json` | OPC UA 來源定義（一檔一 Server 含 Devices 分組；Web「OPC UA 來源」頁全欄位動態編輯回寫，免重啟）。細節見 docs/架構.md §資料流 + docs/功能說明書_OPCUA通訊.md |
+| `ScadaEngine.Engine/OpcUaPoint/*.json` | OPC UA 來源定義（一檔一 Server 含 Devices 分組；Web「OPC UA 來源」頁全欄位動態編輯回寫，免重啟；亦可同頁匯入 `OPCUA範本.xlsx`，點位以 Seq 欄比對不漂移、匯出不含密碼）。三種來源的網頁熱編輯在 JSON 記 `WebEditedAt`、匯出 Excel 記 `ScadaExportedAt`，拿舊 Excel 重匯會警告並要求勾選確認。細節見 docs/架構.md §資料流 + docs/功能說明書_OPCUA通訊.md |
 | `ScadaEngine.Engine/Setting/DbMaintenanceSetting.json` | 自動建 DB 路徑 + 每週備份排程。同資料夾 `install-db.ps1` 為安裝腳本（idempotent，已綁入部署流程）。細節見 docs/架構.md §資料庫自動建立與每週備份 |
 | `LineSetting.json`（開發 `ScadaEngine.Engine/Setting/`；生產機 **`C:\JOULARIS\Shared\`**） | Line Messaging API token + rate limit。Engine / Web 共用一份，`SharedSettingLocator` 解析（同 dbSetting 但無環境變數層） |
 | `EmailSetting.json`（同上） | SMTP host/port/帳密 + rate limit（MailKit）。Web「警報設定 → Email」存檔寫同一份，之後發 MQTT `SCADA/Sys/Notify/Reload` 由 Engine 熱重載，不重啟 |

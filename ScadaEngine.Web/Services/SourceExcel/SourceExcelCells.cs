@@ -149,4 +149,18 @@ public static class SourceExcelCells
         cell.Style.Font.Bold = true;
         cell.Style.Font.FontColor = XLColor.FromHtml("#495057");
     }
+
+    /// <summary>
+    /// 第 1 列設定值（IP、ModbusID 清單、EndpointUrl 等長文字）所在欄若比內容窄，放寬到容得下。
+    /// 第 1 列右鄰是下一個標籤，文字無法溢出到隔壁，欄寬不足會被截斷看起來像值不完整。
+    /// 須在資料欄寬設定之後呼叫（只放寬、不縮小）。
+    /// </summary>
+    public static void FitColumnToRow1Value(IXLWorksheet ws, int nCol)
+    {
+        var szText = ReadString(ws, 1, nCol);
+        if (szText.Length == 0) return;
+        var dNeeded = szText.Length + 2;
+        if (ws.Column(nCol).Width < dNeeded)
+            ws.Column(nCol).Width = dNeeded;
+    }
 }

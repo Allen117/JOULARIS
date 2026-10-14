@@ -146,7 +146,8 @@ public class DbPointExcelAdapter : ISourceExcelAdapter
             sheet.Header["PollingInterval"] = SourceExcelCells.NormalizeNumber(root["PollingInterval"]?.ToString() ?? "1000");
             sheet.Header["ConnectTimeout"] = SourceExcelCells.NormalizeNumber(root["ConnectTimeout"]?.ToString() ?? "1000");
             sheet.Header["MonitorEnabled"] = SourceExcelCells.NormalizeBool(root["MonitorEnabled"]?.ToString(), out var isValid) is var szMon && isValid ? szMon : "TRUE";
-            sheet.SourceWorkbook = root["SourceWorkbook"]?.ToString();
+            sheet.SourceWorkbook = root[SourceJsonStamp.SOURCE_WORKBOOK]?.ToString();
+            sheet.WebEditedAt = SourceJsonStamp.ReadWebEdited(root);
 
             if (root["Points"] is JsonArray points)
             {

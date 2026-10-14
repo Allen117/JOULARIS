@@ -49,7 +49,7 @@
   <data name="srcxl.btn.template" xml:space="preserve"><value>Download Template</value></data>
   <data name="srcxl.btn.template_hint" xml:space="preserve"><value>Download a blank Excel template (one worksheet = one device)</value></data>
   <data name="srcxl.btn.export_all" xml:space="preserve"><value>Export Excel</value></data>
-  <data name="srcxl.btn.export_hint" xml:space="preserve"><value>Export the current configuration to Excel (edit and re-import; exporting first is recommended)</value></data>
+  <data name="srcxl.btn.export_hint" xml:space="preserve"><value>Export the current configuration to Excel and save it in the Engine source folder (fixed file name; the previous copy is kept as .bak; edit and re-import)</value></data>
   <data name="srcxl.export.by_workbook" xml:space="preserve"><value>Export by source workbook</value></data>
   <data name="srcxl.btn.import" xml:space="preserve"><value>Import Excel</value></data>
   <data name="srcxl.btn.import_hint" xml:space="preserve"><value>Upload .xlsx / .xlsm; preview the differences before anything is written</value></data>
@@ -99,4 +99,21 @@
   <data name="srcxl.msg.delete_success" xml:space="preserve"><value>Deleted</value></data>
   <data name="srcxl.msg.delete_failed" xml:space="preserve"><value>Delete failed (HTTP {status})</value></data>
   <data name="srcxl.msg.waiting_engine" xml:space="preserve"><value>Configuration written; waiting for the Engine to load ({count} remaining)…</value></data>
+  <data name="srcxl.webedit.warning" xml:space="preserve"><value>Some worksheets were edited on the web after this workbook was exported (or the workbook has no export time, e.g. a template or hand-made file). Importing will overwrite those web edits. Consider cancelling, exporting the latest Excel first, then editing that.</value></data>
+  <data name="srcxl.webedit.ack" xml:space="preserve"><value>I understand web edits will be overwritten; import anyway</value></data>
+  <data name="srcxl.detail.web_edited" xml:space="preserve"><value>Edited on the web at {time}; importing will overwrite. Export the latest version first, then edit that</value></data>
+  <data name="srcxl.detail.keyed_removed" xml:space="preserve"><value>{count} point(s) will be removed (Seq is not reused; their SID history becomes orphaned)</value></data>
+  <data name="srcxl.preview.exported_at" xml:space="preserve"><value>Workbook exported at: {time}</value></data>
+  <data name="srcxl.preview.exported_unknown" xml:space="preserve"><value>This workbook has no export time (template or hand-made)</value></data>
+  <data name="srcxl.export.to_folder_by_workbook" xml:space="preserve"><value>Export to folder by source workbook</value></data>
+  <data name="srcxl.export.download" xml:space="preserve"><value>Download to browser</value></data>
+  <data name="srcxl.export.download_all" xml:space="preserve"><value>All configurations</value></data>
+  <data name="srcxl.import.from_folder" xml:space="preserve"><value>Import from source folder</value></data>
+  <data name="srcxl.import.folder_loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="srcxl.import.folder_empty" xml:space="preserve"><value>No Excel files in the source folder</value></data>
+  <data name="srcxl.import.unimported" xml:space="preserve"><value>Not imported</value></data>
+  <data name="srcxl.import.modified_at" xml:space="preserve"><value>Modified {time}</value></data>
+  <data name="srcxl.msg.export_failed" xml:space="preserve"><value>Export failed (HTTP {status})</value></data>
+  <data name="srcxl.msg.folder_list_failed" xml:space="preserve"><value>Cannot read the Excel file list of the source folder</value></data>
+  <data name="srcxl.pending.hint" xml:space="preserve"><value>Excel files in the source folder have changes that are not imported yet (Engine reads only the config files; saving in Excel has no effect — click a file name to import):</value></data>
 </root>

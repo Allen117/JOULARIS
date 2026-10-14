@@ -56,3 +56,7 @@ a[aria-expanded="true"] .srcxl-collapse-icon {
 .srcxl-missing-badge {
     font-size: .6rem;
 }
+
+/* 從來源資料夾匯入下拉：檔名下方的修改時間 */
+.srcxl-folder-menu { max-height: 320px; overflow-y: auto; }
+.srcxl-folder-meta { font-size: .75rem; }

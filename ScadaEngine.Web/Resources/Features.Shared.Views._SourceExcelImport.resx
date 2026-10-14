@@ -49,7 +49,7 @@
   <data name="srcxl.btn.template" xml:space="preserve"><value>下載範本</value></data>
   <data name="srcxl.btn.template_hint" xml:space="preserve"><value>下載空白 Excel 範本（一張工作表 = 一台設備）</value></data>
   <data name="srcxl.btn.export_all" xml:space="preserve"><value>匯出 Excel</value></data>
-  <data name="srcxl.btn.export_hint" xml:space="preserve"><value>把現行設定匯出為 Excel（可修改後再匯入；建議先匯出再改）</value></data>
+  <data name="srcxl.btn.export_hint" xml:space="preserve"><value>把現行設定匯出為 Excel 並存進 Engine 來源資料夾（固定檔名，覆寫前一份並留 .bak；可修改後再匯入）</value></data>
   <data name="srcxl.export.by_workbook" xml:space="preserve"><value>依來源 Excel 檔匯出</value></data>
   <data name="srcxl.btn.import" xml:space="preserve"><value>匯入 Excel</value></data>
   <data name="srcxl.btn.import_hint" xml:space="preserve"><value>上傳 .xlsx / .xlsm，先預覽差異再確認寫入</value></data>
@@ -99,4 +99,21 @@
   <data name="srcxl.msg.delete_success" xml:space="preserve"><value>已刪除</value></data>
   <data name="srcxl.msg.delete_failed" xml:space="preserve"><value>刪除失敗（HTTP {status}）</value></data>
   <data name="srcxl.msg.waiting_engine" xml:space="preserve"><value>已寫入設定，等待 Engine 載入中（剩 {count} 台）…</value></data>
+  <data name="srcxl.webedit.warning" xml:space="preserve"><value>有工作表的設定在網頁修改過，而這份 Excel 是在那之前匯出的（或來源不明，例如範本或手工建立）。匯入會蓋掉網頁上的修改。建議取消，先「匯出 Excel」取得最新版再編輯。</value></data>
+  <data name="srcxl.webedit.ack" xml:space="preserve"><value>我了解會覆寫網頁上的修改，仍要匯入</value></data>
+  <data name="srcxl.detail.web_edited" xml:space="preserve"><value>此設定於 {time} 在網頁修改過，匯入會覆寫；建議先匯出最新版再編輯</value></data>
+  <data name="srcxl.detail.keyed_removed" xml:space="preserve"><value>將移除 {count} 個點位（Seq 不回收，該 SID 的歷史資料將孤立）</value></data>
+  <data name="srcxl.preview.exported_at" xml:space="preserve"><value>Excel 匯出時間：{time}</value></data>
+  <data name="srcxl.preview.exported_unknown" xml:space="preserve"><value>這份 Excel 沒有匯出時間（範本或手工建立）</value></data>
+  <data name="srcxl.export.to_folder_by_workbook" xml:space="preserve"><value>依來源 Excel 檔匯出到資料夾</value></data>
+  <data name="srcxl.export.download" xml:space="preserve"><value>下載到瀏覽器</value></data>
+  <data name="srcxl.export.download_all" xml:space="preserve"><value>全部設定</value></data>
+  <data name="srcxl.import.from_folder" xml:space="preserve"><value>從來源資料夾匯入</value></data>
+  <data name="srcxl.import.folder_loading" xml:space="preserve"><value>讀取中…</value></data>
+  <data name="srcxl.import.folder_empty" xml:space="preserve"><value>來源資料夾內沒有 Excel 檔</value></data>
+  <data name="srcxl.import.unimported" xml:space="preserve"><value>未匯入</value></data>
+  <data name="srcxl.import.modified_at" xml:space="preserve"><value>修改於 {time}</value></data>
+  <data name="srcxl.msg.export_failed" xml:space="preserve"><value>匯出失敗（HTTP {status}）</value></data>
+  <data name="srcxl.msg.folder_list_failed" xml:space="preserve"><value>無法讀取來源資料夾內的 Excel 清單</value></data>
+  <data name="srcxl.pending.hint" xml:space="preserve"><value>來源資料夾內的 Excel 有尚未匯入的修改（Engine 只讀設定檔，在 Excel 存檔不會生效，請點檔名匯入）：</value></data>
 </root>

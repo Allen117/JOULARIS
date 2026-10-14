@@ -190,7 +190,8 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
             sheet.Header["Port"] = SourceExcelCells.NormalizeNumber(root["Port"]?.ToString() ?? "502");
             sheet.Header["ModbusId"] = NormalizeModbusIdList(root["ModbusId"]?.ToString(), out _);
             sheet.Header["ConnectTimeout"] = SourceExcelCells.NormalizeNumber(root["ConnectTimeout"]?.ToString() ?? "1000");
-            sheet.SourceWorkbook = root["SourceWorkbook"]?.ToString();
+            sheet.SourceWorkbook = root[SourceJsonStamp.SOURCE_WORKBOOK]?.ToString();
+            sheet.WebEditedAt = SourceJsonStamp.ReadWebEdited(root);
 
             if (root["Tags"] is JsonArray tags)
             {
@@ -324,6 +325,10 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
         ws.Column(COL_MAX).Width = 12;
         ws.Column(COL_DEVICE).Width = 18;
         ws.Column(COL_TYPELIST).Width = 16;
+
+        // 第 1 列的 IP / ModbusID 清單可能比資料欄寬長（例 "1,2,3,4,5,6,7,8"），右鄰是標籤無法溢出 → 放寬
+        SourceExcelCells.FitColumnToRow1Value(ws, 2);
+        SourceExcelCells.FitColumnToRow1Value(ws, 6);
     }
 
     /// <summary>可解析為數字就寫數值儲存格，否則寫文字（空字串 → 留白）</summary>
