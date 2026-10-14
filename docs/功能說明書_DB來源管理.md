@@ -79,9 +79,18 @@ DB{CoordinatorId}-S{Sequence}
 | `SID` | nvarchar(100) PK | 例 `DB1-S5` |
 | `Value` | float | **工程值**（外部系統直接寫工程值，Engine 不再做縮放） |
 | `Timestamp` | datetime | 由外部系統決定 |
-| `Quality` | int | 1=Good, 0=Bad |
+| `Quality` | int | **只有明確寫 0 才是 Bad**；1 / NULL / 其他值一律 Good（26.9.2 起，SQL 端 `ISNULL(Quality,1)`） |
 
-> 外部系統只需 `INSERT/UPDATE WHERE SID='DB{n}-S{m}'`。Engine 寫入路徑（Phase 2）也統一 UPDATE 此表，欄位 schema 永遠不變。
+> 外部系統只需 `INSERT/UPDATE WHERE SID='DB{n}-S{m}'`，**只改 Value 不碰 Quality 也可以**。Engine 寫入路徑（Phase 2）也統一 UPDATE 此表，欄位 schema 永遠不變。
+>
+> **Quality 語意（26.9.2 起）**：寫入端要主動宣告「這個值不可信」時才寫 `Quality=0`（例：Web `WeatherFetchService` 在 API 失敗 / 觀測過舊時寫 0，防止舊溫度餵能源基線）。匯入點位時的 seed 列 Quality=1；Engine 判 Bad 的唯一條件是「該列 Quality 明確為 0」或「整個 SQL 讀取失敗」。
+> 26.9.1 之前 seed 為 0 且 Engine 要求 Quality 嚴格等於 1，導致外部 / 手動只改 Value 的點位永遠 Bad，下游計算點跟著 Bad 而 Web 即時頁卻顯示 GOOD。既有生產機升級後需一次性修正舊 seed 列（排除氣象 Coordinator 以免蓋掉其刻意寫的 0）：
+>
+> ```sql
+> UPDATE DBLatestData SET Quality = 1
+> WHERE Quality = 0
+>   AND SID NOT IN (SELECT p.SID FROM DBPoints p JOIN DBCoordinator c ON c.Id = p.CoordinatorId WHERE c.Name = 'Weather');
+> ```
 
 ---
 
@@ -122,6 +131,7 @@ SQL exception
   - 動機：外部系統若停止更新 DBLatestData（Timestamp 完全停滯），HistoryData 仍要有完整時間軸供 trending / 用電報表使用
   - 推翻早期決策（HistoryData.Timestamp = DBLatestData.Timestamp）— 該設計在外部停寫場景會出現大段空缺
 - **DBLatestData.Value 即工程值**：外部系統把已換算好的工程值寫進來，Engine 不再做 raw × Ratio 換算（DB 來源語意上就應該是已處理過的值）
+- **Quality 只認「明確 0」**：`szQuality = row.nQuality != 0 ? Good : Bad`，NULL 在 SQL 端已轉 1。Web 即時頁 `RefreshDbSourcesAsync` 用同一規則（SQL 失敗全 BAD；讀成功只有該列 Quality=0 才 BAD），三處（Engine / Web / 下游計算點）看到的品質一致
 - **變化偵測只擋下游噪音通道**：MQTT / 警報 / 計算點 / LatestData 在「值/品質/Timestamp 三者皆相同」時跳過，避免靜態資料反覆刷；HistoryData 不擋，依靠分鐘 dedup 自然降頻
 - **讀失敗 → 寫 Bad 歷史**：DBLatestData 連線 / SQL 失敗時，若曾經成功讀過至少一次，仍寫 HistoryData（Quality=Bad，Value 用最近一次成功值），讓 trending 能標出資料中斷區間
 - **未配置 SID**：DBLatestData 出現 `DB99-S1` 但 Coordinator 99 不存在 → log warning 一次後跳過，不爆

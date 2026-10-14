@@ -1986,10 +1986,12 @@ public class SqlServerDataRepository : IDataRepository, IDisposable
                 INSERT INTO DBPoints (SID, CoordinatorId, Sequence, Name, Unit, [Min], [Max])
                 VALUES (@SID, @CoordinatorId, @Sequence, @Name, @Unit, @Min, @Max)";
 
-            // DBLatestData 預先 seed：沒 row 就寫一筆 0/Bad；已存在則保留外部既有值
+            // DBLatestData 預先 seed：沒 row 就寫一筆 Value=0 / Quality=1；已存在則保留外部既有值
+            // Quality 語意（26.9.2 起）：只有寫入端「明確寫 0」才是 Bad；seed 給 1，
+            // 外部系統 / 手動 UPDATE 只改 Value 不碰 Quality 也不會被判 Bad
             const string szSeedLatestSql = @"
                 INSERT INTO DBLatestData (SID, Value, Timestamp, Quality)
-                SELECT @SID, 0, GETDATE(), 0
+                SELECT @SID, 0, GETDATE(), 1
                 WHERE NOT EXISTS (SELECT 1 FROM DBLatestData WHERE SID = @SID)";
 
             var nInserted = 0;
@@ -2043,12 +2045,13 @@ public class SqlServerDataRepository : IDataRepository, IDisposable
         using var connection = new SqlConnection(_szConnectionString);
         await connection.OpenAsync();
 
+        // Quality NULL 視為 Good（=1）：只有寫入端明確寫 0 才是 Bad（見 DbCommunicationService 品質規則）
         const string szSql = @"
             SELECT
                 SID                          AS szSID,
                 ISNULL(Value, 0)             AS fValue,
                 ISNULL(Timestamp, GETDATE()) AS dtTimestamp,
-                ISNULL(Quality, 0)           AS nQuality
+                ISNULL(Quality, 1)           AS nQuality
             FROM DBLatestData
             WHERE SID LIKE @Prefix";
 

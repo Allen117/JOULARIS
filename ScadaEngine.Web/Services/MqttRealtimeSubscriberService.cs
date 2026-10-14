@@ -620,7 +620,9 @@ public class MqttRealtimeSubscriberService : BackgroundService, IDisposable
 
     /// <summary>
     /// 重新從 DBLatestData 表讀取所有 DB 來源點位，更新到快取。
-    /// 品質規則：SQL 查詢無 exception → GOOD；有 exception → BAD。
+    /// 品質規則（與 Engine DbCommunicationService 一致）：
+    ///   SQL 查詢丟 exception → 全部 BAD；
+    ///   讀成功 → 該列 Quality 明確為 0 才 BAD，其餘（1 / NULL / 無列）GOOD。
     /// </summary>
     public async Task RefreshDbSourcesAsync()
     {
@@ -651,13 +653,15 @@ public class MqttRealtimeSubscriberService : BackgroundService, IDisposable
             foreach (var dp in dbPoints)
             {
                 var hasRow = dbLatestMap.TryGetValue(dp.szSID, out var row);
+                // 寫入端明確寫 Quality=0（如氣象抓取失敗）才標 BAD，讓畫面與 Engine / 下游計算點一致
+                var isRowBad = hasRow && row!.nQuality == 0;
                 var item = new RealtimeDataItemModel
                 {
                     szSubTopic = dp.szSID,
                     szSID = dp.szSID,
                     szName = dp.szName,
                     szUnit = dp.szUnit ?? string.Empty,
-                    szQuality = isSqlOk ? "GOOD" : "BAD",
+                    szQuality = isSqlOk && !isRowBad ? "GOOD" : "BAD",
                     dValue = hasRow ? row!.fValue : 0,
                     dtTimestamp = hasRow ? row!.dtTimestamp : DateTime.MinValue,
                     hasData = isSqlOk,

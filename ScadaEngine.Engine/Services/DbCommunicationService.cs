@@ -260,7 +260,10 @@ public class DbCommunicationService : BackgroundService
 
             // DBLatestData.Value 即工程值（外部系統直接寫工程值，不再做 raw × Ratio 換算）
             var fEngValue = row.fValue;
-            var szQuality = row.nQuality == 1 ? "Good" : "Bad";
+            // Quality 規則：只有寫入端「明確寫 0」才是 Bad；NULL（SQL 端 ISNULL→1）、1、其他值一律 Good。
+            // 動機：外部系統 / 手動 UPDATE 多半只改 Value 不碰 Quality，不能因此把整條下游（計算點 / 歷史 / 基線）判壞；
+            // 真正要標壞的寫入端（如 Web WeatherFetchService）本來就明確寫 0，語意不變。
+            var szQuality = row.nQuality != 0 ? "Good" : "Bad";
             var dtTs = row.dtTimestamp;
 
             // 不論變化與否都先放進 historyBatch — HistoryData 用 polling 當下時間（HistoryDataStorageService 內部 truncate 到分鐘）
