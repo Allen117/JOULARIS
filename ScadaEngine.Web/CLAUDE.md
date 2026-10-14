@@ -108,7 +108,7 @@ Registered as both `AddSingleton` and `AddHostedService` so it can be injected i
 - **.cshtml 字串**：`@Localizer["key"]`（key 命名 `feature.section.purpose` 全小寫底線分）
 - **JS 字串**：`window.i18n.t('key', {args})`，IIFE 內可宣告 `function t(key, args) { return window.i18n.t(key, args); }` 簡化
 - **Controller / Service / Excel exporter**：建構子注入 `IStringLocalizer<T>`，走 `_l["key"].Value`。Singleton 服務若依賴此須改 Scoped
-- **resx 檔位於 `ScadaEngine.Web/Resources/`**：中性 `.resx`（內容＝zh-TW）+ `.en.resx`，搭配 `[assembly: NeutralResourcesLanguage("zh-TW")]`。zh-TW 與 en 必須同步補
+- **resx 檔位於 `ScadaEngine.Web/Resources/`**：中性 `.resx`（內容＝zh-TW）+ `.en.resx`，搭配 `[assembly: NeutralResourcesLanguage("zh-TW")]`。zh-TW 與 en 必須同步補。**檔名 = 類別完整命名空間去掉 `ScadaEngine.Web.` 前綴、含子命名空間**（如 `Services.SourceExcel.SourceExcelImportCoordinator.resx`）；少一層 `IStringLocalizer<T>` 會靜默找不到資源、所有訊息原樣回 key
 - **SCADA 專業詞先查 [`docs/i18n-glossary.md`](../docs/i18n-glossary.md)**，新詞要先加進 glossary 再用
 
 新增功能時，未在 i18n 範圍的頁面字串不需走 IStringLocalizer，但若**新增 Layout 側欄選單** 則該選單字必須走 `Views.Shared._Layout.{,en}.resx`。

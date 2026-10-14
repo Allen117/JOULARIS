@@ -61,6 +61,9 @@ public class SourceExcelFolderExportResult
 
     /// <summary>true = 檔案被 Excel 開啟鎖住（HTTP 409）</summary>
     public bool Locked { get; set; }
+
+    /// <summary>沒進活頁簿的設定（已含理由的顯示文字：JSON 無法解析 / 名稱不能當工作表名）；Message 已併入，前端不必再組</summary>
+    public List<string> Skipped { get; set; } = new();
 }
 
 /// <summary>GET {base}/FolderWorkbooks 回應項目 — 來源資料夾內的 Excel 檔（不含範本）</summary>

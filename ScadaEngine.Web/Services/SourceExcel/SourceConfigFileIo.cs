@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ScadaEngine.Web.Services.SourceExcel;
 
@@ -58,15 +60,22 @@ public class SourceConfigFileIo
             : Path.GetFullPath(Path.Combine(_env.ContentRootPath, szMirror));
     }
 
-    /// <summary>名稱可否安全作為檔名（不含路徑字元、不含 ..、非空白）</summary>
+    /// <summary>
+    /// 名稱可否安全作為檔名（不含路徑字元、不含 ..、非空白）。只擋**逸出資料夾**的風險，不擋頭尾空白 —
+    /// Engine 以檔名原樣當設備名（「分迴路用電 .json」→ DB Name「分迴路用電 」），之前多擋一條「Trim 後須相同」
+    /// 讓這種既有設備在 Web 端解析不到路徑：匯出無聲少一張工作表、熱編輯找不到設定檔（2026-10-14 修正）。
+    /// </summary>
     public static bool IsSafeName(string? szName)
     {
         if (string.IsNullOrWhiteSpace(szName)) return false;
         if (szName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return false;
         if (szName.Contains("..")) return false;
-        if (szName.Trim() != szName) return false;
         return true;
     }
+
+    /// <summary>名稱頭尾有空白（合法但容易誤判成另一台設備）；匯入預覽據此提示</summary>
+    public static bool HasEdgeWhitespace(string? szName)
+        => !string.IsNullOrEmpty(szName) && szName.Trim() != szName;
 
     /// <summary>
     /// 解析設定名稱（= JSON 檔名，不含副檔名）為監控資料夾內的完整路徑；
@@ -104,6 +113,26 @@ public class SourceConfigFileIo
             .Select(n => n!)
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    /// <summary>
+    /// 設定 JSON → JsonObject；容忍尾逗號與 // /* */ 註解（Engine 以 Newtonsoft 載入本就容忍，手改過的檔案不該在 Web 這端被判成壞檔而無聲略過）。
+    /// 不是物件或格式錯誤回 null。
+    /// </summary>
+    public static JsonObject? ParseJsonObject(string szJson)
+    {
+        try
+        {
+            return JsonNode.Parse(szJson, documentOptions: new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip,
+            }) as JsonObject;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>讀檔並依 BOM 偵測編碼（無 BOM 視為 UTF-8）；回傳內容與實際編碼，供寫回時沿用</summary>

@@ -393,13 +393,41 @@ public class SourceExcelImportCoordinator
 
     public byte[] BuildTemplate(ISourceExcelAdapter adapter) => SourceExcelTemplateWriter.BuildTemplate(adapter);
 
-    /// <summary>匯出現行設定；szWorkbookFilter 非空時只匯出 SourceWorkbook 相同（忽略大小寫與副檔名）的設定</summary>
+    /// <summary>匯出現行設定（下載用）；szWorkbookFilter 非空時只匯出 SourceWorkbook 相同（忽略大小寫與副檔名）的設定。無法匯出的設定記 log（下載沒有訊息管道）</summary>
     public async Task<byte[]> ExportAsync(ISourceExcelAdapter adapter, string? szWorkbookFilter)
+    {
+        var aSkipped = new List<string>();
+        var sheets = await CollectSheetsAsync(adapter, szWorkbookFilter, aSkipped);
         // 匯出帶 ScadaExportedAt：之後拿這份改完再匯入，不會被判成「蓋掉網頁修改」
-        => SourceExcelTemplateWriter.Build(adapter, await CollectSheetsAsync(adapter, szWorkbookFilter), isExport: true);
+        var bytes = BuildExport(adapter, sheets, aSkipped, null);
+        LogSkipped(adapter, aSkipped);
+        return bytes;
+    }
 
-    /// <summary>讀現行 JSON 為匯出用的中介表示；szWorkbookFilter 非空時只取 SourceWorkbook 相同（忽略大小寫與副檔名）者</summary>
-    private async Task<List<ParsedSourceSheet>> CollectSheetsAsync(ISourceExcelAdapter adapter, string? szWorkbookFilter)
+    /// <summary>
+    /// 組匯出活頁簿；工作表名稱不合 Excel 規則（超過 31 字、含 [ ] : * ? / \）者會被略過，理由寫進 skipped。
+    /// 之前無聲略過，使用者只看到「某台設備沒出現在 Excel 裡」卻不知道為什麼。
+    /// </summary>
+    private byte[] BuildExport(ISourceExcelAdapter adapter, List<ParsedSourceSheet> sheets, List<string> skipped, DateTimeOffset? exportedAt)
+    {
+        var aBadNames = new List<string>();
+        var bytes = SourceExcelTemplateWriter.Build(adapter, sheets, aBadNames, isExport: true, exportedAt: exportedAt);
+        foreach (var szName in aBadNames)
+            skipped.Add(_l["srcxl.svc.skip_reason_sheet_name", szName].Value);
+        return bytes;
+    }
+
+    private void LogSkipped(ISourceExcelAdapter adapter, List<string> skipped)
+    {
+        if (skipped.Count > 0)
+            _logger.LogWarning("Excel 匯出略過 {Count} 個設定: {Kind} {Skipped}", skipped.Count, adapter.Kind, string.Join("、", skipped));
+    }
+
+    /// <summary>
+    /// 讀現行 JSON 為匯出用的中介表示；szWorkbookFilter 非空時只取 SourceWorkbook 相同（忽略大小寫與副檔名）者。
+    /// JSON 解析不了（尾逗號 / 註解已在 ParseJsonObject 放行，剩下的是真的壞檔）→ 理由寫進 skipped 而不是無聲丟掉。
+    /// </summary>
+    private async Task<List<ParsedSourceSheet>> CollectSheetsAsync(ISourceExcelAdapter adapter, string? szWorkbookFilter, List<string>? skipped = null)
     {
         var szFolder = _io.GetWatchedFolder(adapter.ConfigSection);
         var sheets = new List<ParsedSourceSheet>();
@@ -409,11 +437,20 @@ public class SourceExcelImportCoordinator
             foreach (var szName in _io.ListConfigNames(adapter.ConfigSection))
             {
                 var szPath = SourceConfigFileIo.ResolveWithin(szFolder, szName);
-                if (szPath == null || !File.Exists(szPath)) continue;
+                if (szPath == null)
+                {
+                    skipped?.Add(_l["srcxl.svc.skip_reason_name_unsafe", szName].Value);
+                    continue;
+                }
+                if (!File.Exists(szPath)) continue;
 
                 var (szJson, _) = await SourceConfigFileIo.ReadAllTextDetectEncodingAsync(szPath);
                 var parsed = adapter.ParseJson(szName, szJson);
-                if (parsed == null) continue;
+                if (parsed == null)
+                {
+                    skipped?.Add(_l["srcxl.svc.skip_reason_unparseable", szName].Value);
+                    continue;
+                }
 
                 if (szFilterKey.Length > 0
                     && !string.Equals(SourceExcelDiffBuilder.NormalizeWorkbookName(parsed.SourceWorkbook), szFilterKey, StringComparison.Ordinal))
@@ -441,7 +478,7 @@ public class SourceExcelImportCoordinator
                 if (szPath != null && File.Exists(szPath))
                 {
                     var (szJson, _) = await SourceConfigFileIo.ReadAllTextDetectEncodingAsync(szPath);
-                    if (JsonNode.Parse(szJson) is JsonObject root)
+                    if (SourceConfigFileIo.ParseJsonObject(szJson) is { } root)
                         info.SourceWorkbook = root["SourceWorkbook"]?.ToString();
                 }
             }
@@ -543,7 +580,8 @@ public class SourceExcelImportCoordinator
             }
 
             // 依來源 Excel 匯出卻沒有任何設定對得上 → 不寫空白檔
-            var sheets = await CollectSheetsAsync(adapter, szWorkbookFilter);
+            var aSkipped = new List<string>();
+            var sheets = await CollectSheetsAsync(adapter, szWorkbookFilter, aSkipped);
             if (sheets.Count == 0 && !string.IsNullOrWhiteSpace(szWorkbookFilter))
             {
                 result.Message = _l["srcxl.svc.folder_no_matching", szWorkbookFilter].Value;
@@ -552,12 +590,17 @@ public class SourceExcelImportCoordinator
 
             Directory.CreateDirectory(szFolder);
             var dtExported = DateTimeOffset.Now;
-            var bytes = SourceExcelTemplateWriter.Build(adapter, sheets, isExport: true, exportedAt: dtExported);
+            var bytes = BuildExport(adapter, sheets, aSkipped, dtExported);
             WriteWorkbookFile(szPath, bytes, dtExported);
 
             result.Success = true;
             result.Path = szPath;
-            result.Message = _l["srcxl.svc.folder_exported", szPath].Value;
+            result.Skipped = aSkipped;
+            // 有設定沒進活頁簿 → 訊息明講哪些、為什麼（壞 JSON / 名稱不能當工作表名），不再讓使用者自己發現少了一台
+            result.Message = aSkipped.Count == 0
+                ? _l["srcxl.svc.folder_exported", szPath].Value
+                : _l["srcxl.svc.folder_exported_skipped", szPath, string.Join("、", aSkipped)].Value;
+            LogSkipped(adapter, aSkipped);
             _logger.LogInformation("Excel 匯出到來源資料夾: {Kind} {Path} by {User}", adapter.Kind, szPath, szUsername);
             return result;
         }
@@ -649,7 +692,9 @@ public class SourceExcelImportCoordinator
                 .ToList();
             if (aWorkbooks.Count == 0) return null;
 
-            var all = await CollectSheetsAsync(adapter, null);
+            var aUnparseable = new List<string>();
+            var all = await CollectSheetsAsync(adapter, null, aUnparseable);
+            LogSkipped(adapter, aUnparseable);
             foreach (var szPath in aWorkbooks)
             {
                 var szFileName = Path.GetFileName(szPath);
@@ -680,7 +725,9 @@ public class SourceExcelImportCoordinator
                 try
                 {
                     var dtExported = DateTimeOffset.Now;
-                    WriteWorkbookFile(szPath, SourceExcelTemplateWriter.Build(adapter, sheets, isExport: true, exportedAt: dtExported), dtExported);
+                    var aBadNames = new List<string>();
+                    WriteWorkbookFile(szPath, BuildExport(adapter, sheets, aBadNames, dtExported), dtExported);
+                    LogSkipped(adapter, aBadNames);
                     _logger.LogInformation("來源資料夾 Excel 已重產: {Path}（{Count} 張工作表）", szPath, sheets.Count);
                 }
                 catch (IOException ex) when (IsLockViolation(ex))

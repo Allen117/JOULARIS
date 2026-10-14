@@ -302,7 +302,7 @@ public class OpcUaExcelAdapter : ISourceExcelAdapter
     {
         try
         {
-            if (JsonNode.Parse(szJson) is not JsonObject root) return null;
+            if (SourceConfigFileIo.ParseJsonObject(szJson) is not JsonObject root) return null;
 
             var sheet = new ParsedSourceSheet { SheetName = szName };
             sheet.Header["EndpointUrl"] = (root["EndpointUrl"]?.ToString() ?? string.Empty).Trim();
@@ -365,8 +365,7 @@ public class OpcUaExcelAdapter : ISourceExcelAdapter
         JsonObject? existingRoot = null;
         if (!string.IsNullOrWhiteSpace(szExistingJson))
         {
-            try { existingRoot = JsonNode.Parse(szExistingJson) as JsonObject; }
-            catch (JsonException) { existingRoot = null; }
+            existingRoot = SourceConfigFileIo.ParseJsonObject(szExistingJson);
         }
 
         var szPassword = sheet.Header.GetValueOrDefault(PASSWORD_RAW_HEADER, string.Empty);

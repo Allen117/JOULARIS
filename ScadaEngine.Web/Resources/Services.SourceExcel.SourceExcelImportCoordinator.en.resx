@@ -105,5 +105,10 @@
   <data name="srcxl.svc.folder_reason_locked" xml:space="preserve"><value>{0} (open in Excel)</value></data>
   <data name="srcxl.svc.folder_reason_unimported" xml:space="preserve"><value>{0} (has changes not yet imported)</value></data>
   <data name="srcxl.svc.folder_reason_not_exported" xml:space="preserve"><value>{0} (not exported by this system)</value></data>
+  <data name="srcxl.svc.folder_exported_skipped" xml:space="preserve"><value>Exported to {0}, but these configurations were left out: {1}</value></data>
+  <data name="srcxl.svc.skip_reason_unparseable" xml:space="preserve"><value>{0} (JSON could not be parsed; please check the file)</value></data>
+  <data name="srcxl.svc.skip_reason_name_unsafe" xml:space="preserve"><value>{0} (file name contains ".." or illegal characters; path could not be resolved)</value></data>
+  <data name="srcxl.warn.sheet_name_whitespace" xml:space="preserve"><value>Worksheet name has leading/trailing spaces; it is used as-is for the device name / file name (a trimmed name counts as a different device)</value></data>
+  <data name="srcxl.svc.skip_reason_sheet_name" xml:space="preserve"><value>{0} (name exceeds 31 characters or contains [ ] : * ? / \ and cannot be used as a sheet name)</value></data>
   <data name="srcxl.svc.folder_no_matching" xml:space="preserve"><value>No configuration comes from the source workbook "{0}"</value></data>
 </root>

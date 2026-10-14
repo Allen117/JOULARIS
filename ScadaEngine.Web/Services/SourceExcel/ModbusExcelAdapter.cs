@@ -52,10 +52,13 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
 
     public ParsedSourceSheet ParseSheet(IXLWorksheet ws)
     {
-        var sheet = new ParsedSourceSheet { SheetName = ws.Name.Trim() };
+        // 名稱原樣保留（不 Trim）：工作表名 = JSON 檔名 = Engine 設備名，既有「尾巴帶空白」的設備才對得回同一個檔
+        var sheet = new ParsedSourceSheet { SheetName = ws.Name };
 
         if (!SourceConfigFileIo.IsSafeName(sheet.SheetName))
             sheet.Errors.Add(SheetIssue.General("srcxl.err.sheet_name_invalid"));
+        else if (SourceConfigFileIo.HasEdgeWhitespace(sheet.SheetName))
+            sheet.Warnings.Add(SheetIssue.General("srcxl.warn.sheet_name_whitespace"));
 
         ParseHeader(ws, sheet);
         ParsePoints(ws, sheet);
@@ -183,7 +186,7 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
     {
         try
         {
-            if (JsonNode.Parse(szJson) is not JsonObject root) return null;
+            if (SourceConfigFileIo.ParseJsonObject(szJson) is not JsonObject root) return null;
 
             var sheet = new ParsedSourceSheet { SheetName = szName };
             sheet.Header["IP"] = (root["IP"]?.ToString() ?? string.Empty).Trim();

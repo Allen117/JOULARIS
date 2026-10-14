@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using System.Globalization;
 using ScadaEngine.Web.Features.Shared.Models;
 using ScadaEngine.Web.Services.SourceExcel;
 
@@ -541,6 +543,110 @@ public class SourceExcelImportCoordinatorTests : IDisposable
         Assert.Contains("folder_file_not_found", (await _coordinator.PreviewFromFolderAsync(_modbus, "沒有.xlsx", "eng")).Message);
         Assert.Contains("folder_file_not_found", (await _coordinator.PreviewFromFolderAsync(_modbus, "..\\x.xlsx", "eng")).Message);
         Assert.Contains("folder_file_not_found", (await _coordinator.PreviewFromFolderAsync(_modbus, "GW1.json", "eng")).Message);
+    }
+
+    // ── 匯出：容錯 JSON 與略過回報（2026-10-14：多 ID 設備沒出現在 Excel、訊息顯示原始 key） ──
+
+    [Fact]
+    public async Task ExportToFolder_TolerantJson_TrailingCommaAndComment_Included()
+    {
+        // Engine 以 Newtonsoft 載入，手改過的檔案常有尾逗號 / 註解 — 之前 Web 這端 JsonNode.Parse 會炸、無聲略過該設備
+        File.WriteAllText(PathOf("GW3"), @"// 多 ID 設備（手改）
+{
+  ""IP"": ""10.0.0.3"", ""Port"": 502, ""ModbusId"": ""1,2,3"", ""ConnectTimeout"": 1000,
+  ""Tags"": [
+    { ""Name"": ""P1"", ""Address"": ""40001"", ""DataType"": ""INTEGER"", ""Ratio"": ""1"", ""Unit"": """", ""Min"": """", ""Max"": """", ""Device"": """", },
+  ],
+}", new UTF8Encoding(false));
+
+        var result = await _coordinator.ExportToFolderAsync(_modbus, null, false, "eng");
+
+        Assert.True(result.Success, result.Message);
+        Assert.Empty(result.Skipped);
+        Assert.StartsWith("srcxl.svc.folder_exported:", result.Message);
+        Assert.Equal(new[] { "GW3" }, SheetNamesOf(result.Path!));
+        using var wb = new ClosedXML.Excel.XLWorkbook(result.Path!);
+        Assert.Equal("1,2,3", wb.Worksheet("GW3").Cell(1, 6).GetString());
+    }
+
+    [Fact]
+    public async Task ExportToFolder_UnparseableJson_And_BadSheetName_ReportedNotSilent()
+    {
+        WriteExisting("GW1", ModbusSheet("GW1", "A"), null);
+        File.WriteAllText(PathOf("Broken"), "{ \"IP\": \"10.0.0.9\", \"Tags\": [ oops", new UTF8Encoding(false));
+        WriteExisting("GW[2]", ModbusSheet("GW[2]", "B"), null);   // [ ] 是合法檔名但不能當 Excel 工作表名
+
+        var result = await _coordinator.ExportToFolderAsync(_modbus, null, false, "eng");
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(new[] { "GW1" }, SheetNamesOf(result.Path!));
+        Assert.Equal(2, result.Skipped.Count);
+        Assert.Contains("srcxl.svc.skip_reason_unparseable:Broken", result.Skipped);
+        Assert.Contains("srcxl.svc.skip_reason_sheet_name:GW[2]", result.Skipped);
+        Assert.StartsWith("srcxl.svc.folder_exported_skipped:", result.Message);
+        Assert.Contains("Broken", result.Message);
+        Assert.Contains("GW[2]", result.Message);
+    }
+
+    [Fact]
+    public async Task Export_NameWithTrailingSpace_Included_And_RoundTripsToSameFile()
+    {
+        // 現場實例：「分迴路用電 .json」（檔名尾巴帶空白，多 ID 2,3,4）— Engine 照常載入、DB Name 也帶空白，
+        // 之前 IsSafeName 拒絕頭尾空白 → 匯出無聲少這張工作表，熱編輯也找不到設定檔
+        var szName = "分迴路用電 ";
+        var sheet = ModbusSheet(szName, "V_avg", "kWh");
+        sheet.Header["ModbusId"] = "2,3,4";
+        WriteExisting(szName, sheet, null);
+
+        var result = await _coordinator.ExportToFolderAsync(_modbus, null, false, "eng");
+        Assert.True(result.Success, result.Message);
+        Assert.Empty(result.Skipped);
+        Assert.Equal(new[] { szName }, SheetNamesOf(result.Path!));
+        using (var wb = new ClosedXML.Excel.XLWorkbook(result.Path!))
+            Assert.Equal("2,3,4", wb.Worksheet(szName).Cell(1, 6).GetString());
+
+        // 匯回：工作表名不 Trim，對到同一個既有檔 → 無變更，而不是變成「分迴路用電」新設備
+        using (var ms = new MemoryStream(await _coordinator.ExportAsync(_modbus, null)))
+        {
+            var preview = await _coordinator.PreviewAsync(_modbus, ms, "x.xlsx", "eng");
+            Assert.True(preview.Success, preview.Message);
+            var s = Assert.Single(preview.Sheets);
+            Assert.Equal(szName, s.SheetName);
+            Assert.Equal(SheetDiffKind.Unchanged, s.Kind);
+            Assert.Contains(s.Warnings, w => w.Key == "srcxl.warn.sheet_name_whitespace");
+        }
+
+        Assert.True(SourceConfigFileIo.IsSafeName(szName));
+        Assert.False(SourceConfigFileIo.IsSafeName("a..b"));
+        Assert.False(SourceConfigFileIo.IsSafeName("a/b"));
+        Assert.False(SourceConfigFileIo.IsSafeName("  "));
+    }
+
+    [Theory]
+    [InlineData("zh-TW")]
+    [InlineData("en")]
+    public void RealLocalizer_ResolvesCoordinatorResx(string szCulture)
+    {
+        // resx 檔名必須含子命名空間（Services.SourceExcel.SourceExcelImportCoordinator）；
+        // 之前少了 SourceExcel，IStringLocalizer<T> 找不到資源 → 所有匯入／匯出訊息原樣回 key（使用者看到「srcxl.svc.folder_exported」）
+        var factory = new ResourceManagerStringLocalizerFactory(
+            Options.Create(new LocalizationOptions { ResourcesPath = "Resources" }), NullLoggerFactory.Instance);
+        var localizer = factory.Create(typeof(SourceExcelImportCoordinator));
+
+        var culture = new CultureInfo(szCulture);
+        var szOriginal = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = culture;
+            var entry = localizer["srcxl.svc.folder_exported", "X"];
+            Assert.False(entry.ResourceNotFound, entry.SearchedLocation);
+            Assert.Contains("X", entry.Value);
+            Assert.DoesNotContain("srcxl.", entry.Value);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = szOriginal;
+        }
     }
 
     // ── stubs ──
