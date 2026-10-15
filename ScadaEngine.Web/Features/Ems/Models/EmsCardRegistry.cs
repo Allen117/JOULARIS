@@ -41,6 +41,8 @@ public static class EmsCardRegistry
         new("GasUsageBar",   "_CardGasUsageBar",   "emscard.name.gasusagebar",   "col-md-6 col-lg-7 col-xl-8", "fa-chart-bar",           11),
         new("GasUsagePie",   "_CardGasUsagePie",   "emscard.name.gasusagepie",   "col-md-6 col-lg-5 col-xl-4", "fa-chart-pie",           12),
         new("GasCost",       "_CardGasCost",       "emscard.name.gascost",       "col-md-6 col-lg-5 col-xl-4", "fa-fire",                13),
+        new("ChillerEfficiency",    "_CardChillerEfficiency",    "emscard.name.chillerefficiency",    "col-md-6 col-lg-5 col-xl-4", "fa-temperature-low",     14),
+        new("CompressorEfficiency", "_CardCompressorEfficiency", "emscard.name.compressorefficiency", "col-md-6 col-lg-5 col-xl-4", "fa-compress-arrows-alt", 15),
     ];
 
     /// <summary>卡片鍵是否存在於註冊表（Save 白名單檢查用）</summary>

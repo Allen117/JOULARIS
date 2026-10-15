@@ -107,6 +107,10 @@
   <data name="layout.menu.electricity_circuit_info" xml:space="preserve"><value>電力迴路資訊</value></data>
   <data name="layout.menu.water_circuit_info" xml:space="preserve"><value>自來水迴路資訊</value></data>
   <data name="layout.menu.gas_circuit_info" xml:space="preserve"><value>氣迴路資訊</value></data>
+  <data name="layout.menu.equipment_efficiency" xml:space="preserve"><value>設備效率</value></data>
+  <data name="layout.menu.chiller_efficiency" xml:space="preserve"><value>冰機效率診斷</value></data>
+  <data name="layout.menu.compressor_efficiency" xml:space="preserve"><value>空壓機效率診斷</value></data>
+  <data name="layout.menu.equipment_efficiency_setting" xml:space="preserve"><value>設備效率設定</value></data>
 
   <data name="layout.menu.system" xml:space="preserve"><value>系統設定</value></data>
   <data name="layout.menu.engineer_mode" xml:space="preserve"><value>工程師模式</value></data>

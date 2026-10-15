@@ -357,6 +357,15 @@ builder.Services.AddSingleton<ScadaEngine.Web.Services.OpcUaReloadPublisher>();
 builder.Services.AddHostedService<ScadaEngine.Web.Services.OpcUaReloadPublisher>(provider =>
     provider.GetRequiredService<ScadaEngine.Web.Services.OpcUaReloadPublisher>());
 
+// 設備效率診斷（冰機 / 空壓機）— 設備主檔 CRUD + 即時指標（MQTT 快取）+ 期間儀表板（EquipmentHourly）
+builder.Services.AddScoped<ScadaEngine.Web.Services.EquipmentProfileService>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.EquipmentRealtimeService>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.EquipmentEfficiencyReportService>();
+// 設備效率「回填歷史」發布者（雙註冊：Singleton 供 Controller 注入呼叫 + HostedService 啟動時連 broker）
+builder.Services.AddSingleton<ScadaEngine.Web.Services.EquipmentBackfillPublisher>();
+builder.Services.AddHostedService<ScadaEngine.Web.Services.EquipmentBackfillPublisher>(provider =>
+    provider.GetRequiredService<ScadaEngine.Web.Services.EquipmentBackfillPublisher>());
+
 var app = builder.Build();
 
 Console.WriteLine("正在啟動 SCADA Web 應用程式...");

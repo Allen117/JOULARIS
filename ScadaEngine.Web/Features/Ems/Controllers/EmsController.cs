@@ -31,6 +31,9 @@ public class EmsController : Controller
     private readonly GasCostService _gasCostService;
     private readonly WaterCircuitService _chilledWaterCircuitService;
     private readonly RefrigerationTonReportService _rtReportService;
+    private readonly EquipmentRealtimeService _equipRealtimeService;
+    private readonly EquipmentEfficiencyReportService _equipReportService;
+    private readonly EquipmentProfileService _equipProfileService;
 
     public EmsController(
         IDataRepository repo,
@@ -49,7 +52,10 @@ public class EmsController : Controller
         GasUsageReportService gasReportService,
         GasCostService gasCostService,
         WaterCircuitService chilledWaterCircuitService,
-        RefrigerationTonReportService rtReportService)
+        RefrigerationTonReportService rtReportService,
+        EquipmentRealtimeService equipRealtimeService,
+        EquipmentEfficiencyReportService equipReportService,
+        EquipmentProfileService equipProfileService)
     {
         _repo                 = repo;
         _circuitService       = circuitService;
@@ -68,6 +74,9 @@ public class EmsController : Controller
         _gasCostService       = gasCostService;
         _chilledWaterCircuitService = chilledWaterCircuitService;
         _rtReportService      = rtReportService;
+        _equipRealtimeService = equipRealtimeService;
+        _equipReportService   = equipReportService;
+        _equipProfileService  = equipProfileService;
     }
 
     [HttpGet("/EMS")]
@@ -736,6 +745,62 @@ public class EmsController : Controller
         });
     }
 
+    // ─────────────────── 設備效率診斷（冰機 / 空壓機）API ───────────────────
+
+    /// <summary>診斷頁 / 卡片共用的權限：該 kind 的診斷頁或 EMS 首頁可看即可</summary>
+    private bool CanViewEquipment(string szKind) =>
+        PermissionService.CanAccessPage(User, szKind == ScadaEngine.Common.Equipment.EquipmentKind.Compressor
+            ? "/CompressorEfficiency" : "/ChillerEfficiency")
+        || PermissionService.CanAccessPage(User, "/EMS");
+
+    /// <summary>即時：每台主指標 + 輔助指標 + 評級（30 秒輪詢）</summary>
+    [HttpGet("/EMS/api/equipment/realtime")]
+    public async Task<IActionResult> GetEquipmentRealtime([FromQuery] string? kind)
+    {
+        if (!ScadaEngine.Common.Equipment.EquipmentKind.IsValid(kind)) return BadRequest(new { error = "invalid_kind" });
+        if (!CanViewEquipment(kind!)) return Forbid();
+        return Ok(await _equipRealtimeService.GetRealtimeAsync(kind!));
+    }
+
+    /// <summary>
+    /// 期間儀表板（曆制）：granularity = hour（日檢視，pivot=yyyy-MM-dd）/ day（月，pivot=yyyy-MM）/ month（年，pivot=yyyy）
+    /// </summary>
+    [HttpGet("/EMS/api/equipment/period")]
+    public async Task<IActionResult> GetEquipmentPeriod(
+        [FromQuery] string? kind, [FromQuery] string? granularity, [FromQuery] string? pivot)
+    {
+        if (!ScadaEngine.Common.Equipment.EquipmentKind.IsValid(kind)) return BadRequest(new { error = "invalid_kind" });
+        if (!CanViewEquipment(kind!)) return Forbid();
+        if (string.IsNullOrWhiteSpace(granularity) || string.IsNullOrWhiteSpace(pivot))
+            return BadRequest(new { error = "granularity, pivot 皆為必填" });
+
+        DateTime dtStart, dtEnd;
+        try { (dtStart, dtEnd) = ParseCalendarPivot(granularity, pivot); }
+        catch { return BadRequest(new { error = "pivot 格式不正確" }); }
+
+        return Ok(await _equipReportService.GetPeriodAsync(kind!, granularity, dtStart, dtEnd));
+    }
+
+    /// <summary>EMS 首頁卡片：每台即時主指標 + 本曆月累計平均效率與運轉時數</summary>
+    [HttpGet("/EMS/api/equipment/card")]
+    public async Task<IActionResult> GetEquipmentCard([FromQuery] string? kind)
+    {
+        if (!ScadaEngine.Common.Equipment.EquipmentKind.IsValid(kind)) return BadRequest(new { error = "invalid_kind" });
+        if (!CanViewEquipment(kind!)) return Forbid();
+
+        var realtime = await _equipRealtimeService.GetRealtimeAsync(kind!);
+        var profiles = await _equipProfileService.GetAllAsync(kind!, isEnabledOnly: true);
+        var dtNow = DateTime.Now;
+        return Ok(new EquipmentCardDto
+        {
+            kind = kind!,
+            deviceCount = profiles.Count,
+            items = realtime.items,
+            month = await _equipReportService.GetMonthToDateAsync(kind!, profiles),
+            monthLabel = dtNow.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture),
+        });
+    }
+
     /// <summary>
     /// pivot → 報表服務的 (dtStart, dtEnd)，**電費期別**版（用電長條/圓餅/去年同期/電費卡）。
     /// month（年檢視）：pivot=年份 → 期別 1~12 月（報表月粒度語意 = 含頭尾期別）；
@@ -743,7 +808,7 @@ public class EmsController : Controller
     /// hour（日檢視）：pivot=YYYY-MM-DD → 該日（維持自然日，不受期別影響）。
     ///
     /// ⚠️ 水表卡片請用 <see cref="ParseWaterPivotAsync"/>、氣表卡片請用 <see cref="ParseGasPivotAsync"/>、
-    /// 空調水系統（冷凍噸）請用 <see cref="ParseCalendarPivot"/>（不走期別）—
+    /// 空調水系統（冷凍噸）與設備效率診斷請用 <see cref="ParseCalendarPivot"/>（不走期別）—
     /// 刻意拆成四支而非加參數，讓「呼叫錯期別」變成編譯期選錯函式（看得見），
     /// 而不是靜默走錯期別（查不出來）。
     /// </summary>

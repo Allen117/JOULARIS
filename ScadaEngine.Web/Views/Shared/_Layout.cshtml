@@ -180,6 +180,25 @@
                                     </ul>
                                 </li>
                             }
+                            @if (canAccess("/ChillerEfficiency") || canAccess("/CompressorEfficiency"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-gauge-high me-1"></i>
+                                        @Localizer["layout.menu.equipment_efficiency"]
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        @if (canAccess("/ChillerEfficiency"))
+                                        {
+                                            <li><a class="dropdown-item" href="/ChillerEfficiency"><i class="fas fa-temperature-low me-2"></i>@Localizer["layout.menu.chiller_efficiency"]</a></li>
+                                        }
+                                        @if (canAccess("/CompressorEfficiency"))
+                                        {
+                                            <li><a class="dropdown-item" href="/CompressorEfficiency"><i class="fas fa-compress-arrows-alt me-2"></i>@Localizer["layout.menu.compressor_efficiency"]</a></li>
+                                        }
+                                    </ul>
+                                </li>
+                            }
                             @if (canAccess("/EnergyReport") || canAccess("/ElectricityCostReport") || canAccess("/RefrigerationTonReport") || canAccess("/WaterUsageReport") || canAccess("/WaterCostReport") || canAccess("/GasUsageReport") || canAccess("/GasCostReport") || canAccess("/EnergyDeclaration") || canAccess("/AirCompressorDeclaration"))
                             {
                                 <li class="nav-item dropdown">
@@ -247,7 +266,7 @@
                                     </a>
                                 </li>
                             }
-                            @if (canAccess("/ChilledWaterSystem") || canAccess("/EnergyMeter") || canAccess("/WaterMeterSetting") || canAccess("/GasMeterSetting") || canAccess("/AirMeterSetting") || canAccess("/BillingPeriodSetting") || canAccess("/WaterBillingPeriodSetting") || canAccess("/GasBillingPeriodSetting") || canAccess("/TariffSetting") || canAccess("/WaterTariffSetting") || canAccess("/GasTariffSetting") || canAccess("/HolidaySetting") || canAccess("/ShiftSetting") || canAccess("/EmsCardSetting") || canAccess("/DailyReportSetting"))
+                            @if (canAccess("/ChilledWaterSystem") || canAccess("/EnergyMeter") || canAccess("/WaterMeterSetting") || canAccess("/GasMeterSetting") || canAccess("/AirMeterSetting") || canAccess("/EquipmentEfficiencySetting") || canAccess("/BillingPeriodSetting") || canAccess("/WaterBillingPeriodSetting") || canAccess("/GasBillingPeriodSetting") || canAccess("/TariffSetting") || canAccess("/WaterTariffSetting") || canAccess("/GasTariffSetting") || canAccess("/HolidaySetting") || canAccess("/ShiftSetting") || canAccess("/EmsCardSetting") || canAccess("/DailyReportSetting"))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -331,6 +350,15 @@
                                                 <a class="dropdown-item dropdown-toggle" href="#" role="button"><i class="fas fa-wind me-2"></i>@Localizer["layout.menu.group_air_meter"]</a>
                                                 <ul class="dropdown-menu">
                                                     <li><a class="dropdown-item" href="/AirMeterSetting"><i class="fas fa-wind me-2"></i>@Localizer["layout.menu.air_meter"]</a></li>
+                                                </ul>
+                                            </li>
+                                        }
+                                        @if (canAccess("/EquipmentEfficiencySetting"))
+                                        {
+                                            <li class="dropdown-submenu">
+                                                <a class="dropdown-item dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-2"></i>@Localizer["layout.menu.equipment_efficiency"]</a>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="/EquipmentEfficiencySetting"><i class="fas fa-sliders-h me-2"></i>@Localizer["layout.menu.equipment_efficiency_setting"]</a></li>
                                                 </ul>
                                             </li>
                                         }

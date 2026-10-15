@@ -1,0 +1,16 @@
+@{
+    ViewData["Title"] = Localizer["eqd.compressor.title"].Value;
+    ViewData["EqKind"] = "compressor";
+    ViewData["EqTitle"] = Localizer["eqd.compressor.title"].Value;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link rel="stylesheet" href="~/css/equipment.css" asp-append-version="true" />
+
+@* 版面與 Compressor / 另一類設備共用 Views/Shared/_EquipmentDiagnosis.cshtml，差別只在 data-kind *@
+<partial name="_EquipmentDiagnosis" />
+
+@section Scripts {
+    <script src="~/lib/chartjs/chart.umd.min.js"></script>
+    <script src="~/js/common/chart-defaults.js" asp-append-version="true"></script>
+    <script src="~/js/ems-equipment.js" asp-append-version="true"></script>
+}

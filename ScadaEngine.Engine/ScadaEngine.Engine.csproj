@@ -69,6 +69,8 @@
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="FluentModbus" Version="5.3.2" />
     <PackageReference Include="MailKit" Version="4.16.0" />
+    <!-- VUL-2026-002：MailKit/MimeKit 與 Microsoft.Data.SqlClient 傳遞帶入 Pkcs 8.0.1（CVE-2026-84008 / CVE-2026-70162），顯式釘到修補版 -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.2" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />

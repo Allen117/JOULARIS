@@ -264,6 +264,25 @@
 | 產氣量 | Air Volume | 空壓機能源申報欄位（Nm³ 累計） |
 | 比能耗 (kWh/Nm³) | Specific Energy (kWh/Nm³) | 用電量 ÷ 產氣量，單位不翻；勿譯 Efficiency（數值越低越好，與 kWh/RTh 同向但名稱不同） |
 | Nm³ | Nm³ | 標準立方公尺，不翻 |
+| 設備效率診斷 | Equipment Efficiency | 選單群組；設定頁 `/EquipmentEfficiencySetting` = 設備效率設定 / Equipment Efficiency Settings |
+| 冰機效率診斷 | Chiller Efficiency | `/ChillerEfficiency`；EMS 卡片「冰機效率」同 en |
+| 空壓機效率診斷 | Air Compressor Efficiency | `/CompressorEfficiency`；EMS 卡片「空壓機效率」同 en |
+| 冰機 / 空壓機 | Chiller / Air Compressor | 設備種類；句中小寫 chiller / air compressor |
+| kW/RT | kW/RT | 冰機主效率指標（ASHRAE 90.1 / AHRI 550/590），單位不翻，越低越好 |
+| COP | COP | 性能係數 = 3.517 ÷ kW/RT，不翻 |
+| EER | EER | 能源效率比 = 12 ÷ kW/RT，不翻 |
+| 比功率 kW/(m³/min) | Specific Power kW/(m³/min) | 空壓機主效率指標（ISO 11011 / CAGI）；並列 kW/100cfm |
+| 空氣量 / 排氣量 | Air Flow (FAD) | 空壓機瞬時產出 m³/min；FAD = Free Air Delivery，與產氣量（累積 Nm³）不同 |
+| 期間平均效率 | Period Efficiency | ΣkWh ÷ Σ產出，能量加權；勿譯 Average（不是逐時平均） |
+| 負載率 | Load | % |
+| 負載率分佈 | Load Distribution | ≤25 / 25–50 / 50–75 / >75%，對應 IPLV 四點 |
+| IPLV | IPLV | Integrated Part Load Value（AHRI 550/590），不翻 |
+| 趨近溫度（蒸發器 / 冷凝器） | Approach (Evap. / Cond.) | 冰水出水 − 蒸發飽和溫度；冷凝飽和溫度 − 冷卻水出水 |
+| 冰水 ΔT / 冷卻水 ΔT | CHW ΔT / CW ΔT | 回水 − 出水 / 出水 − 進水 |
+| 加載 / 卸載 | Loaded / Unloaded | 空壓機狀態；加載時間比 = Loaded time ratio |
+| 優 / 可 / 差 / 停機 / 資料不足 | Good / Fair / Poor / Off / No data | 效率評級（≤ 優門檻 / ≤ 可門檻 / 超過） |
+| 覆蓋率 | Coverage | 資料完整度 %（實際有效小時 ÷ 應有小時） |
+| 全場加權 | Plant weighted | 效率趨勢的全場 ΣkWh ÷ Σ產出線 |
 | 數據明細 | Data Detail | 表格區塊 |
 | 時段 | Period | 表格欄 |
 | 粒度 / 單位 | Granularity | 時 / 日 / 月 / 年 |

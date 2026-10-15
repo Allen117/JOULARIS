@@ -74,4 +74,6 @@
   <data name="emscard.name.gasusagebar" xml:space="preserve"><value>用氣量長條圖</value></data>
   <data name="emscard.name.gasusagepie" xml:space="preserve"><value>子迴路用氣占比圓餅圖</value></data>
   <data name="emscard.name.gascost" xml:space="preserve"><value>氣費狀態</value></data>
+  <data name="emscard.name.chillerefficiency" xml:space="preserve"><value>冰機效率</value></data>
+  <data name="emscard.name.compressorefficiency" xml:space="preserve"><value>空壓機效率</value></data>
 </root>

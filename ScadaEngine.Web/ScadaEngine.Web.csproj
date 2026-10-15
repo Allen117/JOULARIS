@@ -15,6 +15,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
     <PackageReference Include="ClosedXML" Version="0.102.2" />
+    <!-- VUL-2026-001：ClosedXML → DocumentFormat.OpenXml 2.16 傳遞帶入 System.IO.Packaging 6.0.0（CVE-2024-43483 / 43484），顯式釘到修補版 -->
+    <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
+    <!-- VUL-2026-002：EF Core SqlServer → SqlClient 傳遞帶入 Pkcs 8.0.1，與 Engine 同步釘版 -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.2" />
     <!-- 能源基線 OLS 複回歸（QR 分解 + t 分布 p-value），見 docs/功能說明書_能源基線.md -->
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="NCalcSync" Version="6.3.1" />

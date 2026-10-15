@@ -142,7 +142,26 @@
         LOAD:      ['load', 'pct', 'rla', '負載'],
         CHWOUT:    ['chws', 'chwout', 'chwst', 'lchwt', '冰水出水', '出水溫'],
         SETTEMP:   ['chwsp', 'tsp', 'settemp', '設定溫度', '溫度設定'],
-        WATERTEMP: ['cwout', 'cws', 'cwst', '出水溫', '冷卻水出水']
+        WATERTEMP: ['cwout', 'cws', 'cwst', '出水溫', '冷卻水出水'],
+
+        // ── 設備效率診斷（plan 2026-10-15-equipment-efficiency-diagnosis）──
+        // 冰機 / 空壓機掃描用（js/equipment-scan.js）；角色鍵 = Common EquipmentRoles 常數。
+        // CHWS 與既有 CHWOUT 同義、流量同時在 FLOW / AIRFLOW：呼叫端以 arrRoles 限定該 kind 的角色集合，不衝突。
+        // KW 刻意不含 p / w 單字母（避免 PUMP 等誤判）。
+        KW:         ['kw', 'power', '功率', '有效功率', '實功'],
+        KWH:        ['kwh', 'energy', '度數', '用電量', '電能', '累計用電'],
+        RT:         ['rt', 'usrt', 'ton', 'tons', 'capacity', 'cooling', '冷凍噸', '冷量', '噸'],
+        FLOW:       ['flow', 'lpm', 'gpm', 'lps', '流量', '冰水流量'],
+        CHWS:       ['chws', 'chwst', 'chwout', 'lchwt', '冰水出水', '出水溫'],
+        CHWR:       ['chwr', 'chwrt', 'chwin', 'echwt', '冰水回水', '回水溫'],
+        CDWS:       ['cdws', 'cws', 'cwin', 'ecwt', '冷卻水進水', '冷卻水入水'],
+        CDWR:       ['cdwr', 'cwr', 'cwout', 'lcwt', '冷卻水出水'],
+        EVAPT:      ['evap', 'evapt', 'sst', '蒸發溫度', '蒸發器'],
+        CONDT:      ['cond', 'condt', 'sdt', '冷凝溫度', '冷凝器'],
+        AIRFLOW:    ['airflow', 'fad', 'cfm', 'nm3', 'm3min', '流量', '排氣量', '產氣量'],
+        DISCHPRESS: ['press', 'pressure', 'bar', 'psi', '壓力', '排氣壓力'],
+        DISCHTEMP:  ['discht', 'dischtemp', '排氣溫度'],
+        LOADED:     ['loaded', 'loadst', 'onload', '加載', '載']
     };
 
     // 只能在「前綴非空」時成立的短別名（整名單獨出現不算）

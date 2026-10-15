@@ -74,4 +74,6 @@
   <data name="emscard.name.gasusagebar" xml:space="preserve"><value>Gas Usage Bar Chart</value></data>
   <data name="emscard.name.gasusagepie" xml:space="preserve"><value>Sub-circuit Gas Usage Pie</value></data>
   <data name="emscard.name.gascost" xml:space="preserve"><value>Gas Cost Status</value></data>
+  <data name="emscard.name.chillerefficiency" xml:space="preserve"><value>Chiller Efficiency</value></data>
+  <data name="emscard.name.compressorefficiency" xml:space="preserve"><value>Air Compressor Efficiency</value></data>
 </root>

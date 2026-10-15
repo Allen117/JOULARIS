@@ -1,0 +1,196 @@
+/* 設備效率診斷 — 設定頁（/EquipmentEfficiencySetting）+ 診斷頁（/ChillerEfficiency、/CompressorEfficiency）。
+   評級色 / 運轉燈 / 綠色標頭在 ems.css（EMS 卡片共用）。 */
+
+/* ── 設定頁 ─────────────────────────────── */
+.eqs-page .nav-tabs .nav-link {
+    cursor: pointer;
+}
+
+/* 未選 tab 沿用 EMS 綠（Bootstrap 預設是連結藍） */
+.eqs-page .nav-tabs .nav-link:not(.active) {
+    color: #2e7d32;
+}
+
+.eqs-table td {
+    font-size: 0.85rem;
+}
+
+.eqs-chips .eqs-role-chip {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+    font-weight: 500;
+    cursor: help;
+}
+
+.eqs-scan-card {
+    border-left: 4px solid #cfd8dc;
+}
+
+.eqs-scan-card.is-checked {
+    border-left-color: #43a047;
+}
+
+.eqs-scan-name {
+    max-width: 260px;
+}
+
+.eqs-scan-roles td {
+    font-size: 0.82rem;
+    vertical-align: middle;
+}
+
+.eqs-conf-high   { background: #2e7d32; color: #fff; }
+.eqs-conf-medium { background: #0288d1; color: #fff; }
+.eqs-conf-low    { background: #eceff1; color: #546e7a; }
+
+.eqs-toast-host {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1090;
+    max-width: 360px;
+}
+
+/* ── 診斷頁：即時卡 ─────────────────────── */
+.eq-rt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 8px;
+}
+
+.eq-rt-card {
+    border: 1px solid #d7e9d9;
+    border-top: 4px solid #b0bec5;
+    border-radius: 6px;
+    background: #fff;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.eq-rt-card.eq-grade-Good { border-top-color: #2e7d32; }
+.eq-rt-card.eq-grade-Fair { border-top-color: #f9a825; }
+.eq-rt-card.eq-grade-Poor { border-top-color: #d32f2f; }
+.eq-rt-card.eq-grade-Off  { border-top-color: #78909c; background: #fafafa; }
+
+.eq-rt-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.eq-rt-name {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eq-rt-primary {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.eq-rt-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #263238;
+    font-variant-numeric: tabular-nums;
+}
+
+.eq-rt-unit {
+    color: #78909c;
+    font-size: 0.8rem;
+}
+
+.eq-rt-sub {
+    color: #546e7a;
+    min-height: 1.2em;
+}
+
+.eq-aux-list {
+    border-top: 1px dashed #e0e0e0;
+    padding-top: 3px;
+    margin-top: 2px;
+}
+
+.eq-aux {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.eq-rt-foot {
+    display: flex;
+    margin-top: 2px;
+}
+
+/* ── 診斷頁：期間 ───────────────────────── */
+.eq-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.eq-tile {
+    background: #f1f8f4;
+    border: 1px solid #d7e9d9;
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+.eq-tile-label {
+    font-size: 0.78rem;
+    color: #2e7d32;
+}
+
+.eq-tile-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #263238;
+    font-variant-numeric: tabular-nums;
+}
+
+.eq-tile-unit {
+    font-size: 0.75rem;
+    color: #78909c;
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+.eq-chart-title {
+    color: #2e7d32;
+    margin-bottom: 2px;
+}
+
+.eq-chart-wrap {
+    position: relative;
+    height: 280px;
+}
+
+.eq-rank-table {
+    font-size: 0.85rem;
+}
+
+.eq-rank-table thead th {
+    background: #f1f8f4;
+    color: #2e7d32;
+    border-bottom: 2px solid #c8e6c9;
+    white-space: nowrap;
+}
+
+.eq-rank-table td {
+    white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+    .eq-chart-wrap {
+        height: 220px;
+    }
+}

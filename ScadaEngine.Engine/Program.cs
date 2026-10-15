@@ -134,6 +134,14 @@ try
     builder.Services.AddSingleton<AirMeterLeafAggregator>();
     builder.Services.AddHostedService<AirMeterLeafAggregationService>();
 
+    // 註冊設備效率診斷 hourly 預聚合（冰機 / 空壓機，XX:06 觸發；每小時重讀 EquipmentProfile，設定異動免重啟）
+    builder.Services.AddSingleton<EquipmentProfileRepository>();
+    builder.Services.AddSingleton<EquipmentHourlyRepository>();
+    builder.Services.AddSingleton<EquipmentHourlyAggregator>();
+    builder.Services.AddHostedService<EquipmentHourlyAggregationService>();
+    // 設備效率 Backfill MQTT 訂閱（接 SCADA/Sys/EquipmentHourly/Backfill，Web 設定頁「回填歷史」觸發）
+    builder.Services.AddHostedService<EquipmentHourlyBackfillSubscriber>();
+
     // 註冊需量計算服務（每分鐘計算各電表迴路 15min 滑動 TWA 功率）
     builder.Services.AddHostedService<DemandCalculatorService>();
 

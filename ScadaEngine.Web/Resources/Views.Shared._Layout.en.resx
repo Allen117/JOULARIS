@@ -107,6 +107,10 @@
   <data name="layout.menu.electricity_circuit_info" xml:space="preserve"><value>Electricity Circuit Info</value></data>
   <data name="layout.menu.water_circuit_info" xml:space="preserve"><value>Water Meter Circuit Info</value></data>
   <data name="layout.menu.gas_circuit_info" xml:space="preserve"><value>Gas Circuit Info</value></data>
+  <data name="layout.menu.equipment_efficiency" xml:space="preserve"><value>Equipment Efficiency</value></data>
+  <data name="layout.menu.chiller_efficiency" xml:space="preserve"><value>Chiller Efficiency</value></data>
+  <data name="layout.menu.compressor_efficiency" xml:space="preserve"><value>Air Compressor Efficiency</value></data>
+  <data name="layout.menu.equipment_efficiency_setting" xml:space="preserve"><value>Equipment Efficiency Settings</value></data>
 
   <data name="layout.menu.system" xml:space="preserve"><value>System Settings</value></data>
   <data name="layout.menu.engineer_mode" xml:space="preserve"><value>Engineer Mode</value></data>

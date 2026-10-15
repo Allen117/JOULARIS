@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" /></xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" /></xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="eqd.goto_setting" xml:space="preserve"><value>設備效率設定</value></data>
+  <data name="eqd.empty" xml:space="preserve"><value>尚未設定任何設備。</value></data>
+  <data name="eqd.empty_action" xml:space="preserve"><value>前往設定（可自動掃描帶入）</value></data>
+  <data name="eqd.realtime" xml:space="preserve"><value>即時</value></data>
+  <data name="eqd.loading" xml:space="preserve"><value>載入中…</value></data>
+  <data name="eqd.period" xml:space="preserve"><value>累計</value></data>
+  <data name="eqd.gran.day" xml:space="preserve"><value>日</value></data>
+  <data name="eqd.gran.month" xml:space="preserve"><value>月</value></data>
+  <data name="eqd.gran.year" xml:space="preserve"><value>年</value></data>
+  <data name="eqd.trend" xml:space="preserve"><value>效率趨勢</value></data>
+  <data name="eqd.load_bins" xml:space="preserve"><value>負載率分佈</value></data>
+  <data name="eqd.load_bins_hint" xml:space="preserve"><value>運轉小時依平均負載率分為 ≤25 / 25–50 / 50–75 / &gt;75% 四段（對應 AHRI 550/590 IPLV 四個負載點）</value></data>
+  <data name="eqd.ranking" xml:space="preserve"><value>設備排名（依期間平均效率）</value></data>
+  <data name="eqd.method_chiller" xml:space="preserve"><value>期間 kW/RT = 期間總耗電 ÷ 總冷量（能量加權，ASHRAE 90.1 / AHRI 550/590）；COP = 3.517 ÷ kW/RT、EER = 12 ÷ kW/RT。冷量以冰水流量 × 出回水溫差逐分鐘計算。</value></data>
+  <data name="eqd.method_compressor" xml:space="preserve"><value>期間比功率 kW/(m³/min) = 總耗電 ÷ 總空氣量 × 60（能量加權，ISO 11011 / CAGI）；kW/100cfm = 比功率 × 2.832。</value></data>
+</root>

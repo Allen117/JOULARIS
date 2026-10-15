@@ -427,3 +427,78 @@ body.ems-mode .cw-badge-point {
 .ems-cost-table td {
     white-space: nowrap;
 }
+
+/* ── 設備效率診斷（冰機 / 空壓機）— 診斷頁 + EMS 卡片共用 ───────────────── */
+
+/* 綠色卡片標頭（與既有 EMS 卡片同色；集中於此避免 .cshtml inline 色號） */
+.eq-green-header {
+    background: #43a047;
+    color: #fff;
+}
+
+.eq-card-title-link {
+    color: #fff;
+    text-decoration: none;
+}
+
+.eq-card-title-link:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+/* 評級徽章：優 / 可 / 差 / 停機 / 資料不足 */
+.eq-grade-badge {
+    font-weight: 600;
+    min-width: 3.2em;
+}
+
+.eq-grade-badge.eq-grade-Good   { background: #2e7d32; color: #fff; }
+.eq-grade-badge.eq-grade-Fair   { background: #f9a825; color: #3e2723; }
+.eq-grade-badge.eq-grade-Poor   { background: #d32f2f; color: #fff; }
+.eq-grade-badge.eq-grade-Off    { background: #78909c; color: #fff; }
+.eq-grade-badge.eq-grade-NoData { background: #eceff1; color: #607d8b; border: 1px dashed #b0bec5; }
+
+/* 運轉燈 */
+.eq-run-lamp {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.eq-run-lamp.is-on      { background: #43a047; box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.2); }
+.eq-run-lamp.is-off     { background: #b0bec5; }
+.eq-run-lamp.is-unknown { background: transparent; border: 1px dashed #90a4ae; }
+
+/* EMS 卡片：每台一列 */
+.eq-card-list {
+    font-size: 0.85rem;
+}
+
+.eq-card-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 2px;
+    border-bottom: 1px solid #e8f5e9;
+}
+
+.eq-card-row:last-child {
+    border-bottom: none;
+}
+
+.eq-card-row .eq-card-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eq-card-row .eq-card-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    min-width: 4.5em;
+    text-align: right;
+}

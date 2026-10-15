@@ -1,0 +1,13 @@
+<!-- Compressor 效率卡（每台一列：運轉燈 / 名稱 / 即時主指標 + 評級；底部本曆月累計平均效率與運轉時數）— 驅動 js/ems-hub-equipment.js -->
+<div class="col-md-6 col-lg-5 col-xl-4">
+    <div class="card shadow-sm h-100 d-flex flex-column" data-eq-card data-kind="compressor">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center eq-green-header">
+            <a href="/CompressorEfficiency" class="eq-card-title-link"><i class="fas fa-compress-arrows-alt me-1"></i>@Localizer["ems.eq.compressor.title"]</a>
+            <span class="small opacity-75" data-eq-unit></span>
+        </div>
+        <div class="card-body p-2 flex-grow-1" data-eq-body>
+            <div class="text-center text-muted py-4">@Localizer["ems.eq.compressor.loading"]</div>
+        </div>
+        <div class="card-footer small text-muted py-1 px-2" data-eq-foot></div>
+    </div>
+</div>

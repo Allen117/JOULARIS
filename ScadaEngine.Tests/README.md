@@ -28,8 +28,13 @@ ScadaEngine.Tests/
 │   └── WidgetAccumulationCacheTests.cs   ← 日/時 bucket key 格式
 ├── ConditionCtrl/
 │   └── ParseOperatorTests.cs             ← 比較符號→nOperator
-└── OpcUa/
-    └── OpcUaClientHelperTests.cs         ← 讀回值/寫入值型別轉換
+├── OpcUa/
+│   └── OpcUaClientHelperTests.cs         ← 讀回值/寫入值型別轉換
+└── Equipment/                            ← 設備效率診斷（冰機 / 空壓機）
+    ├── EquipmentMetricCalculatorTests.cs ← kW/RT、COP、EER、比功率、流量+ΔT→RT、評級、停機、負載 bin
+    ├── EquipmentUnitScaleTests.cs        ← 單位→基準單位係數（L/min、m³/min、bar…）+ 必要角色
+    ├── EquipmentHourlyAggregatorTests.cs ← 分鐘對齊算 RT、kWh 兩路徑、RunHours、sparse、Backfill payload
+    └── EquipmentPeriodMetricTests.cs     ← 能量加權期間效率、Quality 過濾、覆蓋率、排名、即時組裝、存檔驗證
 ```
 
 新增測試時照此 pattern：`{領域}/{被測方法}Tests.cs`，方法名用中文「情境_期望」。

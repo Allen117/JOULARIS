@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" /></xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" /></xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="eqd.goto_setting" xml:space="preserve"><value>Equipment settings</value></data>
+  <data name="eqd.empty" xml:space="preserve"><value>No equipment configured yet.</value></data>
+  <data name="eqd.empty_action" xml:space="preserve"><value>Go to settings (auto-scan available)</value></data>
+  <data name="eqd.realtime" xml:space="preserve"><value>Live</value></data>
+  <data name="eqd.loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="eqd.period" xml:space="preserve"><value>Period</value></data>
+  <data name="eqd.gran.day" xml:space="preserve"><value>Day</value></data>
+  <data name="eqd.gran.month" xml:space="preserve"><value>Month</value></data>
+  <data name="eqd.gran.year" xml:space="preserve"><value>Year</value></data>
+  <data name="eqd.trend" xml:space="preserve"><value>Efficiency trend</value></data>
+  <data name="eqd.load_bins" xml:space="preserve"><value>Load distribution</value></data>
+  <data name="eqd.load_bins_hint" xml:space="preserve"><value>Run hours split by average load into ≤25 / 25–50 / 50–75 / &gt;75% (the four AHRI 550/590 IPLV load points)</value></data>
+  <data name="eqd.ranking" xml:space="preserve"><value>Ranking (by period efficiency)</value></data>
+  <data name="eqd.method_chiller" xml:space="preserve"><value>Period kW/RT = total energy ÷ total cooling (energy-weighted, ASHRAE 90.1 / AHRI 550/590); COP = 3.517 ÷ kW/RT, EER = 12 ÷ kW/RT. Cooling is calculated minute by minute from CHW flow × supply/return ΔT.</value></data>
+  <data name="eqd.method_compressor" xml:space="preserve"><value>Period specific power kW/(m³/min) = total energy ÷ total air × 60 (energy-weighted, ISO 11011 / CAGI); kW/100cfm = specific power × 2.832.</value></data>
+</root>

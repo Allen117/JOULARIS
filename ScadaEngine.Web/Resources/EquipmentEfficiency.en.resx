@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" /></xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" /></xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="eq.kind.chiller" xml:space="preserve"><value>chiller</value></data>
+  <data name="eq.kind.compressor" xml:space="preserve"><value>air compressor</value></data>
+  <data name="eq.role.KW" xml:space="preserve"><value>Power kW</value></data>
+  <data name="eq.role.KWH" xml:space="preserve"><value>Energy kWh (totalizer)</value></data>
+  <data name="eq.role.RT" xml:space="preserve"><value>Cooling RT (direct point)</value></data>
+  <data name="eq.role.FLOW" xml:space="preserve"><value>Chilled water flow</value></data>
+  <data name="eq.role.CHWS" xml:space="preserve"><value>CHW supply temp</value></data>
+  <data name="eq.role.CHWR" xml:space="preserve"><value>CHW return temp</value></data>
+  <data name="eq.role.CDWS" xml:space="preserve"><value>CW entering temp</value></data>
+  <data name="eq.role.CDWR" xml:space="preserve"><value>CW leaving temp</value></data>
+  <data name="eq.role.EVAPT" xml:space="preserve"><value>Evaporator sat. temp</value></data>
+  <data name="eq.role.CONDT" xml:space="preserve"><value>Condenser sat. temp</value></data>
+  <data name="eq.role.LOAD" xml:space="preserve"><value>Load %</value></data>
+  <data name="eq.role.RUN" xml:space="preserve"><value>Run status</value></data>
+  <data name="eq.role.AIRFLOW" xml:space="preserve"><value>Air flow (FAD)</value></data>
+  <data name="eq.role.DISCHPRESS" xml:space="preserve"><value>Discharge pressure</value></data>
+  <data name="eq.role.DISCHTEMP" xml:space="preserve"><value>Discharge temp</value></data>
+  <data name="eq.role.LOADED" xml:space="preserve"><value>Loaded status</value></data>
+  <data name="eq.missing.power" xml:space="preserve"><value>power (kW or kWh)</value></data>
+  <data name="eq.missing.chiller_output" xml:space="preserve"><value>cooling (CHW flow + supply/return temp, or RT point)</value></data>
+  <data name="eq.missing.airflow" xml:space="preserve"><value>air flow</value></data>
+  <data name="eq.err.invalid_kind" xml:space="preserve"><value>Invalid equipment kind</value></data>
+  <data name="eq.err.name_required" xml:space="preserve"><value>Please enter an equipment name</value></data>
+  <data name="eq.err.name_too_long" xml:space="preserve"><value>Name is too long (max 100 characters)</value></data>
+  <data name="eq.err.negative_value" xml:space="preserve"><value>Value cannot be negative ({detail})</value></data>
+  <data name="eq.err.threshold_order" xml:space="preserve"><value>The Good threshold cannot exceed the Fair threshold</value></data>
+  <data name="eq.err.invalid_role" xml:space="preserve"><value>Role does not belong to this kind: {detail}</value></data>
+  <data name="eq.err.duplicate_role" xml:space="preserve"><value>Role bound more than once: {detail}</value></data>
+  <data name="eq.err.invalid_unit" xml:space="preserve"><value>Unit cannot be converted: {detail}</value></data>
+  <data name="eq.err.missing_required" xml:space="preserve"><value>Required points not bound: {detail}</value></data>
+  <data name="eq.err.not_found" xml:space="preserve"><value>Equipment not found (it may have been deleted)</value></data>
+  <data name="eq.err.empty" xml:space="preserve"><value>Nothing to import</value></data>
+  <data name="eq.err.invalid_range" xml:space="preserve"><value>Invalid date range</value></data>
+  <data name="eq.err.range_too_long" xml:space="preserve"><value>Backfill range is limited to 366 days</value></data>
+  <data name="eq.err.mqtt_unavailable" xml:space="preserve"><value>MQTT unavailable; the Engine did not receive the backfill request</value></data>
+  <data name="eq.setting.empty" xml:space="preserve"><value>No {kind} configured yet. Use Scan to detect from points, or add one manually.</value></data>
+  <data name="eq.setting.btn_scan" xml:space="preserve"><value>Scan</value></data>
+  <data name="eq.setting.btn_add" xml:space="preserve"><value>Add manually</value></data>
+  <data name="eq.setting.enabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="eq.setting.disabled" xml:space="preserve"><value>Disabled</value></data>
+  <data name="eq.setting.edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="eq.setting.backfill" xml:space="preserve"><value>Backfill history</value></data>
+  <data name="eq.setting.delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="eq.setting.col_sort" xml:space="preserve"><value>Order</value></data>
+  <data name="eq.setting.col_name" xml:space="preserve"><value>Name</value></data>
+  <data name="eq.setting.col_status" xml:space="preserve"><value>Status</value></data>
+  <data name="eq.setting.col_roles" xml:space="preserve"><value>Bound points</value></data>
+  <data name="eq.setting.col_rated" xml:space="preserve"><value>Rated output / power</value></data>
+  <data name="eq.setting.col_threshold" xml:space="preserve"><value>Thresholds (Good / Fair)</value></data>
+  <data name="eq.setting.delete_confirm" xml:space="preserve"><value>Delete "{name}"? Its accumulated efficiency data will also be deleted.</value></data>
+  <data name="eq.setting.deleted" xml:space="preserve"><value>Deleted</value></data>
+  <data name="eq.scan.title_auto" xml:space="preserve"><value>Found {n} possible {kind} unit(s). Import them?</value></data>
+  <data name="eq.scan.title" xml:space="preserve"><value>Scan result: {n} possible {kind} unit(s)</value></data>
+  <data name="eq.scan.none" xml:space="preserve"><value>No possible {kind} found. Add one manually instead.</value></data>
+  <data name="eq.scan.hint" xml:space="preserve"><value>Detected by device grouping and point names. You can rename and change points or units before importing. Units missing required points must be completed before they can be selected.</value></data>
+  <data name="eq.scan.existing" xml:space="preserve"><value>Already exists</value></data>
+  <data name="eq.scan.conf_high" xml:space="preserve"><value>High confidence</value></data>
+  <data name="eq.scan.conf_medium" xml:space="preserve"><value>Medium confidence</value></data>
+  <data name="eq.scan.conf_low" xml:space="preserve"><value>Low confidence</value></data>
+  <data name="eq.scan.missing" xml:space="preserve"><value>Missing: {list}</value></data>
+  <data name="eq.scan.unbound" xml:space="preserve"><value>— not bound —</value></data>
+  <data name="eq.scan.multi" xml:space="preserve"><value>{n} matches</value></data>
+  <data name="eq.scan.multi_hint" xml:space="preserve"><value>Several points match this role; the first was picked. Please verify.</value></data>
+  <data name="eq.scan.pick_other" xml:space="preserve"><value>Pick a point from another device</value></data>
+  <data name="eq.scan.device" xml:space="preserve"><value>Device group</value></data>
+  <data name="eq.scan.basis" xml:space="preserve"><value>Matched roles</value></data>
+  <data name="eq.scan.roles_detail" xml:space="preserve"><value>Role points</value></data>
+  <data name="eq.scan.import" xml:space="preserve"><value>Import {n} selected</value></data>
+  <data name="eq.scan.imported" xml:space="preserve"><value>Imported {n} unit(s)</value></data>
+  <data name="eq.edit.title_edit" xml:space="preserve"><value>Edit equipment</value></data>
+  <data name="eq.edit.title_add" xml:space="preserve"><value>Add {kind}</value></data>
+  <data name="eq.edit.name" xml:space="preserve"><value>Name</value></data>
+  <data name="eq.edit.sort" xml:space="preserve"><value>Order</value></data>
+  <data name="eq.edit.rated_rt" xml:space="preserve"><value>Rated cooling (RT)</value></data>
+  <data name="eq.edit.rated_flow" xml:space="preserve"><value>Rated air flow (m³/min)</value></data>
+  <data name="eq.edit.rated_kw" xml:space="preserve"><value>Rated power (kW)</value></data>
+  <data name="eq.edit.max_kwh" xml:space="preserve"><value>kWh totalizer rollover max</value></data>
+  <data name="eq.edit.good" xml:space="preserve"><value>Good threshold (≤ {unit})</value></data>
+  <data name="eq.edit.fair" xml:space="preserve"><value>Fair threshold (≤ {unit})</value></data>
+  <data name="eq.edit.specific_heat" xml:space="preserve"><value>Specific heat kJ/(kg·K) (glycol systems)</value></data>
+  <data name="eq.edit.threshold_hint" xml:space="preserve"><value>Default thresholds are only a starting point; adjust them per nameplate or acceptance test. Rated power is used to detect stops (below 5% counts as stopped).</value></data>
+  <data name="eq.edit.roles" xml:space="preserve"><value>Role points</value></data>
+  <data name="eq.edit.roles_hint_chiller" xml:space="preserve"><value>* Required: kW or kWh; cooling is calculated from CHW flow + supply + return temperature, or bind a direct RT point.</value></data>
+  <data name="eq.edit.roles_hint_compressor" xml:space="preserve"><value>* Required: kW or kWh, plus air flow.</value></data>
+  <data name="eq.edit.missing" xml:space="preserve"><value>Missing required points: {list}</value></data>
+  <data name="eq.edit.description" xml:space="preserve"><value>Notes</value></data>
+  <data name="eq.edit.saved" xml:space="preserve"><value>Saved. The Engine uses the new settings from the next hour.</value></data>
+  <data name="eq.backfill.all" xml:space="preserve"><value>All equipment (chillers + compressors)</value></data>
+  <data name="eq.backfill.sent" xml:space="preserve"><value>Backfill request sent. The Engine recalculates hour by hour in the background.</value></data>
+  <data name="eq.grade.Good" xml:space="preserve"><value>Good</value></data>
+  <data name="eq.grade.Fair" xml:space="preserve"><value>Fair</value></data>
+  <data name="eq.grade.Poor" xml:space="preserve"><value>Poor</value></data>
+  <data name="eq.grade.Off" xml:space="preserve"><value>Off</value></data>
+  <data name="eq.grade.NoData" xml:space="preserve"><value>No data</value></data>
+  <data name="eq.metric.cop" xml:space="preserve"><value>COP</value></data>
+  <data name="eq.metric.eer" xml:space="preserve"><value>EER</value></data>
+  <data name="eq.metric.cooling" xml:space="preserve"><value>Cooling</value></data>
+  <data name="eq.metric.airflow" xml:space="preserve"><value>Air flow</value></data>
+  <data name="eq.metric.load" xml:space="preserve"><value>Load</value></data>
+  <data name="eq.metric.chw_dt" xml:space="preserve"><value>CHW ΔT</value></data>
+  <data name="eq.metric.cdw_dt" xml:space="preserve"><value>CW ΔT</value></data>
+  <data name="eq.metric.evap_approach" xml:space="preserve"><value>Evap. approach</value></data>
+  <data name="eq.metric.cond_approach" xml:space="preserve"><value>Cond. approach</value></data>
+  <data name="eq.metric.kw_per_100cfm" xml:space="preserve"><value>kW/100cfm</value></data>
+  <data name="eq.metric.specific_energy" xml:space="preserve"><value>Specific energy</value></data>
+  <data name="eq.metric.press" xml:space="preserve"><value>Discharge pressure</value></data>
+  <data name="eq.metric.disch_temp" xml:space="preserve"><value>Discharge temp</value></data>
+  <data name="eq.metric.loaded_state" xml:space="preserve"><value>Load state</value></data>
+  <data name="eq.metric.power" xml:space="preserve"><value>Power</value></data>
+  <data name="eq.diag.load_error" xml:space="preserve"><value>Failed to load</value></data>
+  <data name="eq.diag.updated_at" xml:space="preserve"><value>Updated {time}</value></data>
+  <data name="eq.diag.running" xml:space="preserve"><value>Running</value></data>
+  <data name="eq.diag.stopped" xml:space="preserve"><value>Stopped</value></data>
+  <data name="eq.diag.run_unknown" xml:space="preserve"><value>Run status unknown</value></data>
+  <data name="eq.diag.loaded" xml:space="preserve"><value>Loaded</value></data>
+  <data name="eq.diag.unloaded" xml:space="preserve"><value>Unloaded</value></data>
+  <data name="eq.diag.rt_point_compare" xml:space="preserve"><value>RT point for comparison: {v} RT</value></data>
+  <data name="eq.diag.no_data" xml:space="preserve"><value>No live value yet</value></data>
+  <data name="eq.diag.threshold" xml:space="preserve"><value>Thresholds {good} / {fair}</value></data>
+  <data name="eq.diag.coverage_warn" xml:space="preserve"><value>Data coverage {pct}% ({name} is missing {missing} hours, below {threshold}%). Missing hours are excluded from the efficiency calculation.</value></data>
+  <data name="eq.diag.tile_primary" xml:space="preserve"><value>Period efficiency</value></data>
+  <data name="eq.diag.tile_kwh" xml:space="preserve"><value>Total energy</value></data>
+  <data name="eq.diag.tile_output" xml:space="preserve"><value>Total {name}</value></data>
+  <data name="eq.diag.tile_run_hours" xml:space="preserve"><value>Run hours</value></data>
+  <data name="eq.diag.tile_avg_load" xml:space="preserve"><value>Avg. load</value></data>
+  <data name="eq.diag.tile_loaded_ratio" xml:space="preserve"><value>Loaded time ratio</value></data>
+  <data name="eq.diag.tile_avg_press" xml:space="preserve"><value>Avg. discharge pressure</value></data>
+  <data name="eq.diag.fleet" xml:space="preserve"><value>Plant weighted</value></data>
+  <data name="eq.diag.bin_kwh_pct" xml:space="preserve"><value>Energy share</value></data>
+  <data name="eq.diag.bin_output_pct" xml:space="preserve"><value>{name} share</value></data>
+  <data name="eq.diag.bin_hours" xml:space="preserve"><value>{h} run hours</value></data>
+  <data name="eq.diag.bin_efficiency" xml:space="preserve"><value>Efficiency {v} {unit}</value></data>
+  <data name="eq.diag.col_name" xml:space="preserve"><value>Equipment</value></data>
+  <data name="eq.diag.col_grade" xml:space="preserve"><value>Grade</value></data>
+  <data name="eq.diag.col_run_hours" xml:space="preserve"><value>Run hours</value></data>
+  <data name="eq.diag.col_avg_load" xml:space="preserve"><value>Avg. load %</value></data>
+  <data name="eq.diag.col_threshold" xml:space="preserve"><value>Thresholds</value></data>
+  <data name="eq.diag.col_coverage" xml:space="preserve"><value>Coverage</value></data>
+  <data name="eq.card.not_configured" xml:space="preserve"><value>Not configured</value></data>
+  <data name="eq.card.goto_setting" xml:space="preserve"><value>Go to Equipment Efficiency Settings</value></data>
+  <data name="eq.card.month_summary" xml:space="preserve"><value>{month} to date: {value} {unit} · {hours} run h</value></data>
+  <data name="eq.card.load_error" xml:space="preserve"><value>Failed to load</value></data>
+</root>

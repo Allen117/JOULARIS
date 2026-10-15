@@ -989,6 +989,73 @@
           "_comment": "顯示順序（1..N，儲存時由 Web 正規化）" },
         { "Name": "UpdatedAt", "Type": "datetime", "Nullable": false, "Default": "getdate()" }
       ]
+    },
+    {
+      "_comment": "設備效率診斷 — 設備主檔（冰機 / 空壓機）。一列 = 一台設備；角色點位綁定在 EquipmentPointBinding。與 WaterCircuit（空調水系統迴路）/ 自來水表 / 氣表三套迴路皆無關。/EquipmentEfficiencySetting 頁維護，Engine 每小時重讀（免重啟）。",
+      "TableName": "EquipmentProfile",
+      "Columns": [
+        { "Name": "Id",             "Type": "int",      "IsPrimaryKey": true, "IsIdentity": true, "Nullable": false },
+        { "Name": "Kind",           "Type": "nvarchar", "Length": 20,  "Nullable": false,
+          "_comment": "chiller / compressor（Common EquipmentKind）" },
+        { "Name": "Name",           "Type": "nvarchar", "Length": 100, "Nullable": false },
+        { "Name": "SortOrder",      "Type": "int",      "Nullable": false, "Default": 0 },
+        { "Name": "IsEnabled",      "Type": "bit",      "Nullable": false, "Default": 1 },
+        { "Name": "RatedOutput",    "Type": "float",    "Nullable": true,
+          "_comment": "額定產出：冰機 RT / 空壓機 m³/min" },
+        { "Name": "RatedPower",     "Type": "float",    "Nullable": true,
+          "_comment": "額定電力 kW（停機判定 = 額定 × 5%）" },
+        { "Name": "MaxKwh",         "Type": "float",    "Nullable": true,
+          "_comment": "KWH 累積點溢位上限（同 EnergyCircuit.MaxKwh）" },
+        { "Name": "SpecificHeat",   "Type": "float",    "Nullable": true,
+          "_comment": "流量 + ΔT 算 RT 的比熱 kJ/(kg·K)，NULL = 4.186（水）；乙二醇系統自行調整" },
+        { "Name": "GoodThreshold",  "Type": "float",    "Nullable": true,
+          "_comment": "主指標（kW/RT 或 kW/(m³/min)）≤ 此值 = 優" },
+        { "Name": "FairThreshold",  "Type": "float",    "Nullable": true,
+          "_comment": "主指標 ≤ 此值 = 可，> 此值 = 差" },
+        { "Name": "Description",    "Type": "nvarchar", "Length": 500, "Nullable": true },
+        { "Name": "CreatedAt",      "Type": "datetime", "Nullable": false, "Default": "getdate()" },
+        { "Name": "UpdatedAt",      "Type": "datetime", "Nullable": true }
+      ]
+    },
+    {
+      "_comment": "設備效率診斷 — 設備角色點位綁定。PK = ProfileId + Role；Role 為 Common EquipmentRoles 常數（KW / KWH / FLOW / CHWS / CHWR / RT / AIRFLOW …）。Scale = 原始值乘上後即為基準單位（冰水流量 L/min、空氣量 m³/min、壓力 bar …）。參照為應用層維護，無 DB FK。",
+      "TableName": "EquipmentPointBinding",
+      "Columns": [
+        { "Name": "ProfileId", "Type": "int",      "IsPrimaryKey": true, "Nullable": false },
+        { "Name": "Role",      "Type": "nvarchar", "Length": 30,  "IsPrimaryKey": true, "Nullable": false },
+        { "Name": "SID",       "Type": "nvarchar", "Length": 100, "Nullable": false },
+        { "Name": "Unit",      "Type": "nvarchar", "Length": 20,  "Nullable": true,
+          "_comment": "使用者選的原始單位（顯示用）" },
+        { "Name": "Scale",     "Type": "float",    "Nullable": false, "Default": 1,
+          "_comment": "換算到基準單位的係數" },
+        { "Name": "UpdatedAt", "Type": "datetime", "Nullable": true }
+      ]
+    },
+    {
+      "_comment": "設備效率診斷 — 設備層 hourly 預聚合（Engine XX:04）。一列 = 一台設備一小時，kWh 與產出同小時配對。Quality=1 計入期間效率；Quality=0 = kWh 足量但產出樣本不足（OutputQty NULL）；kWh 不足整列不寫（sparse）。",
+      "TableName": "EquipmentHourly",
+      "Columns": [
+        { "Name": "ProfileId",    "Type": "int",      "IsPrimaryKey": true, "Nullable": false },
+        { "Name": "HourStart",    "Type": "datetime", "IsPrimaryKey": true, "Nullable": false,
+          "_comment": "小時起點（local time，與 HistoryData.Timestamp 同基準）" },
+        { "Name": "Kwh",          "Type": "float",    "Nullable": false,
+          "_comment": "KWH 累積點邊界相減（含溢位）優先，否則 AVG(kW) × 1h" },
+        { "Name": "OutputQty",    "Type": "float",    "Nullable": true,
+          "_comment": "冰機 RT·h（分鐘對齊流量 + 進出水溫算 RT 再 AVG × 1h，或 RT 點 AVG × 1h）/ 空壓機 m³（AVG(m³/min) × 60）" },
+        { "Name": "RunHours",     "Type": "float",    "Nullable": false, "Default": 0,
+          "_comment": "運轉時數 0~1（RUN 點占比；無 RUN 點用 kW > 額定 × 5%）" },
+        { "Name": "AvgLoadPct",   "Type": "float",    "Nullable": true,
+          "_comment": "運轉期間平均負載率 %（負載分佈 25/50/75/100 bin 用）" },
+        { "Name": "LoadedHours",  "Type": "float",    "Nullable": true,
+          "_comment": "空壓機加載時數 0~1（有 LOADED 點才有）" },
+        { "Name": "AvgPressure",  "Type": "float",    "Nullable": true,
+          "_comment": "空壓機運轉期間平均排氣壓力 bar" },
+        { "Name": "SampleCount",  "Type": "int",      "Nullable": false, "Default": 0,
+          "_comment": "產出有效樣本分鐘數" },
+        { "Name": "Quality",      "Type": "tinyint",  "Nullable": false, "Default": 1 },
+        { "Name": "IsBackfilled", "Type": "bit",      "Nullable": false, "Default": 0 },
+        { "Name": "CreatedAt",    "Type": "datetime", "Nullable": false, "Default": "getdate()" }
+      ]
     }
   ]
 }

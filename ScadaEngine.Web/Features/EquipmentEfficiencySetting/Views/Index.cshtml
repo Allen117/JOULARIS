@@ -1,0 +1,110 @@
+@model ScadaEngine.Web.Features.EquipmentEfficiencySetting.Models.EquipmentEfficiencySettingViewModel
+@{
+    ViewData["Title"] = Localizer["eqs.title"].Value;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link rel="stylesheet" href="~/css/point-picker.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/equipment.css" asp-append-version="true" />
+
+@* data-kind = 初始 tab（?kind=chiller|compressor）；清單 / 掃描 / 編輯全由 js/equipment-setting.js 渲染 *@
+<div class="container-fluid mt-3 eqs-page" id="eqSettingRoot" data-kind="@Model.szInitialKind">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h5 class="mb-0"><i class="fas fa-gauge-high me-2 text-primary"></i>@Localizer["eqs.title"]</h5>
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="eqsBtnScan"><i class="fas fa-magic me-1"></i>@Localizer["eqs.btn.scan"]</button>
+            <button type="button" class="btn btn-sm btn-primary" id="eqsBtnAdd"><i class="fas fa-plus me-1"></i>@Localizer["eqs.btn.add"]</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="eqsBtnBackfillAll"><i class="fas fa-history me-1"></i>@Localizer["eqs.btn.backfill_all"]</button>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs" id="eqsTabs">
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-kind="chiller"><i class="fas fa-temperature-low me-1"></i>@Localizer["eqs.tab.chiller"]
+                <span class="badge rounded-pill bg-secondary ms-1" data-count="chiller">0</span></a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-kind="compressor"><i class="fas fa-compress-arrows-alt me-1"></i>@Localizer["eqs.tab.compressor"]
+                <span class="badge rounded-pill bg-secondary ms-1" data-count="compressor">0</span></a>
+        </li>
+    </ul>
+    <div class="card border-top-0 rounded-0 rounded-bottom shadow-sm">
+        <div class="card-body p-2" id="eqsListBody">
+            <div class="text-center text-muted py-4">@Localizer["eqs.loading"]</div>
+        </div>
+    </div>
+    <div class="small text-muted mt-2"><i class="fas fa-info-circle me-1"></i>@Localizer["eqs.hint.reload"]</div>
+    <div id="eqsToast" class="eqs-toast-host"></div>
+</div>
+
+<!-- 掃描結果 -->
+<div class="modal fade" id="eqsScanModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-magic me-1 text-primary"></i><span id="eqsScanTitle"></span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="eqsScanBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary me-auto" id="eqsScanSelectAll">@Localizer["eqs.scan.select_all"]</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">@Localizer["eqs.btn.cancel"]</button>
+                <button type="button" class="btn btn-sm btn-primary" id="eqsScanImport" disabled></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增 / 編輯 -->
+<div class="modal fade" id="eqsEditModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-pen me-1 text-primary"></i><span id="eqsEditTitle"></span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="eqsEditBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">@Localizer["eqs.btn.cancel"]</button>
+                <button type="button" class="btn btn-sm btn-primary" id="eqsEditSave">@Localizer["eqs.btn.save"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 回填歷史 -->
+<div class="modal fade" id="eqsBackfillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-history me-1 text-primary"></i>@Localizer["eqs.backfill.title"]</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2 small">@Localizer["eqs.backfill.target"]：<strong id="eqsBackfillTarget"></strong></div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small mb-0" for="eqsBackfillFrom">@Localizer["eqs.backfill.from"]</label>
+                        <input type="date" class="form-control form-control-sm" id="eqsBackfillFrom" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small mb-0" for="eqsBackfillTo">@Localizer["eqs.backfill.to"]</label>
+                        <input type="date" class="form-control form-control-sm" id="eqsBackfillTo" />
+                    </div>
+                </div>
+                <div class="form-text">@Localizer["eqs.backfill.hint"]</div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">@Localizer["eqs.btn.cancel"]</button>
+                <button type="button" class="btn btn-sm btn-primary" id="eqsBackfillRun">@Localizer["eqs.backfill.run"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/common/point-grouping.js" asp-append-version="true"></script>
+    <script src="~/js/common/point-picker.js" asp-append-version="true"></script>
+    <script src="~/js/role-aliases.js" asp-append-version="true"></script>
+    <script src="~/js/equipment-scan.js" asp-append-version="true"></script>
+    <script src="~/js/equipment-setting.js" asp-append-version="true"></script>
+}

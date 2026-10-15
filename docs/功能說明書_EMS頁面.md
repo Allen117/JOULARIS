@@ -10,6 +10,9 @@
 | 自來水迴路資訊 | `/WaterCircuitInfo` |
 | 氣迴路資訊 | `/GasCircuitInfo` |
 | 空調水系統迴路 | `/ChilledWaterCircuitInfo` |
+| 冰機效率診斷 | `/ChillerEfficiency` |（→ [功能說明書_設備效率診斷.md](功能說明書_設備效率診斷.md)）
+| 空壓機效率診斷 | `/CompressorEfficiency` |
+| 設備效率設定 | `/EquipmentEfficiencySetting` |（冰機 / 空壓機兩 tab，掃描帶入 + 手動）
 | 空調水系統迴路設定 | `/ChilledWaterSystem` |（樹可拖曳搬移，無 Sign、允許多根 → [功能說明書_階層樹拖曳搬移.md](功能說明書_階層樹拖曳搬移.md)）
 | 電表/迴路設定 | `/EnergyMeter` |
 | 用電報表 | `/EnergyReport` |
@@ -160,6 +163,7 @@ JS 內部同時以「根元素是否存在」防呆（雙保險），詳見 §9�
 | 去年同期比較表 | col-xl-8 | 主要電表 + 直接子迴路本期 vs 去年同期比較（`ems-hub-energy.js`），詳見 §7.3 |
 | 電費狀態 | col-xl-4 | 本期（月結期別）各時段 kWh 與流動電費，依採用方案型態自適應（`ems-hub-cost.js`），詳見 §7.6 |
 | 電費去年同期比較 | col-xl-8 | 主要電表 + 直接子迴路本期 vs 去年同期**流動電費（元）**比較，自帶日/月/年切換（`ems-hub-cost-yoy.js`），詳見 §7.7 |
+| 冰機效率 / 空壓機效率 | col-xl-4（各一張） | 每台一列（運轉燈 / 名稱 / 即時 kW/RT 或 kW/(m³/min) + 評級）+ 底部本曆月累計平均效率・運轉時數，30s 輪詢（`ems-hub-equipment.js`），詳見 §7.8 |
 
 ### 7.1 主要電表用電長條圖卡片
 
@@ -198,6 +202,9 @@ JS 內部同時以「根元素是否存在」防呆（雙保險），詳見 §9�
 | GET | `/EMS/api/main-meter-breakdown?granularity=&pivot=` | `{ hasMainMeter, meterName, items: [{ id, name, kwh }] }` |
 | GET | `/EMS/api/main-meter-yoy?granularity=&pivot=` | `{ hasMainMeter, rows: [{ id, name, isMainMeter, currentKwh, lastYearKwh, diffKwh, pctChange }] }` |
 | GET | `/EMS/api/electricity-cost?circuitId=` | `EmsElectricityCostDto`（`{ hasPlan, hasCircuit, planId, planType, totalKwh, totalCost, periods[], progressive, flat, surcharge, ... }`）— 電費狀態卡，見 §7.6 |
+| GET | `/EMS/api/equipment/realtime?kind=` | `EquipmentRealtimeDto`（每台即時主 / 次指標、評級、輔助指標）— 冰機 / 空壓機診斷頁與卡片，見 §7.8 |
+| GET | `/EMS/api/equipment/period?kind=&granularity=&pivot=` | `EquipmentPeriodDto`（tiles / 趨勢 / 負載分佈 / 排名 / 覆蓋率）— **曆制**（`ParseCalendarPivot`），不走期別 |
+| GET | `/EMS/api/equipment/card?kind=` | `EquipmentCardDto`（即時列表 + 本曆月累計）— 設備效率卡 |
 | GET | `/EMS/api/main-meter-cost-yoy?granularity=&pivot=` | `{ hasMainMeter, isEstimated, rows: [{ id, name, isMainMeter, currentCost, lastYearCost, diffCost, pctChange }] }` — 電費去年同期比較卡，見 §7.7 |
 
 granularity / pivot 協定同 `/EMS/api/circuit-energy`（`hour`→`yyyy-MM-dd`、`day`→`yyyy-MM`、`month`→`yyyy`）。DTO 位於 `Features/Ems/Models/EmsMainMeterDtos.cs`；服務層新增 `EnergyCircuitService.GetMainMeterAsync()` 與 `EnergyReportService.GetTotalKwhAsync()`（bucket 加總公開包裝）。
@@ -241,6 +248,14 @@ granularity / pivot 協定同 `/EMS/api/circuit-energy`（`hour`→`yyyy-MM-dd`�
 - progressive（累進）方案子迴路電費為 kWh 占比分攤估算（同電費卡）；任一列估算時卡片底部顯示「金額只含流動電費…累進方案子迴路為估算值」註記
 - 金額只含流動電費，不含基本電費
 
+### 7.8 冰機效率 / 空壓機效率卡（2026-10 新增）
+
+- 卡片鍵 `ChillerEfficiency` / `CompressorEfficiency`（`EmsCardRegistry` 第 14、15 筆，可各自隱藏 / 排序）；partial `_Card{Chiller,Compressor}Efficiency.cshtml`，根元素 `[data-eq-card][data-kind]`
+- 每類**一張設備列表卡**而非每台一張 — 註冊表是靜態的，每台一張會讓 /EmsCardSetting 跟著設備數變動
+- 資料源 `GET /EMS/api/equipment/card?kind=`（30s 輪詢）：即時主指標與評級同診斷頁（`EquipmentRealtimeService`），底部本曆月 1 號～現在的能量加權平均效率與運轉時數（`EquipmentEfficiencyReportService.GetMonthToDateAsync`）
+- 標題連到 `/ChillerEfficiency` / `/CompressorEfficiency`；0 台 → 「尚未設定」+ 設定頁連結
+- 指標定義、評級與 Engine 聚合 → [功能說明書_設備效率診斷.md](功能說明書_設備效率診斷.md)
+
 ## 8. 檔案位置
 
 ```
@@ -259,6 +274,7 @@ ScadaEngine.Web/
 ├── wwwroot/js/ems-hub-energy.js            ← 三張新卡片邏輯（IIFE）
 ├── wwwroot/js/ems-hub-cost.js              ← 電費狀態卡（IIFE；DTO：Models/EmsElectricityCostDtos.cs）
 ├── wwwroot/js/ems-hub-cost-yoy.js          ← 電費去年同期比較卡（IIFE，自帶期間切換）
+├── wwwroot/js/ems-hub-equipment.js         ← 冰機 / 空壓機效率卡（IIFE；DTO：Models/EmsEquipmentDtos.cs）
 ├── Resources/
 │   ├── Features.Ems.Views.Index.resx
 │   └── Features.Ems.Views.Index.en.resx

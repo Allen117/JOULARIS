@@ -1,0 +1,73 @@
+@* 設備效率診斷頁共用版面（/ChillerEfficiency、/CompressorEfficiency）。
+   呼叫端以 ViewData["EqKind"] 傳 chiller / compressor；ViewData["EqTitle"] 傳頁面標題。
+   內容全由 js/ems-equipment.js 依 data-kind 渲染；字串集中在 Views.Shared._EquipmentDiagnosis.resx（兩頁共用一份）。 *@
+@{
+    var szKind = (ViewData["EqKind"] as string) == "compressor" ? "compressor" : "chiller";
+    var szTitle = ViewData["EqTitle"] as string ?? string.Empty;
+    var szIcon = szKind == "compressor" ? "fa-compress-arrows-alt" : "fa-temperature-low";
+}
+<div class="container-fluid mt-3 eqd-page" id="eqdRoot" data-kind="@szKind">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h5 class="mb-0"><i class="fas @szIcon me-2 text-primary"></i>@szTitle</h5>
+        <a class="btn btn-sm btn-outline-primary" href="/EquipmentEfficiencySetting?kind=@szKind">
+            <i class="fas fa-sliders-h me-1"></i>@Localizer["eqd.goto_setting"]
+        </a>
+    </div>
+
+    <div id="eqdEmpty" class="text-center text-muted py-5" style="display:none;">
+        <i class="fas fa-inbox fa-2x mb-2 d-block opacity-50"></i>
+        @Localizer["eqd.empty"]
+        <div class="mt-3">
+            <a class="btn btn-sm btn-primary" href="/EquipmentEfficiencySetting?kind=@szKind"><i class="fas fa-plus me-1"></i>@Localizer["eqd.empty_action"]</a>
+        </div>
+    </div>
+
+    <div id="eqdMain">
+        <!-- 即時 -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center eq-green-header">
+                <span><i class="fas fa-bolt me-1"></i>@Localizer["eqd.realtime"]</span>
+                <span class="small opacity-75" id="eqdRealtimeTime"></span>
+            </div>
+            <div class="card-body p-2">
+                <div id="eqdRealtime" class="eq-rt-grid">
+                    <div class="text-center text-muted py-3 w-100">@Localizer["eqd.loading"]</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 累計 -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2 eq-green-header">
+                <span><i class="fas fa-chart-line me-1"></i>@Localizer["eqd.period"]</span>
+                <span class="d-flex align-items-center gap-2">
+                    <span class="btn-group btn-group-sm ems-gran-group" role="group" id="eqdGranGroup">
+                        <button type="button" class="btn ems-gran-btn active" data-gran="hour">@Localizer["eqd.gran.day"]</button>
+                        <button type="button" class="btn ems-gran-btn" data-gran="day">@Localizer["eqd.gran.month"]</button>
+                        <button type="button" class="btn ems-gran-btn" data-gran="month">@Localizer["eqd.gran.year"]</button>
+                    </span>
+                    <input type="date" id="eqdPivotDate" class="form-control form-control-sm ems-hub-picker" />
+                    <input type="month" id="eqdPivotMonth" class="form-control form-control-sm ems-hub-picker" style="display:none;" />
+                    <input type="number" id="eqdPivotYear" min="2000" max="2100" class="form-control form-control-sm ems-hub-picker" style="display:none;" />
+                </span>
+            </div>
+            <div class="card-body p-2">
+                <div id="eqdCoverage" class="alert alert-warning py-1 px-2 small mb-2" style="display:none;"></div>
+                <div id="eqdTiles" class="eq-tiles mb-2"></div>
+                <div class="row g-2">
+                    <div class="col-lg-8">
+                        <div class="eq-chart-title small fw-semibold">@Localizer["eqd.trend"]</div>
+                        <div class="eq-chart-wrap"><canvas id="eqdTrendChart"></canvas></div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="eq-chart-title small fw-semibold" title="@Localizer["eqd.load_bins_hint"]">@Localizer["eqd.load_bins"] <i class="fas fa-question-circle text-muted"></i></div>
+                        <div class="eq-chart-wrap"><canvas id="eqdLoadChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="eq-chart-title small fw-semibold mt-3">@Localizer["eqd.ranking"]</div>
+                <div class="table-responsive" id="eqdRanking"></div>
+                <div class="small text-muted mt-2"><i class="fas fa-info-circle me-1"></i>@Localizer["eqd.method_" + szKind]</div>
+            </div>
+        </div>
+    </div>
+</div>

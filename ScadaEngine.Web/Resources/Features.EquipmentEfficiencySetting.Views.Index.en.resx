@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" /></xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" /></xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="eqs.title" xml:space="preserve"><value>Equipment Efficiency Settings</value></data>
+  <data name="eqs.btn.scan" xml:space="preserve"><value>Rescan</value></data>
+  <data name="eqs.btn.add" xml:space="preserve"><value>Add manually</value></data>
+  <data name="eqs.btn.backfill_all" xml:space="preserve"><value>Backfill all</value></data>
+  <data name="eqs.btn.cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="eqs.btn.save" xml:space="preserve"><value>Save</value></data>
+  <data name="eqs.tab.chiller" xml:space="preserve"><value>Chillers</value></data>
+  <data name="eqs.tab.compressor" xml:space="preserve"><value>Air Compressors</value></data>
+  <data name="eqs.loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="eqs.hint.reload" xml:space="preserve"><value>After saving, the Engine aggregates with the new settings from the next hour (no restart). Use Backfill to recalculate past data.</value></data>
+  <data name="eqs.scan.select_all" xml:space="preserve"><value>Select all ready</value></data>
+  <data name="eqs.backfill.title" xml:space="preserve"><value>Backfill history</value></data>
+  <data name="eqs.backfill.target" xml:space="preserve"><value>Target</value></data>
+  <data name="eqs.backfill.from" xml:space="preserve"><value>From</value></data>
+  <data name="eqs.backfill.to" xml:space="preserve"><value>To (inclusive)</value></data>
+  <data name="eqs.backfill.hint" xml:space="preserve"><value>The Engine recalculates and overwrites hour by hour using the current bindings, up to 366 days. Large ranges take a few minutes.</value></data>
+  <data name="eqs.backfill.run" xml:space="preserve"><value>Start backfill</value></data>
+</root>

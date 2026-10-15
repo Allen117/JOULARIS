@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" /></xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" /></xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="eq.kind.chiller" xml:space="preserve"><value>冰機</value></data>
+  <data name="eq.kind.compressor" xml:space="preserve"><value>空壓機</value></data>
+  <data name="eq.role.KW" xml:space="preserve"><value>電力 kW</value></data>
+  <data name="eq.role.KWH" xml:space="preserve"><value>電能 kWh（累積）</value></data>
+  <data name="eq.role.RT" xml:space="preserve"><value>冷量 RT（直接點）</value></data>
+  <data name="eq.role.FLOW" xml:space="preserve"><value>冰水流量</value></data>
+  <data name="eq.role.CHWS" xml:space="preserve"><value>冰水出水溫</value></data>
+  <data name="eq.role.CHWR" xml:space="preserve"><value>冰水回水溫</value></data>
+  <data name="eq.role.CDWS" xml:space="preserve"><value>冷卻水進水溫</value></data>
+  <data name="eq.role.CDWR" xml:space="preserve"><value>冷卻水出水溫</value></data>
+  <data name="eq.role.EVAPT" xml:space="preserve"><value>蒸發飽和溫度</value></data>
+  <data name="eq.role.CONDT" xml:space="preserve"><value>冷凝飽和溫度</value></data>
+  <data name="eq.role.LOAD" xml:space="preserve"><value>負載率 %</value></data>
+  <data name="eq.role.RUN" xml:space="preserve"><value>運轉狀態</value></data>
+  <data name="eq.role.AIRFLOW" xml:space="preserve"><value>空氣量（排氣量）</value></data>
+  <data name="eq.role.DISCHPRESS" xml:space="preserve"><value>排氣壓力</value></data>
+  <data name="eq.role.DISCHTEMP" xml:space="preserve"><value>排氣溫度</value></data>
+  <data name="eq.role.LOADED" xml:space="preserve"><value>加載狀態</value></data>
+  <data name="eq.missing.power" xml:space="preserve"><value>電力（kW 或 kWh）</value></data>
+  <data name="eq.missing.chiller_output" xml:space="preserve"><value>冷量（冰水流量 + 出回水溫，或 RT 點）</value></data>
+  <data name="eq.missing.airflow" xml:space="preserve"><value>空氣量</value></data>
+  <data name="eq.err.invalid_kind" xml:space="preserve"><value>設備種類不正確</value></data>
+  <data name="eq.err.name_required" xml:space="preserve"><value>請輸入設備名稱</value></data>
+  <data name="eq.err.name_too_long" xml:space="preserve"><value>設備名稱過長（上限 100 字）</value></data>
+  <data name="eq.err.negative_value" xml:space="preserve"><value>數值不可為負（{detail}）</value></data>
+  <data name="eq.err.threshold_order" xml:space="preserve"><value>「優」門檻不可大於「可」門檻</value></data>
+  <data name="eq.err.invalid_role" xml:space="preserve"><value>角色不屬於此設備種類：{detail}</value></data>
+  <data name="eq.err.duplicate_role" xml:space="preserve"><value>角色重複綁定：{detail}</value></data>
+  <data name="eq.err.invalid_unit" xml:space="preserve"><value>單位無法換算：{detail}</value></data>
+  <data name="eq.err.missing_required" xml:space="preserve"><value>必要點位未綁定：{detail}</value></data>
+  <data name="eq.err.not_found" xml:space="preserve"><value>找不到設備（可能已被刪除）</value></data>
+  <data name="eq.err.empty" xml:space="preserve"><value>沒有要帶入的設備</value></data>
+  <data name="eq.err.invalid_range" xml:space="preserve"><value>日期區間不正確</value></data>
+  <data name="eq.err.range_too_long" xml:space="preserve"><value>回填區間最多 366 天</value></data>
+  <data name="eq.err.mqtt_unavailable" xml:space="preserve"><value>無法連線 MQTT，Engine 未收到回填指令</value></data>
+  <data name="eq.setting.empty" xml:space="preserve"><value>尚未設定任何{kind}。可按「掃描」從點位自動判定，或手動新增。</value></data>
+  <data name="eq.setting.btn_scan" xml:space="preserve"><value>掃描</value></data>
+  <data name="eq.setting.btn_add" xml:space="preserve"><value>手動新增</value></data>
+  <data name="eq.setting.enabled" xml:space="preserve"><value>啟用</value></data>
+  <data name="eq.setting.disabled" xml:space="preserve"><value>停用</value></data>
+  <data name="eq.setting.edit" xml:space="preserve"><value>編輯</value></data>
+  <data name="eq.setting.backfill" xml:space="preserve"><value>回填歷史</value></data>
+  <data name="eq.setting.delete" xml:space="preserve"><value>刪除</value></data>
+  <data name="eq.setting.col_sort" xml:space="preserve"><value>排序</value></data>
+  <data name="eq.setting.col_name" xml:space="preserve"><value>設備名稱</value></data>
+  <data name="eq.setting.col_status" xml:space="preserve"><value>狀態</value></data>
+  <data name="eq.setting.col_roles" xml:space="preserve"><value>已綁點位</value></data>
+  <data name="eq.setting.col_rated" xml:space="preserve"><value>額定產出 / 電力</value></data>
+  <data name="eq.setting.col_threshold" xml:space="preserve"><value>門檻（優 / 可）</value></data>
+  <data name="eq.setting.delete_confirm" xml:space="preserve"><value>確定刪除「{name}」？已累計的效率資料會一併刪除。</value></data>
+  <data name="eq.setting.deleted" xml:space="preserve"><value>已刪除</value></data>
+  <data name="eq.scan.title_auto" xml:space="preserve"><value>掃描到 {n} 台疑似{kind}，要帶入嗎？</value></data>
+  <data name="eq.scan.title" xml:space="preserve"><value>掃描結果：{n} 台疑似{kind}</value></data>
+  <data name="eq.scan.none" xml:space="preserve"><value>沒有掃描到疑似{kind}的設備。可改用手動新增。</value></data>
+  <data name="eq.scan.hint" xml:space="preserve"><value>依設備分群與點位名稱判定；可改名、改點位、改單位後再帶入。缺必要點位者需先補齊才能勾選。</value></data>
+  <data name="eq.scan.existing" xml:space="preserve"><value>已存在</value></data>
+  <data name="eq.scan.conf_high" xml:space="preserve"><value>高信心</value></data>
+  <data name="eq.scan.conf_medium" xml:space="preserve"><value>中信心</value></data>
+  <data name="eq.scan.conf_low" xml:space="preserve"><value>低信心</value></data>
+  <data name="eq.scan.missing" xml:space="preserve"><value>缺：{list}</value></data>
+  <data name="eq.scan.unbound" xml:space="preserve"><value>— 未綁定 —</value></data>
+  <data name="eq.scan.multi" xml:space="preserve"><value>{n} 筆命中</value></data>
+  <data name="eq.scan.multi_hint" xml:space="preserve"><value>多筆點位符合此角色，已取第一筆，請確認</value></data>
+  <data name="eq.scan.pick_other" xml:space="preserve"><value>從其他設備挑選點位</value></data>
+  <data name="eq.scan.device" xml:space="preserve"><value>設備分群</value></data>
+  <data name="eq.scan.basis" xml:space="preserve"><value>判定依據</value></data>
+  <data name="eq.scan.roles_detail" xml:space="preserve"><value>角色點位</value></data>
+  <data name="eq.scan.import" xml:space="preserve"><value>帶入勾選的 {n} 台</value></data>
+  <data name="eq.scan.imported" xml:space="preserve"><value>已帶入 {n} 台</value></data>
+  <data name="eq.edit.title_edit" xml:space="preserve"><value>編輯設備</value></data>
+  <data name="eq.edit.title_add" xml:space="preserve"><value>新增{kind}</value></data>
+  <data name="eq.edit.name" xml:space="preserve"><value>名稱</value></data>
+  <data name="eq.edit.sort" xml:space="preserve"><value>排序</value></data>
+  <data name="eq.edit.rated_rt" xml:space="preserve"><value>額定冷量（RT）</value></data>
+  <data name="eq.edit.rated_flow" xml:space="preserve"><value>額定空氣量（m³/min）</value></data>
+  <data name="eq.edit.rated_kw" xml:space="preserve"><value>額定電力（kW）</value></data>
+  <data name="eq.edit.max_kwh" xml:space="preserve"><value>kWh 累積點溢位上限</value></data>
+  <data name="eq.edit.good" xml:space="preserve"><value>「優」門檻（≤ {unit}）</value></data>
+  <data name="eq.edit.fair" xml:space="preserve"><value>「可」門檻（≤ {unit}）</value></data>
+  <data name="eq.edit.specific_heat" xml:space="preserve"><value>比熱 kJ/(kg·K)（乙二醇系統）</value></data>
+  <data name="eq.edit.threshold_hint" xml:space="preserve"><value>預設門檻僅供起點，請依機型銘牌或驗收報告調整。額定電力用於停機判定（低於 5% 視為停機）。</value></data>
+  <data name="eq.edit.roles" xml:space="preserve"><value>角色點位</value></data>
+  <data name="eq.edit.roles_hint_chiller" xml:space="preserve"><value>* 必要：電力 kW 或 kWh 擇一；冷量以「冰水流量 + 出水溫 + 回水溫」計算為主，或綁直接 RT 點。</value></data>
+  <data name="eq.edit.roles_hint_compressor" xml:space="preserve"><value>* 必要：電力 kW 或 kWh 擇一，以及空氣量。</value></data>
+  <data name="eq.edit.missing" xml:space="preserve"><value>尚缺必要點位：{list}</value></data>
+  <data name="eq.edit.description" xml:space="preserve"><value>備註</value></data>
+  <data name="eq.edit.saved" xml:space="preserve"><value>已儲存，下一個整點起 Engine 依新設定聚合</value></data>
+  <data name="eq.backfill.all" xml:space="preserve"><value>全部設備（冰機 + 空壓機）</value></data>
+  <data name="eq.backfill.sent" xml:space="preserve"><value>已送出回填指令，Engine 會在背景逐小時重算</value></data>
+  <data name="eq.grade.Good" xml:space="preserve"><value>優</value></data>
+  <data name="eq.grade.Fair" xml:space="preserve"><value>可</value></data>
+  <data name="eq.grade.Poor" xml:space="preserve"><value>差</value></data>
+  <data name="eq.grade.Off" xml:space="preserve"><value>停機</value></data>
+  <data name="eq.grade.NoData" xml:space="preserve"><value>資料不足</value></data>
+  <data name="eq.metric.cop" xml:space="preserve"><value>COP</value></data>
+  <data name="eq.metric.eer" xml:space="preserve"><value>EER</value></data>
+  <data name="eq.metric.cooling" xml:space="preserve"><value>冷量</value></data>
+  <data name="eq.metric.airflow" xml:space="preserve"><value>空氣量</value></data>
+  <data name="eq.metric.load" xml:space="preserve"><value>負載率</value></data>
+  <data name="eq.metric.chw_dt" xml:space="preserve"><value>冰水 ΔT</value></data>
+  <data name="eq.metric.cdw_dt" xml:space="preserve"><value>冷卻水 ΔT</value></data>
+  <data name="eq.metric.evap_approach" xml:space="preserve"><value>蒸發器趨近</value></data>
+  <data name="eq.metric.cond_approach" xml:space="preserve"><value>冷凝器趨近</value></data>
+  <data name="eq.metric.kw_per_100cfm" xml:space="preserve"><value>kW/100cfm</value></data>
+  <data name="eq.metric.specific_energy" xml:space="preserve"><value>比能耗</value></data>
+  <data name="eq.metric.press" xml:space="preserve"><value>排氣壓力</value></data>
+  <data name="eq.metric.disch_temp" xml:space="preserve"><value>排氣溫度</value></data>
+  <data name="eq.metric.loaded_state" xml:space="preserve"><value>加載</value></data>
+  <data name="eq.metric.power" xml:space="preserve"><value>電力</value></data>
+  <data name="eq.diag.load_error" xml:space="preserve"><value>載入失敗</value></data>
+  <data name="eq.diag.updated_at" xml:space="preserve"><value>更新於 {time}</value></data>
+  <data name="eq.diag.running" xml:space="preserve"><value>運轉中</value></data>
+  <data name="eq.diag.stopped" xml:space="preserve"><value>停機</value></data>
+  <data name="eq.diag.run_unknown" xml:space="preserve"><value>運轉狀態未知</value></data>
+  <data name="eq.diag.loaded" xml:space="preserve"><value>加載</value></data>
+  <data name="eq.diag.unloaded" xml:space="preserve"><value>卸載</value></data>
+  <data name="eq.diag.rt_point_compare" xml:space="preserve"><value>RT 點對照：{v} RT</value></data>
+  <data name="eq.diag.no_data" xml:space="preserve"><value>尚無即時值</value></data>
+  <data name="eq.diag.threshold" xml:space="preserve"><value>門檻 {good} / {fair}</value></data>
+  <data name="eq.diag.coverage_warn" xml:space="preserve"><value>資料覆蓋率 {pct}%（{name} 缺 {missing} 小時，低於 {threshold}%），缺漏時段不計入效率分子分母。</value></data>
+  <data name="eq.diag.tile_primary" xml:space="preserve"><value>期間平均效率</value></data>
+  <data name="eq.diag.tile_kwh" xml:space="preserve"><value>總耗電</value></data>
+  <data name="eq.diag.tile_output" xml:space="preserve"><value>總{name}</value></data>
+  <data name="eq.diag.tile_run_hours" xml:space="preserve"><value>運轉時數</value></data>
+  <data name="eq.diag.tile_avg_load" xml:space="preserve"><value>平均負載率</value></data>
+  <data name="eq.diag.tile_loaded_ratio" xml:space="preserve"><value>加載時間比</value></data>
+  <data name="eq.diag.tile_avg_press" xml:space="preserve"><value>平均排氣壓力</value></data>
+  <data name="eq.diag.fleet" xml:space="preserve"><value>全場加權</value></data>
+  <data name="eq.diag.bin_kwh_pct" xml:space="preserve"><value>耗電占比</value></data>
+  <data name="eq.diag.bin_output_pct" xml:space="preserve"><value>{name}占比</value></data>
+  <data name="eq.diag.bin_hours" xml:space="preserve"><value>運轉 {h} 小時</value></data>
+  <data name="eq.diag.bin_efficiency" xml:space="preserve"><value>效率 {v} {unit}</value></data>
+  <data name="eq.diag.col_name" xml:space="preserve"><value>設備</value></data>
+  <data name="eq.diag.col_grade" xml:space="preserve"><value>評級</value></data>
+  <data name="eq.diag.col_run_hours" xml:space="preserve"><value>運轉時數</value></data>
+  <data name="eq.diag.col_avg_load" xml:space="preserve"><value>平均負載 %</value></data>
+  <data name="eq.diag.col_threshold" xml:space="preserve"><value>門檻</value></data>
+  <data name="eq.diag.col_coverage" xml:space="preserve"><value>覆蓋率</value></data>
+  <data name="eq.card.not_configured" xml:space="preserve"><value>尚未設定</value></data>
+  <data name="eq.card.goto_setting" xml:space="preserve"><value>前往設備效率設定</value></data>
+  <data name="eq.card.month_summary" xml:space="preserve"><value>{month} 累計平均 {value} {unit}・運轉 {hours} h</value></data>
+  <data name="eq.card.load_error" xml:space="preserve"><value>載入失敗</value></data>
+</root>

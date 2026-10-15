@@ -9,6 +9,7 @@
     bool hasCostYoyJs = Model.HasCard("CostYoy");
     bool hasWaterJs  = Model.HasCard("WaterUsageBar") || Model.HasCard("WaterUsagePie") || Model.HasCard("WaterCost");
     bool hasGasJs    = Model.HasCard("GasUsageBar") || Model.HasCard("GasUsagePie") || Model.HasCard("GasCost");
+    bool hasEquipmentJs = Model.HasCard("ChillerEfficiency") || Model.HasCard("CompressorEfficiency");
 }
 
 <div class="ems-hub">
@@ -61,5 +62,9 @@
     @if (hasGasJs)
     {
         <script src="~/js/ems-hub-gas.js" asp-append-version="true"></script>
+    }
+    @if (hasEquipmentJs)
+    {
+        <script src="~/js/ems-hub-equipment.js" asp-append-version="true"></script>
     }
 }

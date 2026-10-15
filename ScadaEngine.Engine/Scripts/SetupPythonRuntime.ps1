@@ -75,6 +75,9 @@ if (-not (Test-Path $getPipPath)) {
 }
 & $pythonExe $getPipPath --no-warn-script-location 2>&1 | Out-Null
 Write-Host "  pip installed." -ForegroundColor Green
+# VUL-2026-005（2026-10-15 弱掃）：get-pip 帶的 pip/setuptools 可能落後安全修補，裝完立即升到最新
+& $pythonExe -m pip install --upgrade pip setuptools wheel --no-warn-script-location --quiet
+Write-Host "  pip/setuptools/wheel upgraded to latest." -ForegroundColor Green
 
 # ─── Step 5: 安裝演算法依賴（fastapi, uvicorn）───
 Write-Host "[5/5] Installing algorithm dependencies..." -ForegroundColor Yellow
