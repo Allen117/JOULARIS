@@ -129,6 +129,11 @@ try
     builder.Services.AddSingleton<GasMeterLeafAggregator>();
     builder.Services.AddHostedService<GasMeterLeafAggregationService>();
 
+    // 註冊產氣量表葉子層 hourly 預聚合（空壓機 Nm³ totalizer，XX:04 觸發；演算法與氣表對稱但完全獨立，只供空壓機能源申報）
+    builder.Services.AddSingleton<AirMeterLeafHourlyRepository>();
+    builder.Services.AddSingleton<AirMeterLeafAggregator>();
+    builder.Services.AddHostedService<AirMeterLeafAggregationService>();
+
     // 註冊需量計算服務（每分鐘計算各電表迴路 15min 滑動 TWA 功率）
     builder.Services.AddHostedService<DemandCalculatorService>();
 

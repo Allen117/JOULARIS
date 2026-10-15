@@ -35,6 +35,7 @@
 | 電費報表 | Electricity Cost Report | `/ElectricityCostReport` |
 | 冷凍噸報表 | Refrigeration Ton Report | `/RefrigerationTonReport` |
 | 能源申報 | Energy Declaration | `/EnergyDeclaration` |
+| 空壓機能源申報 | Air Compressor Declaration | `/AirCompressorDeclaration`（頁面標題用全稱 Air Compressor Energy Declaration） |
 | 電表/迴路設定 | Energy Meter / Circuit | `/EnergyMeter` |
 | 自來水表/迴路設定 | Water Meter / Circuit | `/WaterMeterSetting`（累積式水表，非空調水系統） |
 | 用水報表 | Water Usage Report | `/WaterUsageReport` |
@@ -46,6 +47,8 @@
 | 氣費設定 | Gas Tariff Settings | `/GasTariffSetting` |
 | 氣費報表 | Gas Cost Report | `/GasCostReport` |
 | 氣費月結週期 | Gas Billing Cycle | `/GasBillingPeriodSetting` |
+| 產氣量表/迴路設定 | Air Flow Meter / Circuit | `/AirMeterSetting`（空壓機累積式產氣量，與天然氣表無關） |
+| 產氣量表 | Air Flow Meter | EMS 設定下拉群組標題 |
 | 空調水系統迴路設定 | Chilled Water Circuit Settings | `/ChilledWaterSystem` |
 | 月結週期設定 | Billing Cycle Settings | `/BillingPeriodSetting` |
 | 電費設定 | Tariff Settings | `/TariffSetting` |
@@ -258,6 +261,9 @@
 | 申報報表 | Declaration Report | 使用者自訂的申報報表設定 |
 | 冷凍噸數 | Refrigeration (RT·h) | 申報報表欄位，值為 RT·h 累計 |
 | 效率 (kWh/RTh) | Efficiency (kWh/RTh) | 用電量 ÷ 冷凍噸數，單位不翻 |
+| 產氣量 | Air Volume | 空壓機能源申報欄位（Nm³ 累計） |
+| 比能耗 (kWh/Nm³) | Specific Energy (kWh/Nm³) | 用電量 ÷ 產氣量，單位不翻；勿譯 Efficiency（數值越低越好，與 kWh/RTh 同向但名稱不同） |
+| Nm³ | Nm³ | 標準立方公尺，不翻 |
 | 數據明細 | Data Detail | 表格區塊 |
 | 時段 | Period | 表格欄 |
 | 粒度 / 單位 | Granularity | 時 / 日 / 月 / 年 |

@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="airmeter.title" xml:space="preserve"><value>產氣量表/迴路設定</value></data>
+  <data name="airmeter.tree.header" xml:space="preserve"><value>迴路階層</value></data>
+  <data name="airmeter.tree.add_root" xml:space="preserve"><value>新增產氣量表/迴路</value></data>
+  <data name="airmeter.tree.loading" xml:space="preserve"><value>載入中...</value></data>
+  <data name="airmeter.tree.empty" xml:space="preserve"><value>尚無迴路，請點右上角新增</value></data>
+  <data name="airmeter.tree.load_failed" xml:space="preserve"><value>載入失敗</value></data>
+
+  <data name="airmeter.detail.placeholder_title" xml:space="preserve"><value>請從左側選取迴路</value></data>
+  <data name="airmeter.detail.placeholder_body" xml:space="preserve"><value>選取左側的節點即可檢視/編輯詳細資訊</value></data>
+  <data name="airmeter.detail.type" xml:space="preserve"><value>類型</value></data>
+  <data name="airmeter.detail.name" xml:space="preserve"><value>名稱</value></data>
+  <data name="airmeter.detail.sign" xml:space="preserve"><value>貢獻方向</value></data>
+  <data name="airmeter.detail.point" xml:space="preserve"><value>點位名稱</value></data>
+  <data name="airmeter.detail.unit_scale" xml:space="preserve"><value>單位換算</value></data>
+  <data name="airmeter.detail.max_volume" xml:space="preserve"><value>溢位上限 MaxVolume</value></data>
+  <data name="airmeter.detail.desc" xml:space="preserve"><value>說明</value></data>
+  <data name="airmeter.detail.none" xml:space="preserve"><value>無</value></data>
+  <data name="airmeter.detail.not_set" xml:space="preserve"><value>未設定</value></data>
+  <data name="airmeter.detail.point_missing" xml:space="preserve"><value>找不到對應的點位</value></data>
+
+  <data name="airmeter.badge.virtual" xml:space="preserve"><value>虛擬迴路</value></data>
+  <data name="airmeter.badge.meter" xml:space="preserve"><value>實體產氣量表</value></data>
+
+  <data name="airmeter.form.name" xml:space="preserve"><value>名稱</value></data>
+  <data name="airmeter.form.name_placeholder" xml:space="preserve"><value>例如：空壓機房總產氣 / 1 號空壓機</value></data>
+  <data name="airmeter.form.type" xml:space="preserve"><value>節點類型</value></data>
+  <data name="airmeter.form.type_virtual" xml:space="preserve"><value>虛擬迴路</value></data>
+  <data name="airmeter.form.type_meter" xml:space="preserve"><value>實體產氣量表</value></data>
+  <data name="airmeter.form.sign" xml:space="preserve"><value>貢獻方向</value></data>
+  <data name="airmeter.form.sign_pos" xml:space="preserve"><value>正向（加入父）</value></data>
+  <data name="airmeter.form.sign_neg" xml:space="preserve"><value>反向（從父扣減）</value></data>
+  <data name="airmeter.form.sign_hint" xml:space="preserve"><value>用於建立「總表 − 已分配子表」這類算式；根節點不適用</value></data>
+  <data name="airmeter.form.point" xml:space="preserve"><value>產氣量點位</value></data>
+  <data name="airmeter.form.point_unbound" xml:space="preserve"><value>尚未綁定點位</value></data>
+  <data name="airmeter.form.point_hint" xml:space="preserve"><value>僅列出「單位可換算為 Nm³（Nm³ / m³ / SCM / 公升系）」**且**「點位名稱含空壓關鍵字（空壓 / 壓縮空氣 / 產氣 / 氣量 / air / compressor / FAD）」的累積點位；名稱含天然氣字樣（天然氣 / 瓦斯 / 燃氣 / LNG…）者一律排除。含計算點、DB 來源點位。</value></data>
+  <data name="airmeter.form.name_filter_hint" xml:space="preserve"><value>找不到你的產氣量點位？兩種可能：① 點位名稱沒帶空壓關鍵字 → 請在點位管理把名稱改成含「空壓 / 壓縮空氣 / 產氣量」等字樣；② 單位不是累積量單位（如標成 Nm³/min 或 Nm³/h 流量）→ 請改綁流量計的累積量點位（Nm³）。Nm³ / m³ 對天然氣表、水表也成立，名稱是唯一能分辨的訊號。</value></data>
+  <data name="airmeter.form.unit_scale_display" xml:space="preserve"><value>點位單位 {unit} → 換算係數 {scale}（Nm³）</value></data>
+  <data name="airmeter.form.max_volume" xml:space="preserve"><value>溢位上限 MaxVolume</value></data>
+  <data name="airmeter.form.max_volume_placeholder" xml:space="preserve"><value>例如：1,000,000,000（以點位原始單位計）</value></data>
+  <data name="airmeter.form.max_volume_hint" xml:space="preserve"><value>累積值溢位/歸零時用於計算 delta，以點位原始單位計；留空表示不處理溢位</value></data>
+  <data name="airmeter.form.desc" xml:space="preserve"><value>說明</value></data>
+  <data name="airmeter.form.desc_placeholder" xml:space="preserve"><value>選填</value></data>
+
+  <data name="airmeter.btn.save" xml:space="preserve"><value>儲存</value></data>
+  <data name="airmeter.btn.cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="airmeter.btn.confirm" xml:space="preserve"><value>確定</value></data>
+  <data name="airmeter.btn.clear_binding" xml:space="preserve"><value>清除綁定</value></data>
+  <data name="airmeter.btn.pick_point" xml:space="preserve"><value>選擇點位</value></data>
+  <data name="airmeter.btn.add_child" xml:space="preserve"><value>新增子節點</value></data>
+  <data name="airmeter.btn.edit" xml:space="preserve"><value>編輯</value></data>
+  <data name="airmeter.btn.delete" xml:space="preserve"><value>刪除</value></data>
+
+  <data name="airmeter.modal.create_title" xml:space="preserve"><value>新增產氣量表/迴路</value></data>
+  <data name="airmeter.modal.create_child_title" xml:space="preserve"><value>新增子節點</value></data>
+  <data name="airmeter.modal.edit_title" xml:space="preserve"><value>編輯：{name}</value></data>
+
+  <data name="airmeter.picker.title" xml:space="preserve"><value>選擇產氣量點位</value></data>
+  <data name="airmeter.picker.device" xml:space="preserve"><value>通訊設備</value></data>
+  <data name="airmeter.picker.point" xml:space="preserve"><value>點位</value></data>
+  <data name="airmeter.picker.search_placeholder" xml:space="preserve"><value>搜尋點位名稱 / SID...</value></data>
+  <data name="airmeter.picker.no_data" xml:space="preserve"><value>尚無點位資料</value></data>
+  <data name="airmeter.picker.pick_device_first" xml:space="preserve"><value>請先選擇左側設備</value></data>
+  <data name="airmeter.picker.pick_subunit_first" xml:space="preserve"><value>請先選擇子單元</value></data>
+  <data name="airmeter.picker.no_match" xml:space="preserve"><value>無符合的點位</value></data>
+
+  <data name="airmeter.group.modbus" xml:space="preserve"><value>Modbus 通訊設備</value></data>
+  <data name="airmeter.group.calculated" xml:space="preserve"><value>計算點位</value></data>
+  <data name="airmeter.group.db" xml:space="preserve"><value>DB 來源</value></data>
+  <data name="airmeter.group.unspecified" xml:space="preserve"><value>未指定</value></data>
+  <data name="airmeter.sign.neg_tooltip" xml:space="preserve"><value>反向：從父迴路扣減</value></data>
+
+  <data name="airmeter.msg.name_required" xml:space="preserve"><value>請輸入名稱</value></data>
+  <data name="airmeter.msg.sid_required" xml:space="preserve"><value>實體產氣量表必須綁定產氣量點位</value></data>
+  <data name="airmeter.msg.save_failed" xml:space="preserve"><value>儲存失敗：{msg}</value></data>
+  <data name="airmeter.msg.delete_failed" xml:space="preserve"><value>刪除失敗：{msg}</value></data>
+  <data name="airmeter.msg.sort_failed" xml:space="preserve"><value>排序更新失敗：{msg}</value></data>
+  <data name="airmeter.msg.confirm_delete" xml:space="preserve"><value>確定要刪除「{name}」嗎？</value></data>
+  <data name="airmeter.msg.confirm_delete_children" xml:space="preserve"><value>此迴路含有子節點，刪除會一併移除所有子孫，確定繼續？</value></data>
+  <data name="airmeter.msg.confirm_move" xml:space="preserve"><value>確定把「{name}」搬到「{parent}」底下？&#10;搬動後上層迴路的加總與申報數字會立即改變。</value></data>
+  <data name="airmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>⚠ 目標是實體產氣量表：掛子迴路後，該表會連自身一起加總。</value></data>
+
+  <data name="airmeter.err.name_required" xml:space="preserve"><value>名稱不可為空</value></data>
+  <data name="airmeter.err.invalid_sign" xml:space="preserve"><value>貢獻方向只能為 +1 或 -1</value></data>
+  <data name="airmeter.err.node_not_found" xml:space="preserve"><value>節點不存在</value></data>
+  <data name="airmeter.err.invalid_air_point" xml:space="preserve"><value>該點位不存在，或不符合產氣量點位條件（單位須可換算 Nm³，且點位名稱須含空壓關鍵字、不含天然氣字樣），請重新選擇點位</value></data>
+  <data name="airmeter.err.has_children" xml:space="preserve"><value>該迴路含子節點，刪除將一併移除所有子孫</value></data>
+  <data name="airmeter.err.sort_failed" xml:space="preserve"><value>排序更新失敗</value></data>
+  <data name="airmeter.err.sort_cycle" xml:space="preserve"><value>不能把迴路搬到自己的子迴路底下</value></data>
+  <data name="airmeter.err.sort_multi_root" xml:space="preserve"><value>只允許一個全廠根節點，不能搬成第二個根</value></data>
+  <data name="airmeter.err.sort_missing_node" xml:space="preserve"><value>節點不存在，請重新整理頁面</value></data>
+  <data name="airmeter.err.sort_missing_parent" xml:space="preserve"><value>目標迴路不存在，請重新整理頁面</value></data>
+  <data name="airmeter.err.unknown" xml:space="preserve"><value>未知錯誤</value></data>
+</root>

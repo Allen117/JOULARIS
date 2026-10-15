@@ -82,6 +82,9 @@
   <data name="layout.menu.water_tariff_setting" xml:space="preserve"><value>Water Tariff Settings</value></data>
   <data name="layout.menu.water_cost_report" xml:space="preserve"><value>Water Cost Report</value></data>
   <data name="layout.menu.energy_declaration" xml:space="preserve"><value>Energy Declaration</value></data>
+  <data name="layout.menu.air_compressor_declaration" xml:space="preserve"><value>Air Compressor Declaration</value></data>
+  <data name="layout.menu.group_air_meter" xml:space="preserve"><value>Air Flow Meter</value></data>
+  <data name="layout.menu.air_meter" xml:space="preserve"><value>Air Flow Meter / Circuit</value></data>
   <data name="layout.menu.energy_baseline" xml:space="preserve"><value>Energy Baseline</value></data>
   <data name="layout.menu.chilled_water" xml:space="preserve"><value>Chilled Water Circuit Settings</value></data>
   <data name="layout.menu.billing_period" xml:space="preserve"><value>Electricity Billing Cycle</value></data>

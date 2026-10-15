@@ -1,5 +1,5 @@
 // 樹狀清單拖曳搬移共用模組（掛 window.TreeDnd）
-// 供 EnergyMeter / ChilledWaterSystem / WaterMeterSetting / GasMeterSetting / LogicFlow / Designer 頁面樹共用。
+// 供 EnergyMeter / ChilledWaterSystem / WaterMeterSetting / GasMeterSetting / AirMeterSetting / LogicFlow / Designer 頁面樹共用。
 //
 // 設計：
 //   - plan()：純函式，吃平坦清單 [{ id, parentId, sortOrder }] 算出「拖 dragId 到 targetId 的 pos」後，

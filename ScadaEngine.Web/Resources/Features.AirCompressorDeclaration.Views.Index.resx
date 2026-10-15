@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="airdeclaration.title" xml:space="preserve"><value>空壓機能源申報</value></data>
+
+  <data name="airdeclaration.config.title" xml:space="preserve"><value>申報報表設定</value></data>
+  <data name="airdeclaration.config.col_name" xml:space="preserve"><value>報表名稱</value></data>
+  <data name="airdeclaration.config.col_energy_circuit" xml:space="preserve"><value>用電迴路</value></data>
+  <data name="airdeclaration.config.col_air_circuit" xml:space="preserve"><value>產氣量來源</value></data>
+  <data name="airdeclaration.config.col_description" xml:space="preserve"><value>描述</value></data>
+  <data name="airdeclaration.config.col_actions" xml:space="preserve"><value>操作</value></data>
+  <data name="airdeclaration.config.loading" xml:space="preserve"><value>載入中…</value></data>
+  <data name="airdeclaration.config.empty" xml:space="preserve"><value>尚無申報報表，請點右上「新增報表」建立</value></data>
+  <data name="airdeclaration.config.deleted_source" xml:space="preserve"><value>來源已不存在</value></data>
+  <data name="airdeclaration.config.confirm_delete" xml:space="preserve"><value>確定要刪除申報報表「{0}」？</value></data>
+
+  <data name="airdeclaration.filter.title" xml:space="preserve"><value>查詢條件</value></data>
+  <data name="airdeclaration.filter.report" xml:space="preserve"><value>申報報表</value></data>
+  <data name="airdeclaration.filter.year" xml:space="preserve"><value>申報年度</value></data>
+
+  <data name="airdeclaration.button.add" xml:space="preserve"><value>新增報表</value></data>
+  <data name="airdeclaration.button.edit" xml:space="preserve"><value>編輯</value></data>
+  <data name="airdeclaration.button.delete" xml:space="preserve"><value>刪除</value></data>
+  <data name="airdeclaration.button.query" xml:space="preserve"><value>查詢</value></data>
+  <data name="airdeclaration.button.export" xml:space="preserve"><value>匯出 Excel</value></data>
+
+  <data name="airdeclaration.chart.title" xml:space="preserve"><value>用電量與產氣量分布</value></data>
+  <data name="airdeclaration.chart.kwh_label" xml:space="preserve"><value>用電量 (kWh)</value></data>
+  <data name="airdeclaration.chart.nm3_label" xml:space="preserve"><value>產氣量 (Nm³)</value></data>
+  <data name="airdeclaration.chart.specific_energy_label" xml:space="preserve"><value>比能耗：{0} kWh/Nm³</value></data>
+  <data name="airdeclaration.chart.x_axis" xml:space="preserve"><value>月份</value></data>
+
+  <data name="airdeclaration.table.title" xml:space="preserve"><value>數據明細</value></data>
+  <data name="airdeclaration.table.col_period" xml:space="preserve"><value>月份</value></data>
+  <data name="airdeclaration.table.col_kwh" xml:space="preserve"><value>用電量 (kWh)</value></data>
+  <data name="airdeclaration.table.col_nm3" xml:space="preserve"><value>產氣量 (Nm³)</value></data>
+  <data name="airdeclaration.table.col_specific_energy" xml:space="preserve"><value>kWh/Nm³</value></data>
+  <data name="airdeclaration.table.total" xml:space="preserve"><value>合計</value></data>
+  <data name="airdeclaration.table.empty" xml:space="preserve"><value>尚未查詢</value></data>
+  <data name="airdeclaration.table.no_data" xml:space="preserve"><value>無資料</value></data>
+  <data name="airdeclaration.table.querying" xml:space="preserve"><value>查詢中…</value></data>
+
+  <data name="airdeclaration.label.total_kwh" xml:space="preserve"><value>總用電量</value></data>
+  <data name="airdeclaration.label.total_nm3" xml:space="preserve"><value>總產氣量</value></data>
+  <data name="airdeclaration.label.total_specific_energy" xml:space="preserve"><value>整體比能耗</value></data>
+
+  <data name="airdeclaration.warning.kwh" xml:space="preserve"><value>⚠ 部分電表資料不完整或累積值倒退但未設 MaxKwh</value></data>
+  <data name="airdeclaration.warning.nm3" xml:space="preserve"><value>⚠ 部分產氣量表資料不完整（可能斷線）</value></data>
+  <data name="airdeclaration.tooltip.kwh_stale" xml:space="preserve"><value>此月電表資料不完整（可能斷線）</value></data>
+  <data name="airdeclaration.tooltip.nm3_stale" xml:space="preserve"><value>此月產氣量表資料不完整（可能斷線）</value></data>
+
+  <data name="airdeclaration.select.loading" xml:space="preserve"><value>-- 載入中 --</value></data>
+  <data name="airdeclaration.select.placeholder" xml:space="preserve"><value>-- 請選擇申報報表 --</value></data>
+  <data name="airdeclaration.select.empty" xml:space="preserve"><value>尚無申報報表</value></data>
+
+  <data name="airdeclaration.modal.title_add" xml:space="preserve"><value>新增申報報表</value></data>
+  <data name="airdeclaration.modal.title_edit" xml:space="preserve"><value>編輯申報報表</value></data>
+  <data name="airdeclaration.modal.name" xml:space="preserve"><value>報表名稱</value></data>
+  <data name="airdeclaration.modal.energy_circuit" xml:space="preserve"><value>用電度數來源（用電迴路）</value></data>
+  <data name="airdeclaration.modal.air_circuit" xml:space="preserve"><value>產氣量來源（產氣量表迴路）</value></data>
+  <data name="airdeclaration.modal.air_circuit_hint" xml:space="preserve"><value>產氣量表迴路在「EMS 設定 → 產氣量表 → 產氣量表/迴路設定」建立；多台空壓機可用虛擬迴路加總。</value></data>
+  <data name="airdeclaration.modal.description" xml:space="preserve"><value>描述</value></data>
+  <data name="airdeclaration.modal.select_circuit" xml:space="preserve"><value>-- 請選擇迴路 --</value></data>
+  <data name="airdeclaration.modal.no_circuit" xml:space="preserve"><value>-- 尚無迴路，請先建立 --</value></data>
+  <data name="airdeclaration.modal.cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="airdeclaration.modal.save" xml:space="preserve"><value>儲存</value></data>
+
+  <data name="airdeclaration.alert.name_required" xml:space="preserve"><value>請輸入報表名稱</value></data>
+  <data name="airdeclaration.alert.energy_required" xml:space="preserve"><value>請選擇用電迴路</value></data>
+  <data name="airdeclaration.alert.air_required" xml:space="preserve"><value>請選擇產氣量表迴路</value></data>
+  <data name="airdeclaration.alert.save_failed" xml:space="preserve"><value>儲存失敗：{0}</value></data>
+  <data name="airdeclaration.alert.delete_failed" xml:space="preserve"><value>刪除失敗：{0}</value></data>
+  <data name="airdeclaration.alert.select_report" xml:space="preserve"><value>請選擇申報報表</value></data>
+  <data name="airdeclaration.alert.year_invalid" xml:space="preserve"><value>請輸入有效年度（2000~2100）</value></data>
+  <data name="airdeclaration.alert.query_failed" xml:space="preserve"><value>查詢失敗：{0}</value></data>
+  <data name="airdeclaration.alert.export_failed" xml:space="preserve"><value>匯出失敗：{0}</value></data>
+
+  <data name="airdeclaration.err.name_required" xml:space="preserve"><value>報表名稱不可為空</value></data>
+  <data name="airdeclaration.err.source_required" xml:space="preserve"><value>用電迴路與產氣量表迴路皆為必填</value></data>
+  <data name="airdeclaration.err.energy_circuit_missing" xml:space="preserve"><value>綁定的用電迴路已不存在，請重新編輯設定</value></data>
+  <data name="airdeclaration.err.air_circuit_missing" xml:space="preserve"><value>綁定的產氣量表迴路已不存在，請重新編輯設定</value></data>
+  <data name="airdeclaration.err.report_not_found" xml:space="preserve"><value>申報報表不存在，請重新整理頁面</value></data>
+  <data name="airdeclaration.err.year_invalid" xml:space="preserve"><value>年度超出範圍（2000~2100）</value></data>
+  <data name="airdeclaration.err.bucket_mismatch" xml:space="preserve"><value>用電與產氣量報表時段數不一致，無法合併</value></data>
+  <data name="airdeclaration.err.query_failed" xml:space="preserve"><value>查詢發生錯誤，請查看伺服器記錄</value></data>
+  <data name="airdeclaration.err.export_failed" xml:space="preserve"><value>匯出發生錯誤，請查看伺服器記錄</value></data>
+  <data name="airdeclaration.err.unknown" xml:space="preserve"><value>未知錯誤</value></data>
+
+  <data name="airdeclaration.console.load_failed" xml:space="preserve"><value>[AirCompressorDeclaration] 載入資料失敗</value></data>
+</root>

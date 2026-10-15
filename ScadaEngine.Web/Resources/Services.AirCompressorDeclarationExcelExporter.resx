@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="excel.sheet_name" xml:space="preserve"><value>空壓機能源申報</value></data>
+  <data name="excel.title" xml:space="preserve"><value>空壓機能源申報報表</value></data>
+  <data name="excel.label.report" xml:space="preserve"><value>報表名稱</value></data>
+  <data name="excel.label.energy_circuit" xml:space="preserve"><value>用電迴路</value></data>
+  <data name="excel.label.air_circuit" xml:space="preserve"><value>產氣量來源</value></data>
+  <data name="excel.label.year" xml:space="preserve"><value>申報年度</value></data>
+  <data name="excel.label.query_time" xml:space="preserve"><value>查詢時間</value></data>
+  <data name="excel.label.operator" xml:space="preserve"><value>操作者</value></data>
+  <data name="excel.label.kwh_warning" xml:space="preserve"><value>⚠ 部分電表資料不完整或累積值倒退但未設 MaxKwh，該段視為 0</value></data>
+  <data name="excel.label.nm3_warning" xml:space="preserve"><value>⚠ 部分產氣量表資料不完整（可能斷線）</value></data>
+  <data name="excel.col.period" xml:space="preserve"><value>月份</value></data>
+  <data name="excel.col.kwh" xml:space="preserve"><value>用電量 (kWh)</value></data>
+  <data name="excel.col.nm3" xml:space="preserve"><value>產氣量 (Nm³)</value></data>
+  <data name="excel.col.specific_energy" xml:space="preserve"><value>比能耗 (kWh/Nm³)</value></data>
+  <data name="excel.row.total" xml:space="preserve"><value>合計</value></data>
+</root>

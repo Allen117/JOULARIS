@@ -1,0 +1,270 @@
+/* 產氣量表/迴路設定頁專屬樣式 — 主色一律走 Bootstrap 變數（EMS 模式由 ems.css 自動轉綠） */
+
+#treeContainer .tree-node {
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+    transition: background-color 0.15s;
+}
+
+#treeContainer .tree-node:hover {
+    background-color: #e9ecef;
+}
+
+#treeContainer .tree-node.active {
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    border-left: 3px solid var(--bs-primary);
+    padding-left: 3px;
+}
+
+#treeContainer .tree-children {
+    margin-left: 16px;
+    border-left: 1px dashed #dee2e6;
+    padding-left: 8px;
+}
+
+#treeContainer .tree-toggle {
+    width: 14px;
+    color: #6c757d;
+    font-size: 0.7rem;
+}
+
+#treeContainer .tree-toggle.invisible {
+    visibility: hidden;
+}
+
+#treeContainer .tree-icon {
+    color: #6c757d;
+    width: 16px;
+    text-align: center;
+}
+
+#treeContainer .tree-icon.is-meter {
+    color: var(--bs-primary);
+}
+
+#treeContainer .tree-name {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+#treeContainer .tree-actions {
+    display: none;
+    gap: 4px;
+}
+
+#treeContainer .tree-node:hover .tree-actions,
+#treeContainer .tree-node.active .tree-actions {
+    display: flex;
+}
+
+#treeContainer .tree-actions button {
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    padding: 0 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+#treeContainer .tree-actions button:hover {
+    color: var(--bs-primary);
+}
+
+#treeContainer .tree-actions button.del:hover {
+    color: var(--bs-danger);
+}
+
+/* 拖曳搬移（共用 TreeDnd）：before / after = 插在目標前後；into = 變成子節點 */
+#treeContainer .tree-node.dragging { opacity: 0.4; }
+#treeContainer .tree-node.drop-before { box-shadow: inset 0 2px 0 var(--bs-primary); }
+#treeContainer .tree-node.drop-after { box-shadow: inset 0 -2px 0 var(--bs-primary); }
+#treeContainer .tree-node.drop-into {
+    outline: 2px dashed var(--bs-primary);
+    outline-offset: -2px;
+    background: rgba(13, 110, 253, 0.08);
+}
+#treeContainer.drop-root { outline: 2px dashed var(--bs-primary); outline-offset: -2px; }
+
+/* 詳情區塊 */
+.am-detail-row {
+    display: flex;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.am-detail-row .am-detail-label {
+    width: 130px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.am-detail-row .am-detail-value {
+    flex: 1;
+    color: #212529;
+}
+
+.am-badge-virtual {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e9ecef;
+    color: #6c757d;
+    font-size: 0.75rem;
+}
+
+.am-badge-meter {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(var(--bs-primary-rgb), 0.12);
+    color: var(--bs-primary);
+    font-size: 0.75rem;
+}
+
+/* 樹狀清單：反向節點名稱前 − 紅色 badge */
+#treeContainer .am-sign-neg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: var(--bs-danger);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+/* 詳情區：貢獻方向 badge */
+.am-badge-sign-pos {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(var(--bs-success-rgb), 0.15);
+    color: var(--bs-success);
+    font-size: 0.75rem;
+}
+
+.am-badge-sign-neg {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(var(--bs-danger-rgb), 0.12);
+    color: var(--bs-danger);
+    font-size: 0.75rem;
+}
+
+/* 編輯 Modal：綁定點位唯讀顯示框 */
+.am-point-display {
+    background: #f8f9fa;
+    min-height: 31px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: default;
+}
+
+/* 編輯 Modal：單位 → Nm³ 換算說明（唯讀） */
+.am-unitscale-info {
+    font-size: 0.8rem;
+    color: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), 0.08);
+    border-radius: 4px;
+    padding: 4px 8px;
+    display: inline-block;
+}
+
+/* ============ 兩步驟點位選擇器（設備 → 點位清單＋搜尋） ============ */
+
+.pp-panel-title {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+}
+
+.pp-list {
+    height: 320px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.pp-group-label {
+    font-size: 0.72rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 6px 2px;
+}
+
+.pp-device-item,
+.pp-subunit-item {
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #212529;
+    user-select: none;
+    transition: background 0.1s;
+}
+
+.pp-subunit-item {
+    margin-left: 16px;
+    font-size: 0.82rem;
+}
+
+.pp-device-item:hover,
+.pp-subunit-item:hover {
+    background: #e9ecef;
+}
+
+.pp-device-item.selected,
+.pp-subunit-item.selected {
+    background: rgba(var(--bs-primary-rgb), 0.15);
+    color: var(--bs-primary);
+}
+
+.point-list-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+    transition: background 0.1s;
+}
+
+.point-list-item:hover {
+    background: #e9ecef;
+}
+
+.point-list-item.selected {
+    background: rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.point-list-item .point-name {
+    font-size: 0.85rem;
+    color: #212529;
+}
+
+.point-list-item .point-sid {
+    font-size: 0.7rem;
+    color: #6c757d;
+    font-family: monospace;
+}
+
+.point-list-item .point-unit {
+    font-size: 0.78rem;
+    color: var(--bs-primary);
+    margin-left: auto;
+    white-space: nowrap;
+}

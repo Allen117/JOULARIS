@@ -241,6 +241,11 @@ builder.Services.AddScoped<ScadaEngine.Web.Services.GasMeterCircuitService>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.GasUsageReportService>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.GasTariffService>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.GasCostService>();
+// 產氣量表（空壓機累積式 Nm³）— 迴路樹 CRUD + 曆月產氣量（AirMeterLeafHourly 加總）；與氣表平行、互不相干
+builder.Services.AddScoped<ScadaEngine.Web.Services.AirMeterCircuitService>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.AirMeterUsageReportService>();
+// 空壓機能源申報 — 用電迴路 kWh + 產氣量表 Nm³ 成對 → 年度 12 曆月比能耗 kWh/Nm³
+builder.Services.AddScoped<ScadaEngine.Web.Services.AirCompressorDeclarationService>();
 // 氣象資料來源 — CWA API client（Singleton：測站清單快取）+ 設定表讀寫（Scoped）+ 背景抓取（寫 Weather DBLatestData）
 builder.Services.AddSingleton<ScadaEngine.Web.Services.WeatherCwaClient>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.WeatherSettingService>();
@@ -273,6 +278,7 @@ builder.Services.AddScoped<ScadaEngine.Web.Services.SourceExcel.SourceExcelImpor
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnergyReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.RefrigerationTonReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnergyDeclarationExcelExporter>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.AirCompressorDeclarationExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.ElectricityCostReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnPIReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.WaterUsageReportExcelExporter>();

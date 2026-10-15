@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="airdeclaration.title" xml:space="preserve"><value>Air Compressor Energy Declaration</value></data>
+
+  <data name="airdeclaration.config.title" xml:space="preserve"><value>Declaration Report Settings</value></data>
+  <data name="airdeclaration.config.col_name" xml:space="preserve"><value>Report Name</value></data>
+  <data name="airdeclaration.config.col_energy_circuit" xml:space="preserve"><value>Energy Circuit</value></data>
+  <data name="airdeclaration.config.col_air_circuit" xml:space="preserve"><value>Air Volume Source</value></data>
+  <data name="airdeclaration.config.col_description" xml:space="preserve"><value>Description</value></data>
+  <data name="airdeclaration.config.col_actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="airdeclaration.config.loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="airdeclaration.config.empty" xml:space="preserve"><value>No declaration reports yet. Click "Add Report" to create one.</value></data>
+  <data name="airdeclaration.config.deleted_source" xml:space="preserve"><value>Source no longer exists</value></data>
+  <data name="airdeclaration.config.confirm_delete" xml:space="preserve"><value>Delete declaration report "{0}"?</value></data>
+
+  <data name="airdeclaration.filter.title" xml:space="preserve"><value>Query Conditions</value></data>
+  <data name="airdeclaration.filter.report" xml:space="preserve"><value>Declaration Report</value></data>
+  <data name="airdeclaration.filter.year" xml:space="preserve"><value>Declaration Year</value></data>
+
+  <data name="airdeclaration.button.add" xml:space="preserve"><value>Add Report</value></data>
+  <data name="airdeclaration.button.edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="airdeclaration.button.delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="airdeclaration.button.query" xml:space="preserve"><value>Query</value></data>
+  <data name="airdeclaration.button.export" xml:space="preserve"><value>Export Excel</value></data>
+
+  <data name="airdeclaration.chart.title" xml:space="preserve"><value>Energy &amp; Air Volume Distribution</value></data>
+  <data name="airdeclaration.chart.kwh_label" xml:space="preserve"><value>Energy (kWh)</value></data>
+  <data name="airdeclaration.chart.nm3_label" xml:space="preserve"><value>Air Volume (Nm³)</value></data>
+  <data name="airdeclaration.chart.specific_energy_label" xml:space="preserve"><value>Specific Energy: {0} kWh/Nm³</value></data>
+  <data name="airdeclaration.chart.x_axis" xml:space="preserve"><value>Month</value></data>
+
+  <data name="airdeclaration.table.title" xml:space="preserve"><value>Data Details</value></data>
+  <data name="airdeclaration.table.col_period" xml:space="preserve"><value>Month</value></data>
+  <data name="airdeclaration.table.col_kwh" xml:space="preserve"><value>Energy (kWh)</value></data>
+  <data name="airdeclaration.table.col_nm3" xml:space="preserve"><value>Air Volume (Nm³)</value></data>
+  <data name="airdeclaration.table.col_specific_energy" xml:space="preserve"><value>kWh/Nm³</value></data>
+  <data name="airdeclaration.table.total" xml:space="preserve"><value>Total</value></data>
+  <data name="airdeclaration.table.empty" xml:space="preserve"><value>No query yet</value></data>
+  <data name="airdeclaration.table.no_data" xml:space="preserve"><value>No data</value></data>
+  <data name="airdeclaration.table.querying" xml:space="preserve"><value>Querying…</value></data>
+
+  <data name="airdeclaration.label.total_kwh" xml:space="preserve"><value>Total Energy</value></data>
+  <data name="airdeclaration.label.total_nm3" xml:space="preserve"><value>Total Air Volume</value></data>
+  <data name="airdeclaration.label.total_specific_energy" xml:space="preserve"><value>Overall Specific Energy</value></data>
+
+  <data name="airdeclaration.warning.kwh" xml:space="preserve"><value>⚠ Some meter data incomplete, or rollback detected without MaxKwh configured</value></data>
+  <data name="airdeclaration.warning.nm3" xml:space="preserve"><value>⚠ Some air flow meter data incomplete (possible disconnection)</value></data>
+  <data name="airdeclaration.tooltip.kwh_stale" xml:space="preserve"><value>Meter data incomplete for this month (possible disconnection)</value></data>
+  <data name="airdeclaration.tooltip.nm3_stale" xml:space="preserve"><value>Air flow meter data incomplete for this month (possible disconnection)</value></data>
+
+  <data name="airdeclaration.select.loading" xml:space="preserve"><value>-- Loading --</value></data>
+  <data name="airdeclaration.select.placeholder" xml:space="preserve"><value>-- Select report --</value></data>
+  <data name="airdeclaration.select.empty" xml:space="preserve"><value>No declaration reports</value></data>
+
+  <data name="airdeclaration.modal.title_add" xml:space="preserve"><value>Add Declaration Report</value></data>
+  <data name="airdeclaration.modal.title_edit" xml:space="preserve"><value>Edit Declaration Report</value></data>
+  <data name="airdeclaration.modal.name" xml:space="preserve"><value>Report Name</value></data>
+  <data name="airdeclaration.modal.energy_circuit" xml:space="preserve"><value>Energy Source (Energy Circuit)</value></data>
+  <data name="airdeclaration.modal.air_circuit" xml:space="preserve"><value>Air Volume Source (Air Flow Meter Circuit)</value></data>
+  <data name="airdeclaration.modal.air_circuit_hint" xml:space="preserve"><value>Air flow meter circuits are created under "EMS Settings → Air Flow Meter → Air Flow Meter / Circuit"; use a virtual circuit to sum multiple compressors.</value></data>
+  <data name="airdeclaration.modal.description" xml:space="preserve"><value>Description</value></data>
+  <data name="airdeclaration.modal.select_circuit" xml:space="preserve"><value>-- Select circuit --</value></data>
+  <data name="airdeclaration.modal.no_circuit" xml:space="preserve"><value>-- No circuits yet, create one first --</value></data>
+  <data name="airdeclaration.modal.cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="airdeclaration.modal.save" xml:space="preserve"><value>Save</value></data>
+
+  <data name="airdeclaration.alert.name_required" xml:space="preserve"><value>Please enter a report name</value></data>
+  <data name="airdeclaration.alert.energy_required" xml:space="preserve"><value>Please select an energy circuit</value></data>
+  <data name="airdeclaration.alert.air_required" xml:space="preserve"><value>Please select an air flow meter circuit</value></data>
+  <data name="airdeclaration.alert.save_failed" xml:space="preserve"><value>Save failed: {0}</value></data>
+  <data name="airdeclaration.alert.delete_failed" xml:space="preserve"><value>Delete failed: {0}</value></data>
+  <data name="airdeclaration.alert.select_report" xml:space="preserve"><value>Please select a declaration report</value></data>
+  <data name="airdeclaration.alert.year_invalid" xml:space="preserve"><value>Please enter a valid year (2000–2100)</value></data>
+  <data name="airdeclaration.alert.query_failed" xml:space="preserve"><value>Query failed: {0}</value></data>
+  <data name="airdeclaration.alert.export_failed" xml:space="preserve"><value>Export failed: {0}</value></data>
+
+  <data name="airdeclaration.err.name_required" xml:space="preserve"><value>Report name cannot be empty</value></data>
+  <data name="airdeclaration.err.source_required" xml:space="preserve"><value>Both energy circuit and air flow meter circuit are required</value></data>
+  <data name="airdeclaration.err.energy_circuit_missing" xml:space="preserve"><value>The bound energy circuit no longer exists; please edit the report settings</value></data>
+  <data name="airdeclaration.err.air_circuit_missing" xml:space="preserve"><value>The bound air flow meter circuit no longer exists; please edit the report settings</value></data>
+  <data name="airdeclaration.err.report_not_found" xml:space="preserve"><value>Declaration report not found; please reload the page</value></data>
+  <data name="airdeclaration.err.year_invalid" xml:space="preserve"><value>Year out of range (2000–2100)</value></data>
+  <data name="airdeclaration.err.bucket_mismatch" xml:space="preserve"><value>Energy and air volume periods do not match; cannot merge</value></data>
+  <data name="airdeclaration.err.query_failed" xml:space="preserve"><value>Query error; see server log</value></data>
+  <data name="airdeclaration.err.export_failed" xml:space="preserve"><value>Export error; see server log</value></data>
+  <data name="airdeclaration.err.unknown" xml:space="preserve"><value>Unknown error</value></data>
+
+  <data name="airdeclaration.console.load_failed" xml:space="preserve"><value>[AirCompressorDeclaration] Failed to load data</value></data>
+</root>

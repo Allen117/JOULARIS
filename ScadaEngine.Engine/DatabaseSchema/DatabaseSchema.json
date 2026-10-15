@@ -565,6 +565,45 @@
       ]
     },
     {
+      "_comment": "產氣量表 — 空壓機產氣量迴路階層（自參照樹）。葉子綁累積式產氣量點位 SID（Nm³ totalizer），虛擬節點不綁 SID。結構與 GasMeterCircuit 對稱但完全獨立（氣表保留給天然氣），只供空壓機能源申報使用。",
+      "TableName": "AirMeterCircuit",
+      "Columns": [
+        { "Name": "Id",          "Type": "int",      "IsPrimaryKey": true, "IsIdentity": true, "Nullable": false },
+        { "Name": "Name",        "Type": "nvarchar", "Length": 100, "Nullable": false },
+        { "Name": "ParentId",    "Type": "int",                     "Nullable": true,
+          "_comment": "父節點 Id；NULL 表示根層級（self-FK，由應用程式保證一致性）" },
+        { "Name": "SortOrder",   "Type": "int",                     "Nullable": false, "Default": 0,
+          "_comment": "同層排序（由 0 起算）" },
+        { "Name": "SID",         "Type": "nvarchar", "Length": 100, "Nullable": true,
+          "_comment": "葉子綁 ModbusPoints/CalculatedPoints/DBPoints 的 SID；虛擬迴路為 NULL。下拉僅列單位可換算 Nm³ 且名稱含空壓關鍵字的點位" },
+        { "Name": "UnitScale",   "Type": "float",                   "Nullable": false, "Default": 1.0,
+          "_comment": "點位原始單位 → Nm³ 的換算係數（Nm³/m³ 系=1、L 系=0.001）。綁定時依點位單位定案，不追溯改義" },
+        { "Name": "MaxVolume",   "Type": "float",                   "Nullable": true,
+          "_comment": "產氣量表累積最大值（以點位原始單位計），用於溢位/歸零判定。葉子才有意義" },
+        { "Name": "Sign",        "Type": "int",                     "Nullable": false, "Default": 1,
+          "_comment": "對父節點的貢獻方向：+1=正向加入、-1=反向扣減。根節點固定 +1" },
+        { "Name": "Description", "Type": "nvarchar", "Length": 500, "Nullable": true },
+        { "Name": "CreatedAt",   "Type": "datetime",                "Nullable": false, "Default": "getdate()" },
+        { "Name": "UpdatedAt",   "Type": "datetime",                "Nullable": true }
+      ]
+    },
+    {
+      "_comment": "產氣量表 — 葉子層 hourly 預聚合表（Engine XX:04）。一列 = 一個葉子 SID 在某個小時的產氣量增量（Nm³，已套 UnitScale 換算與 MaxVolume 溢位、未套 sign）。Quality=0 表示掉線 transition（只缺一邊邊界），兩邊都缺則不寫該列（sparse storage）。",
+      "TableName": "AirMeterLeafHourly",
+      "Columns": [
+        { "Name": "SID",          "Type": "nvarchar", "Length": 50, "IsPrimaryKey": true, "Nullable": false },
+        { "Name": "HourStart",    "Type": "datetime",               "IsPrimaryKey": true, "Nullable": false,
+          "_comment": "小時起點（local time，與 HistoryData.Timestamp 同基準）" },
+        { "Name": "DeltaNm3",     "Type": "float",                  "Nullable": false,
+          "_comment": "該小時產氣量增量（Nm³，已套 UnitScale）；Quality=0 時恆為 0" },
+        { "Name": "Quality",      "Type": "tinyint",                "Nullable": false, "Default": 1,
+          "_comment": "1=Good, 0=掉線 transition" },
+        { "Name": "IsRolledOver", "Type": "bit",                    "Nullable": false, "Default": 0,
+          "_comment": "是否觸發 MaxVolume 溢位修正" },
+        { "Name": "CreatedAt",    "Type": "datetime",               "Nullable": false, "Default": "getdate()" }
+      ]
+    },
+    {
       "_comment": "冷凍噸報表 — 葉子層 hourly 預聚合表。一列 = 一個葉子 SID 在某個小時的 RT·h（冷量，= AVG(RT) × 1h）。SampleCount < 30 視為資料不足，整列不寫（sparse storage）。",
       "TableName": "WaterLeafHourly",
       "Columns": [
@@ -597,6 +636,23 @@
         { "Name": "Description",     "Type": "nvarchar", "Length": 500, "Nullable": true },
         { "Name": "CreatedAt",       "Type": "datetime",                "Nullable": false, "Default": "getdate()" },
         { "Name": "UpdatedAt",       "Type": "datetime",                "Nullable": true }
+      ]
+    },
+    {
+      "_comment": "空壓機能源申報 — 申報報表設定。一列 = 一份申報報表，成對綁定用電迴路（EnergyCircuit.Id）與產氣量表迴路（AirMeterCircuit.Id），由 Web /AirCompressorDeclaration 頁 CRUD；參照為應用層維護，無 DB FK。與 EnergyDeclarationReport（冰水）刻意分表",
+      "TableName": "AirCompressorDeclarationReport",
+      "Columns": [
+        { "Name": "Id",                "Type": "int",      "IsPrimaryKey": true, "IsIdentity": true, "Nullable": false },
+        { "Name": "Name",              "Type": "nvarchar", "Length": 100, "Nullable": false,
+          "_comment": "申報報表名稱，例如 '空壓一廠'" },
+        { "Name": "EnergyCircuitId",   "Type": "int",                     "Nullable": false,
+          "_comment": "用電度數來源 — EnergyCircuit.Id（葉子或虛擬皆可）" },
+        { "Name": "AirMeterCircuitId", "Type": "int",                     "Nullable": false,
+          "_comment": "產氣量來源 — AirMeterCircuit.Id（葉子或虛擬皆可）" },
+        { "Name": "SortOrder",         "Type": "int",                     "Nullable": false, "Default": 0 },
+        { "Name": "Description",       "Type": "nvarchar", "Length": 500, "Nullable": true },
+        { "Name": "CreatedAt",         "Type": "datetime",                "Nullable": false, "Default": "getdate()" },
+        { "Name": "UpdatedAt",         "Type": "datetime",                "Nullable": true }
       ]
     },
     {

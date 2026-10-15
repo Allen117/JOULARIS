@@ -138,7 +138,8 @@ ScadaEngine.sln
 - **電費計算**：Web 逐時計價（EnergyLeafHourly → ElectricityCostHourly，XX:05 觸發）+ EMS 電費狀態卡 + /HolidaySetting 假日（TOU 落 sun_offday）
 - **用水報表與水費**：累積式水表 `WaterMeter*` 體系（boundary 相減 + MaxVolume 溢位 + UnitScale 換算 m³）+ 台水流動水費分段累進 on-demand（無逐時表）；與冷凍噸 WaterCircuit 無關
 - **用氣報表與氣費**：累積式天然氣表 `GasMeter*` 體系（與水表平行複製、各自獨立；Engine XX:03 聚合）。兩處刻意差異：點位判定走**單位 + 點位名稱關鍵字雙條件**（單位納入「度」但靠名稱擋掉電表點位，水表僅看單位）；氣費期別多 `IsSkipped` 支援**兩月一期**
-- **月結期別四分**：電費 `BillingPeriods` / 水費 `WaterBillingPeriods` / 氣費 `GasBillingPeriods`（各自獨立設定頁，氣費多 IsSkipped）/ 曆月（冷凍噸、能源申報、能源基線刻意不走期別）— 對照表見 docs/架構.md §用電報表
+- **產氣量表與空壓機能源申報**：累積式產氣量 `AirMeter*` 體系（與氣表平行複製、**互不相干** — 壓縮空氣不可借氣表樹否則被計氣費；Engine XX:04 聚合；點位判定單位 + 名稱關鍵字 + 排除天然氣字樣）→ `/AirCompressorDeclaration` 與冰水申報同構，kWh 同一支曆月方法，12 曆月比能耗 kWh/Nm³
+- **月結期別四分**：電費 `BillingPeriods` / 水費 `WaterBillingPeriods` / 氣費 `GasBillingPeriods`（各自獨立設定頁，氣費多 IsSkipped）/ 曆月（冷凍噸、能源申報、空壓機能源申報、能源基線）— 對照表見 docs/架構.md §用電報表
 - **能源日報**：Web 每日 02:00 生成前一日快照（電/水/氣/RTh root 合計 + 警報摘要 + 單日/MTD 比較 + 規則式提示，不串 LLM）→ `DailyReportSnapshot` JSON + HTML Email（SMTP 沿用 EmailSetting.json、收件清單獨立 `DailyReportRecipients`）；Email 與 /DailyReport 頁讀同一份快照，SectionFlags 顯示端過濾
 - **資料庫自動建立與備份**：DB 不存在時啟動安全網自建（無權限優雅降級）+ install-db.ps1 一次性安裝 + Engine 每週 BACKUP（A/B 輪替、結果寫 EventLog）
 - **資料表用途對照**：各表 Key 欄位 + 用途一覽 + SID 格式（完整定義以 DatabaseSchema.json 為準）

@@ -82,6 +82,9 @@
   <data name="layout.menu.water_tariff_setting" xml:space="preserve"><value>水費設定</value></data>
   <data name="layout.menu.water_cost_report" xml:space="preserve"><value>水費報表</value></data>
   <data name="layout.menu.energy_declaration" xml:space="preserve"><value>能源申報</value></data>
+  <data name="layout.menu.air_compressor_declaration" xml:space="preserve"><value>空壓機能源申報</value></data>
+  <data name="layout.menu.group_air_meter" xml:space="preserve"><value>產氣量表</value></data>
+  <data name="layout.menu.air_meter" xml:space="preserve"><value>產氣量表/迴路設定</value></data>
   <data name="layout.menu.energy_baseline" xml:space="preserve"><value>能源基準</value></data>
   <data name="layout.menu.chilled_water" xml:space="preserve"><value>空調水系統迴路設定</value></data>
   <data name="layout.menu.billing_period" xml:space="preserve"><value>電費月結週期</value></data>

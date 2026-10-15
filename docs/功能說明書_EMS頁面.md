@@ -16,6 +16,8 @@
 | 電費報表 | `/ElectricityCostReport` |
 | 冷凍噸報表 | `/RefrigerationTonReport` |
 | 能源申報 | `/EnergyDeclaration` |
+| 空壓機能源申報 | `/AirCompressorDeclaration` |（→ [功能說明書_空壓機能源申報.md](功能說明書_空壓機能源申報.md)）
+| 產氣量表/迴路設定 | `/AirMeterSetting` |（→ [功能說明書_產氣量表.md](功能說明書_產氣量表.md)）
 | 電費月結週期 | `/BillingPeriodSetting` |
 | 水費月結週期 | `/WaterBillingPeriodSetting` |
 | 電費設定 | `/TariffSetting` |
@@ -78,6 +80,8 @@ public static readonly string[] EmsRoutes =
     "/ElectricityCostReport",
     "/RefrigerationTonReport",
     "/EnergyDeclaration",
+    "/AirCompressorDeclaration",
+    "/AirMeterSetting",
     "/BillingPeriodSetting",
     "/WaterBillingPeriodSetting",
     "/TariffSetting",

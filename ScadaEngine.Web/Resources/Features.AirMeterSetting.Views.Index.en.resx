@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="airmeter.title" xml:space="preserve"><value>Air Flow Meter / Circuit</value></data>
+  <data name="airmeter.tree.header" xml:space="preserve"><value>Circuit Hierarchy</value></data>
+  <data name="airmeter.tree.add_root" xml:space="preserve"><value>Add Meter/Circuit</value></data>
+  <data name="airmeter.tree.loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="airmeter.tree.empty" xml:space="preserve"><value>No circuits yet. Click Add at the top right.</value></data>
+  <data name="airmeter.tree.load_failed" xml:space="preserve"><value>Load failed</value></data>
+
+  <data name="airmeter.detail.placeholder_title" xml:space="preserve"><value>Select a circuit on the left</value></data>
+  <data name="airmeter.detail.placeholder_body" xml:space="preserve"><value>Select a node on the left to view/edit its details</value></data>
+  <data name="airmeter.detail.type" xml:space="preserve"><value>Type</value></data>
+  <data name="airmeter.detail.name" xml:space="preserve"><value>Name</value></data>
+  <data name="airmeter.detail.sign" xml:space="preserve"><value>Contribution</value></data>
+  <data name="airmeter.detail.point" xml:space="preserve"><value>Point</value></data>
+  <data name="airmeter.detail.unit_scale" xml:space="preserve"><value>Unit Conversion</value></data>
+  <data name="airmeter.detail.max_volume" xml:space="preserve"><value>Overflow Limit MaxVolume</value></data>
+  <data name="airmeter.detail.desc" xml:space="preserve"><value>Description</value></data>
+  <data name="airmeter.detail.none" xml:space="preserve"><value>None</value></data>
+  <data name="airmeter.detail.not_set" xml:space="preserve"><value>Not set</value></data>
+  <data name="airmeter.detail.point_missing" xml:space="preserve"><value>Point not found</value></data>
+
+  <data name="airmeter.badge.virtual" xml:space="preserve"><value>Virtual circuit</value></data>
+  <data name="airmeter.badge.meter" xml:space="preserve"><value>Physical air flow meter</value></data>
+
+  <data name="airmeter.form.name" xml:space="preserve"><value>Name</value></data>
+  <data name="airmeter.form.name_placeholder" xml:space="preserve"><value>e.g. Compressor room total / Compressor No.1</value></data>
+  <data name="airmeter.form.type" xml:space="preserve"><value>Node Type</value></data>
+  <data name="airmeter.form.type_virtual" xml:space="preserve"><value>Virtual circuit</value></data>
+  <data name="airmeter.form.type_meter" xml:space="preserve"><value>Physical air flow meter</value></data>
+  <data name="airmeter.form.sign" xml:space="preserve"><value>Contribution</value></data>
+  <data name="airmeter.form.sign_pos" xml:space="preserve"><value>Positive (add to parent)</value></data>
+  <data name="airmeter.form.sign_neg" xml:space="preserve"><value>Negative (subtract from parent)</value></data>
+  <data name="airmeter.form.sign_hint" xml:space="preserve"><value>For formulas like "main meter − allocated sub-meters"; not applicable to root nodes</value></data>
+  <data name="airmeter.form.point" xml:space="preserve"><value>Air Volume Point</value></data>
+  <data name="airmeter.form.point_unbound" xml:space="preserve"><value>No point bound yet</value></data>
+  <data name="airmeter.form.point_hint" xml:space="preserve"><value>Only cumulative points that BOTH have a unit convertible to Nm³ (Nm³ / m³ / SCM / L family) AND carry a compressed-air keyword in the point name (空壓 / 壓縮空氣 / 產氣 / 氣量 / air / compressor / FAD) are listed; names containing natural-gas words (天然氣 / 瓦斯 / 燃氣 / LNG…) are always excluded. Includes calculated and DB source points.</value></data>
+  <data name="airmeter.form.name_filter_hint" xml:space="preserve"><value>Cannot find your air volume point? Two likely causes: (1) the point name carries no compressed-air keyword — rename it in point management to include e.g. "空壓 / 壓縮空氣 / air / compressor"; (2) the unit is not a cumulative unit (e.g. Nm³/min or Nm³/h flow) — bind the flow meter's totalizer point (Nm³) instead. Nm³ / m³ also apply to gas and water meters, so the name is the only reliable signal.</value></data>
+  <data name="airmeter.form.unit_scale_display" xml:space="preserve"><value>Point unit {unit} → scale factor {scale} (Nm³)</value></data>
+  <data name="airmeter.form.max_volume" xml:space="preserve"><value>Overflow Limit MaxVolume</value></data>
+  <data name="airmeter.form.max_volume_placeholder" xml:space="preserve"><value>e.g. 1,000,000,000 (in the point's raw unit)</value></data>
+  <data name="airmeter.form.max_volume_hint" xml:space="preserve"><value>Used to compute delta when the totalizer overflows/resets, in the point's raw unit; leave blank to skip overflow handling</value></data>
+  <data name="airmeter.form.desc" xml:space="preserve"><value>Description</value></data>
+  <data name="airmeter.form.desc_placeholder" xml:space="preserve"><value>Optional</value></data>
+
+  <data name="airmeter.btn.save" xml:space="preserve"><value>Save</value></data>
+  <data name="airmeter.btn.cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="airmeter.btn.confirm" xml:space="preserve"><value>OK</value></data>
+  <data name="airmeter.btn.clear_binding" xml:space="preserve"><value>Clear binding</value></data>
+  <data name="airmeter.btn.pick_point" xml:space="preserve"><value>Select point</value></data>
+  <data name="airmeter.btn.add_child" xml:space="preserve"><value>Add child</value></data>
+  <data name="airmeter.btn.edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="airmeter.btn.delete" xml:space="preserve"><value>Delete</value></data>
+
+  <data name="airmeter.modal.create_title" xml:space="preserve"><value>Add Meter/Circuit</value></data>
+  <data name="airmeter.modal.create_child_title" xml:space="preserve"><value>Add Child Node</value></data>
+  <data name="airmeter.modal.edit_title" xml:space="preserve"><value>Edit: {name}</value></data>
+
+  <data name="airmeter.picker.title" xml:space="preserve"><value>Select Air Volume Point</value></data>
+  <data name="airmeter.picker.device" xml:space="preserve"><value>Devices</value></data>
+  <data name="airmeter.picker.point" xml:space="preserve"><value>Points</value></data>
+  <data name="airmeter.picker.search_placeholder" xml:space="preserve"><value>Search point name / SID...</value></data>
+  <data name="airmeter.picker.no_data" xml:space="preserve"><value>No points available</value></data>
+  <data name="airmeter.picker.pick_device_first" xml:space="preserve"><value>Select a device on the left first</value></data>
+  <data name="airmeter.picker.pick_subunit_first" xml:space="preserve"><value>Select a sub-unit first</value></data>
+  <data name="airmeter.picker.no_match" xml:space="preserve"><value>No matching points</value></data>
+
+  <data name="airmeter.group.modbus" xml:space="preserve"><value>Modbus Devices</value></data>
+  <data name="airmeter.group.calculated" xml:space="preserve"><value>Calculated Points</value></data>
+  <data name="airmeter.group.db" xml:space="preserve"><value>DB Sources</value></data>
+  <data name="airmeter.group.unspecified" xml:space="preserve"><value>Unspecified</value></data>
+  <data name="airmeter.sign.neg_tooltip" xml:space="preserve"><value>Negative: subtracted from parent circuit</value></data>
+
+  <data name="airmeter.msg.name_required" xml:space="preserve"><value>Please enter a name</value></data>
+  <data name="airmeter.msg.sid_required" xml:space="preserve"><value>A physical air flow meter must bind an air volume point</value></data>
+  <data name="airmeter.msg.save_failed" xml:space="preserve"><value>Save failed: {msg}</value></data>
+  <data name="airmeter.msg.delete_failed" xml:space="preserve"><value>Delete failed: {msg}</value></data>
+  <data name="airmeter.msg.sort_failed" xml:space="preserve"><value>Sort update failed: {msg}</value></data>
+  <data name="airmeter.msg.confirm_delete" xml:space="preserve"><value>Delete "{name}"?</value></data>
+  <data name="airmeter.msg.confirm_delete_children" xml:space="preserve"><value>This circuit has child nodes; deleting will also remove all descendants. Continue?</value></data>
+  <data name="airmeter.msg.confirm_move" xml:space="preserve"><value>Move "{name}" under "{parent}"?&#10;Parent circuit totals and declaration figures change immediately.</value></data>
+  <data name="airmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>⚠ Target is a physical air flow meter: once it has children it is summed together with itself.</value></data>
+
+  <data name="airmeter.err.name_required" xml:space="preserve"><value>Name cannot be empty</value></data>
+  <data name="airmeter.err.invalid_sign" xml:space="preserve"><value>Sign must be +1 or -1</value></data>
+  <data name="airmeter.err.node_not_found" xml:space="preserve"><value>Node not found</value></data>
+  <data name="airmeter.err.invalid_air_point" xml:space="preserve"><value>Point not found, or it does not qualify as an air volume point (unit must be convertible to Nm³, and the point name must carry a compressed-air keyword without natural-gas words). Please reselect the point.</value></data>
+  <data name="airmeter.err.has_children" xml:space="preserve"><value>This circuit has child nodes; deletion will remove all descendants</value></data>
+  <data name="airmeter.err.sort_failed" xml:space="preserve"><value>Sort update failed</value></data>
+  <data name="airmeter.err.sort_cycle" xml:space="preserve"><value>A circuit cannot be moved under its own descendant</value></data>
+  <data name="airmeter.err.sort_multi_root" xml:space="preserve"><value>Only one root (whole plant) is allowed; cannot create a second root</value></data>
+  <data name="airmeter.err.sort_missing_node" xml:space="preserve"><value>Node not found, please reload the page</value></data>
+  <data name="airmeter.err.sort_missing_parent" xml:space="preserve"><value>Target circuit not found, please reload the page</value></data>
+  <data name="airmeter.err.unknown" xml:space="preserve"><value>Unknown error</value></data>
+</root>

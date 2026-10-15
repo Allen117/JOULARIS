@@ -180,7 +180,7 @@
                                     </ul>
                                 </li>
                             }
-                            @if (canAccess("/EnergyReport") || canAccess("/ElectricityCostReport") || canAccess("/RefrigerationTonReport") || canAccess("/WaterUsageReport") || canAccess("/WaterCostReport") || canAccess("/GasUsageReport") || canAccess("/GasCostReport") || canAccess("/EnergyDeclaration"))
+                            @if (canAccess("/EnergyReport") || canAccess("/ElectricityCostReport") || canAccess("/RefrigerationTonReport") || canAccess("/WaterUsageReport") || canAccess("/WaterCostReport") || canAccess("/GasUsageReport") || canAccess("/GasCostReport") || canAccess("/EnergyDeclaration") || canAccess("/AirCompressorDeclaration"))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -221,6 +221,11 @@
                                         {
                                             <li><a class="dropdown-item" href="/EnergyDeclaration"><i class="fas fa-file-signature me-2"></i>@Localizer["layout.menu.energy_declaration"]</a></li>
                                         }
+                                        @* 權限獨立於 /EnergyDeclaration（後者另守門 AI 智慧幫手，勿合併判斷） *@
+                                        @if (canAccess("/AirCompressorDeclaration"))
+                                        {
+                                            <li><a class="dropdown-item" href="/AirCompressorDeclaration"><i class="fas fa-wind me-2"></i>@Localizer["layout.menu.air_compressor_declaration"]</a></li>
+                                        }
                                     </ul>
                                 </li>
                             }
@@ -242,7 +247,7 @@
                                     </a>
                                 </li>
                             }
-                            @if (canAccess("/ChilledWaterSystem") || canAccess("/EnergyMeter") || canAccess("/WaterMeterSetting") || canAccess("/GasMeterSetting") || canAccess("/BillingPeriodSetting") || canAccess("/WaterBillingPeriodSetting") || canAccess("/GasBillingPeriodSetting") || canAccess("/TariffSetting") || canAccess("/WaterTariffSetting") || canAccess("/GasTariffSetting") || canAccess("/HolidaySetting") || canAccess("/ShiftSetting") || canAccess("/EmsCardSetting") || canAccess("/DailyReportSetting"))
+                            @if (canAccess("/ChilledWaterSystem") || canAccess("/EnergyMeter") || canAccess("/WaterMeterSetting") || canAccess("/GasMeterSetting") || canAccess("/AirMeterSetting") || canAccess("/BillingPeriodSetting") || canAccess("/WaterBillingPeriodSetting") || canAccess("/GasBillingPeriodSetting") || canAccess("/TariffSetting") || canAccess("/WaterTariffSetting") || canAccess("/GasTariffSetting") || canAccess("/HolidaySetting") || canAccess("/ShiftSetting") || canAccess("/EmsCardSetting") || canAccess("/DailyReportSetting"))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -317,6 +322,15 @@
                                                         @* fa-money-bill-wave：與所屬「氣表」群組標頭 fa-fire 區隔 *@
                                                         <li><a class="dropdown-item" href="/GasTariffSetting"><i class="fas fa-money-bill-wave me-2"></i>@Localizer["layout.menu.gas_tariff_setting"]</a></li>
                                                     }
+                                                </ul>
+                                            </li>
+                                        }
+                                        @if (canAccess("/AirMeterSetting"))
+                                        {
+                                            <li class="dropdown-submenu">
+                                                <a class="dropdown-item dropdown-toggle" href="#" role="button"><i class="fas fa-wind me-2"></i>@Localizer["layout.menu.group_air_meter"]</a>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="/AirMeterSetting"><i class="fas fa-wind me-2"></i>@Localizer["layout.menu.air_meter"]</a></li>
                                                 </ul>
                                             </li>
                                         }

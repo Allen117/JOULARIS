@@ -1,0 +1,59 @@
+/* 空壓機能源申報頁專屬樣式（與冰水版 energydeclaration.css 同構） */
+
+.acd-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.acd-filter-bar .acd-report {
+    flex: 0 0 220px;
+}
+
+.acd-filter-bar .acd-narrow-date {
+    flex: 0 0 130px;
+}
+
+.acd-filter-bar .acd-btn .btn {
+    white-space: nowrap;
+}
+
+.acd-config-table td,
+.acd-config-table th {
+    font-size: 0.875rem;
+    padding: 8px 12px;
+    vertical-align: middle;
+}
+
+.acd-config-table .acd-missing {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+/* kWh / Nm³ 資料不完整 bucket 標記 — 琥珀色 ⚠，hover 有 tooltip */
+.acd-stale-mark {
+    color: #f0ad4e;
+    cursor: help;
+    font-size: 0.85em;
+}
+
+#acdTableBody td {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+}
+
+#acdTableBody td.text-end {
+    font-family: monospace;
+    font-weight: 500;
+}
+
+#acdTableBody tr.acd-total {
+    background-color: #fff3cd !important;
+    font-weight: bold;
+}
+
+#acdWarnText {
+    color: #fd7e14;
+    font-weight: 500;
+}

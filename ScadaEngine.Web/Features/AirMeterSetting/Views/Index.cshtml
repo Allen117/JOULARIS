@@ -1,0 +1,170 @@
+@{
+    ViewData["Title"] = Localizer["airmeter.title"].Value;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            @* 圖示與側欄「產氣量表/迴路設定」選單一致（fa-wind）；勿改回 fa-sitemap — 那是電表迴路設定的 *@
+            <i class="fas fa-wind text-primary me-2"></i>@Localizer["airmeter.title"]
+        </h2>
+    </div>
+
+    <div class="row g-3">
+        <!-- 左側樹狀清單 -->
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                    <span><i class="fas fa-folder-tree me-1"></i>@Localizer["airmeter.tree.header"]</span>
+                    <button class="btn btn-sm btn-outline-light py-0" onclick="window._am.openCreateModal(null)">
+                        <i class="fas fa-plus me-1"></i>@Localizer["airmeter.tree.add_root"]
+                    </button>
+                </div>
+                <div class="card-body p-2" style="height: calc(100vh - 250px); overflow-y: auto;">
+                    <div id="treeContainer">
+                        <div class="text-center mt-5"><div class="spinner-border spinner-border-sm text-primary"></div> @Localizer["airmeter.tree.loading"]</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側詳情 -->
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light py-2">
+                    <span id="detailTitle"><i class="fas fa-hand-pointer me-1"></i>@Localizer["airmeter.detail.placeholder_title"]</span>
+                </div>
+                <div class="card-body" id="detailArea">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-sitemap fa-4x mb-3 d-block" style="opacity:.3"></i>
+                        <p>@Localizer["airmeter.detail.placeholder_body"]</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/編輯 Modal -->
+<div class="modal fade" id="circuitModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-edit me-1"></i><span id="modalTitle">@Localizer["airmeter.modal.create_title"]</span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="amId">
+                <input type="hidden" id="amParentId">
+                <input type="hidden" id="amSid">
+                <input type="hidden" id="amUnitScale">
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-tag me-1"></i>@Localizer["airmeter.form.name"]</label>
+                    <input type="text" class="form-control form-control-sm" id="amName" placeholder="@Localizer["airmeter.form.name_placeholder"]">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-cog me-1"></i>@Localizer["airmeter.form.type"]</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <input type="radio" class="btn-check" name="amType" id="amTypeVirtual" value="virtual" checked>
+                        <label class="btn btn-outline-primary" for="amTypeVirtual">
+                            <i class="fas fa-folder me-1"></i>@Localizer["airmeter.form.type_virtual"]
+                        </label>
+                        <input type="radio" class="btn-check" name="amType" id="amTypeMeter" value="meter">
+                        <label class="btn btn-outline-primary" for="amTypeMeter">
+                            <i class="fas fa-wind me-1"></i>@Localizer["airmeter.form.type_meter"]
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="amSignRow">
+                    <label class="form-label fw-semibold"><i class="fas fa-plus-minus me-1"></i>@Localizer["airmeter.form.sign"]</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <input type="radio" class="btn-check" name="amSign" id="amSignPos" value="1" checked>
+                        <label class="btn btn-outline-success" for="amSignPos">
+                            <i class="fas fa-plus me-1"></i>@Localizer["airmeter.form.sign_pos"]
+                        </label>
+                        <input type="radio" class="btn-check" name="amSign" id="amSignNeg" value="-1">
+                        <label class="btn btn-outline-danger" for="amSignNeg">
+                            <i class="fas fa-minus me-1"></i>@Localizer["airmeter.form.sign_neg"]
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">@Localizer["airmeter.form.sign_hint"]</small>
+                </div>
+
+                <div class="mb-3" id="amMeterFields" style="display:none;">
+                    <label class="form-label fw-semibold"><i class="fas fa-plug me-1"></i>@Localizer["airmeter.form.point"]</label>
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="form-control form-control-sm am-point-display" id="amPointDisplay">@Localizer["airmeter.form.point_unbound"]</div>
+                        <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" onclick="window._am.openPointPicker()">
+                            <i class="fas fa-crosshairs me-1"></i>@Localizer["airmeter.btn.pick_point"]
+                        </button>
+                    </div>
+                    <small class="text-muted d-block mt-1">@Localizer["airmeter.form.point_hint"]</small>
+                    <div class="alert alert-info py-1 px-2 mt-1 mb-0 small">
+                        <i class="fas fa-info-circle me-1"></i>@Localizer["airmeter.form.name_filter_hint"]
+                    </div>
+                    <div class="am-unitscale-info mt-1" id="amUnitScaleInfo" style="display:none;"></div>
+
+                    <label class="form-label fw-semibold mt-3"><i class="fas fa-sort-numeric-up me-1"></i>@Localizer["airmeter.form.max_volume"]</label>
+                    <input type="text" inputmode="numeric" class="form-control form-control-sm" id="amMaxVolume" placeholder="@Localizer["airmeter.form.max_volume_placeholder"]">
+                    <small class="text-muted d-block mt-1">@Localizer["airmeter.form.max_volume_hint"]</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-comment me-1"></i>@Localizer["airmeter.form.desc"]</label>
+                    <textarea class="form-control form-control-sm" id="amDesc" rows="2" placeholder="@Localizer["airmeter.form.desc_placeholder"]"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">@Localizer["airmeter.btn.cancel"]</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="window._am.saveCircuit()">
+                    <i class="fas fa-save me-1"></i>@Localizer["airmeter.btn.save"]
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 兩步驟點位選擇器 Modal（設備 → 點位清單＋搜尋） -->
+<div class="modal fade" id="amPointPickerModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-crosshairs me-1"></i>@Localizer["airmeter.picker.title"]</h6>
+                <button type="button" class="btn-close" onclick="window._am.closePointPicker(false)"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <div class="pp-panel-title"><i class="fas fa-server me-1"></i>@Localizer["airmeter.picker.device"]</div>
+                        <div id="ppDeviceList" class="pp-list"></div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="pp-panel-title"><i class="fas fa-plug me-1"></i>@Localizer["airmeter.picker.point"]</div>
+                        <input type="text" class="form-control form-control-sm mb-1" id="ppSearch" placeholder="@Localizer["airmeter.picker.search_placeholder"]" autocomplete="off">
+                        <div id="ppPointList" class="pp-list"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-sm btn-outline-danger me-auto" onclick="window._am.clearPickedPoint()">
+                    <i class="fas fa-eraser me-1"></i>@Localizer["airmeter.btn.clear_binding"]
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="window._am.closePointPicker(false)">@Localizer["airmeter.btn.cancel"]</button>
+                <button type="button" class="btn btn-sm btn-primary" id="ppConfirmBtn" disabled onclick="window._am.closePointPicker(true)">
+                    <i class="fas fa-check me-1"></i>@Localizer["airmeter.btn.confirm"]
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="~/css/airmeter.css" asp-append-version="true" />
+
+@section Scripts {
+    <script src="~/js/common/tree-dnd.js" asp-append-version="true"></script>
+    <script src="~/js/airmeter.js" asp-append-version="true"></script>
+}

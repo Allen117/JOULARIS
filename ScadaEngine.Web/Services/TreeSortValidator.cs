@@ -1,7 +1,7 @@
 namespace ScadaEngine.Web.Services;
 
 /// <summary>
-/// 自參照樹（EnergyCircuit / WaterCircuit / WaterMeterCircuit / GasMeterCircuit / LogicFlowTree）
+/// 自參照樹（EnergyCircuit / WaterCircuit / WaterMeterCircuit / GasMeterCircuit / AirMeterCircuit / LogicFlowTree）
 /// 批次搬移 / 排序的後端防呆 — 把前端送來的 (Id, ParentId, SortOrder) 套到 DB 現況後，驗整棵樹：
 ///   1. 每個 Id 都存在
 ///   2. 每個 ParentId 都存在
