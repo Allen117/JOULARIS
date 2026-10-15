@@ -1,0 +1,12 @@
+===== ScadaEngine.Common
+The given project `ScadaEngine.Common` has no vulnerable packages given the current sources.
+===== ScadaEngine.Algorithm
+The given project `ScadaEngine.Algorithm` has no vulnerable packages given the current sources.
+===== ScadaEngine.Engine
+The given project `ScadaEngine.Engine` has no vulnerable packages given the current sources.
+===== ScadaEngine.Web
+The given project `ScadaEngine.Web` has no vulnerable packages given the current sources.
+===== ScadaEngine.LicenseBridge
+The given project `ScadaEngine.LicenseBridge` has no vulnerable packages given the current sources.
+===== ScadaEngine.Tests
+The given project `ScadaEngine.Tests` has no vulnerable packages given the current sources.
