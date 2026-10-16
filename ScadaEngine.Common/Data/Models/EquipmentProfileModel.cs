@@ -26,8 +26,17 @@ public class EquipmentProfileModel
     /// <summary>主指標 ≤ Fair → 可，&gt; Fair → 差</summary>
     public double? dFairThreshold { get; set; }
     public string? szDescription { get; set; }
-    /// <summary>空壓機控制型式 fixed / vsd / modulation（Common CompressorControlType）；null = 診斷時由功率分佈推定</summary>
+    /// <summary>
+    /// 控制型式：空壓機 fixed / vsd / modulation（Common CompressorControlType；null = 診斷時由功率分佈推定）；
+    /// 冰機 fixed / vsd（定頻 → 90.1 Path A、變頻 → Path B）
+    /// </summary>
     public string? szControlType { get; set; }
+    /// <summary>冰機冷卻方式 water / air（Common ChillerCoolingType）</summary>
+    public string? szCoolingType { get; set; }
+    /// <summary>冰機壓縮機形式 centrifugal / screw / scroll / reciprocating（Common ChillerCompressorType）</summary>
+    public string? szChillerType { get; set; }
+    /// <summary>冰機評級門檻模式 standard / manual；null = standard（見 Common ChillerEfficiencyStandard）</summary>
+    public string? szThresholdMode { get; set; }
     /// <summary>空壓機 VSD 最低負載 %；null = 診斷退回觀測值</summary>
     public double? dMinLoadPct { get; set; }
     /// <summary>空壓機銘牌最高工作壓力 bar</summary>

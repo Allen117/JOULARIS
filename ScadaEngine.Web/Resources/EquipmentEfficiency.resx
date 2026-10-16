@@ -493,4 +493,38 @@
   <data name="eq.diag.ui.suggest_fixed_storage" xml:space="preserve"><value>建議改定頻加卸載 + 儲氣桶</value></data>
   <data name="eq.diag.ui.suggest_unknown" xml:space="preserve"><value>無 kW 無法建議</value></data>
   <data name="eq.diag.ui.system" xml:space="preserve"><value>系統</value></data>
+  <data name="eq.basis.std" xml:space="preserve"><value>90.1 {type} {band} {path}</value></data>
+  <data name="eq.basis.cooling_kind" xml:space="preserve"><value>{cooling}{kind}</value></data>
+  <data name="eq.basis.with_type" xml:space="preserve"><value>{base}（{type}）</value></data>
+  <data name="eq.basis.pd" xml:space="preserve"><value>容積式</value></data>
+  <data name="eq.basis.band_lt" xml:space="preserve"><value>&lt;{max}RT</value></data>
+  <data name="eq.basis.band_ge" xml:space="preserve"><value>≥{min}RT</value></data>
+  <data name="eq.basis.band_range" xml:space="preserve"><value>{min}–{max}RT</value></data>
+  <data name="eq.basis.path_a" xml:space="preserve"><value>定頻(Path A)</value></data>
+  <data name="eq.basis.path_b" xml:space="preserve"><value>變頻(Path B)</value></data>
+  <data name="eq.basis.manual" xml:space="preserve"><value>手動門檻</value></data>
+  <data name="eq.basis.type_unset" xml:space="preserve"><value>機型未設定</value></data>
+  <data name="eq.basis.rated_missing" xml:space="preserve"><value>未填額定 RT</value></data>
+  <data name="eq.cooling.water" xml:space="preserve"><value>水冷</value></data>
+  <data name="eq.cooling.air" xml:space="preserve"><value>氣冷</value></data>
+  <data name="eq.ctype.centrifugal" xml:space="preserve"><value>離心</value></data>
+  <data name="eq.ctype.screw" xml:space="preserve"><value>螺旋</value></data>
+  <data name="eq.ctype.scroll" xml:space="preserve"><value>渦卷</value></data>
+  <data name="eq.ctype.reciprocating" xml:space="preserve"><value>往復</value></data>
+  <data name="eq.chctrl.fixed" xml:space="preserve"><value>定頻</value></data>
+  <data name="eq.chctrl.vsd" xml:space="preserve"><value>變頻（VSD）</value></data>
+  <data name="eq.thmode.standard" xml:space="preserve"><value>依標準（ASHRAE 90.1）</value></data>
+  <data name="eq.thmode.manual" xml:space="preserve"><value>手動</value></data>
+  <data name="eq.edit.chiller_model" xml:space="preserve"><value>機型與評級門檻</value></data>
+  <data name="eq.edit.cooling_type" xml:space="preserve"><value>冷卻方式</value></data>
+  <data name="eq.edit.chiller_type" xml:space="preserve"><value>壓縮機形式</value></data>
+  <data name="eq.edit.chiller_control" xml:space="preserve"><value>定頻 / 變頻</value></data>
+  <data name="eq.edit.threshold_mode" xml:space="preserve"><value>門檻模式</value></data>
+  <data name="eq.edit.unset" xml:space="preserve"><value>未設定</value></data>
+  <data name="eq.edit.threshold_hint_chiller" xml:space="preserve"><value>「依標準」時優 / 可門檻由 ASHRAE 90.1-2022 Table 6.8.1-3 依機型與額定 RT 自動帶出（優 ≤ 標準滿載值、可 ≤ 標準值 × 1.15），切「手動」才可自行輸入。額定電力用於停機判定（低於 5% 視為停機）。</value></data>
+  <data name="eq.edit.th_preview_std" xml:space="preserve"><value>90.1 標準滿載值 {fl} kW/RT → 優 ≤ {good}、可 ≤ {fair}、差 &gt; {fair}</value></data>
+  <data name="eq.edit.th_preview_manual" xml:space="preserve"><value>手動門檻：評級使用上方「優」「可」輸入值，不隨機型變動。</value></data>
+  <data name="eq.err.invalid_cooling_type" xml:space="preserve"><value>冷卻方式不正確：{detail}</value></data>
+  <data name="eq.err.invalid_chiller_type" xml:space="preserve"><value>壓縮機形式不正確：{detail}</value></data>
+  <data name="eq.err.invalid_threshold_mode" xml:space="preserve"><value>門檻模式不正確：{detail}</value></data>
 </root>

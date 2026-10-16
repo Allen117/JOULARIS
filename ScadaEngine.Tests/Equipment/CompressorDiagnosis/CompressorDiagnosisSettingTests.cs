@@ -96,7 +96,7 @@ public class CompressorDiagnosisSettingTests
     };
 
     [Fact]
-    public void 設備欄位_控制型式需合法_最低負載0到100_冰機一律清空()
+    public void 設備欄位_控制型式需合法_最低負載0到100_冰機清空空壓機專屬欄位()
     {
         var m = Compressor();
         m.szControlType = "turbo";
@@ -119,7 +119,7 @@ public class CompressorDiagnosisSettingTests
             aBindings = [new() { szRole = EquipmentRoles.KW, szSID = "K" }, new() { szRole = EquipmentRoles.RT, szSID = "R" }],
         };
         EquipmentProfileService.ValidateAndNormalize(ch);
-        Assert.Null(ch.szControlType);
+        Assert.Equal("vsd", ch.szControlType);   // 冰機 ControlType = 定頻 / 變頻（90.1 Path A / B）
         Assert.Null(ch.dMaxPressure);
     }
 }

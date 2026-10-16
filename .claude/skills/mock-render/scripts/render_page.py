@@ -40,7 +40,14 @@ def main():
     tmp.write_text(html, encoding="utf-8")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        try:
+            browser = p.chromium.launch(headless=True)
+        except Exception:
+            # pip 版 playwright 要的 chromium 版號與本機已裝的不同 → 改用 ms-playwright 下現有的 chromium
+            cands = sorted(pathlib.Path.home().glob("AppData/Local/ms-playwright/chromium-*/chrome-win*/chrome.exe"))
+            if not cands:
+                raise
+            browser = p.chromium.launch(headless=True, executable_path=str(cands[-1]))
         page = browser.new_page(viewport={"width": a.width, "height": a.height},
                                 device_scale_factor=1.5)
         logs = []

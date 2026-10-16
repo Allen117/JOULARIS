@@ -30,8 +30,14 @@ public class EquipmentProfileSaveRequest
     public double? dGoodThreshold { get; set; }
     public double? dFairThreshold { get; set; }
     public string? szDescription { get; set; }
-    /// <summary>空壓機：fixed / vsd / modulation / null</summary>
+    /// <summary>空壓機：fixed / vsd / modulation / null；冰機：fixed / vsd / null</summary>
     public string? szControlType { get; set; }
+    /// <summary>冰機：water / air / null</summary>
+    public string? szCoolingType { get; set; }
+    /// <summary>冰機：centrifugal / screw / scroll / reciprocating / null</summary>
+    public string? szChillerType { get; set; }
+    /// <summary>冰機：standard / manual / null（= standard）</summary>
+    public string? szThresholdMode { get; set; }
     public double? dMinLoadPct { get; set; }
     public double? dMaxPressure { get; set; }
     public int? nMaxStartsPerHour { get; set; }

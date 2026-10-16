@@ -3,7 +3,8 @@
    - 掃描判定：js/equipment-scan.js（純函式）；點位清單：PointPicker.load()（/Designer/Points + 設備標籤）
    - 手動新增 / 編輯：各角色用共用 PointPicker（來源 → 設備 → 點位）綁定，單位下拉決定換算係數（伺服端重算）
    - 回填歷史：POST api/backfill → MQTT → Engine 逐小時重算 EquipmentHourly
-   依賴載入順序：point-grouping.js → point-picker.js → role-aliases.js → equipment-scan.js → 本檔 */
+   - 冰機評級門檻：預設「依標準」（ASHRAE 90.1 表 × 冷卻方式 / 形式 / 變頻 / 額定 RT），編輯框即時預覽；「手動」才用輸入值
+   依賴載入順序：point-grouping.js → point-picker.js → role-aliases.js → equipment-scan.js → equipment-threshold.js → 本檔 */
 (function () {
     'use strict';
 
@@ -167,7 +168,7 @@
                 '<td class="eqs-chips">' + chips + '</td>' +
                 '<td class="text-nowrap small">' + (p.dRatedOutput != null ? esc(p.dRatedOutput) + ' ' + szRatedUnit : '--') +
                     ' / ' + (p.dRatedPower != null ? esc(p.dRatedPower) + ' kW' : '--') + '</td>' +
-                '<td class="text-nowrap small">' + esc(fmtNum(p.dGoodThreshold)) + ' / ' + esc(fmtNum(p.dFairThreshold)) + ' <span class="text-muted">' + szMetricUnit + '</span></td>' +
+                thresholdCellHtml(p, szMetricUnit) +
                 '<td class="text-end text-nowrap">' +
                     '<button class="btn btn-sm btn-outline-primary py-0 me-1" title="' + esc(t('eq.setting.edit')) + '" onclick="window._eqs.edit(' + p.nId + ')"><i class="fas fa-pen"></i></button>' +
                     '<button class="btn btn-sm btn-outline-secondary py-0 me-1" title="' + esc(t('eq.setting.backfill')) + '" onclick="window._eqs.backfill(' + p.nId + ')"><i class="fas fa-history"></i></button>' +
@@ -187,6 +188,24 @@
                 '<th style="width:120px;"></th>' +
               '</tr></thead><tbody>' + rows + '</tbody></table></div>';
     }
+
+    // 門檻欄：冰機顯示解析後門檻 + 依據（依標準 / 手動），空壓機維持手動值
+    function thresholdCellHtml(p, szMetricUnit) {
+        if (p.szKind !== 'chiller') {
+            return '<td class="text-nowrap small">' + esc(fmtNum(p.dGoodThreshold)) + ' / ' + esc(fmtNum(p.dFairThreshold)) + ' <span class="text-muted">' + szMetricUnit + '</span></td>';
+        }
+        var th = resolveChiller(p);
+        return '<td class="small"><span class="text-nowrap">' + esc(fmt3(th.good)) + ' / ' + esc(fmt3(th.fair)) + ' <span class="text-muted">' + szMetricUnit + '</span></span>' +
+            '<div class="text-muted eqs-th-basis">' + esc(window.EquipmentThreshold.format(th.basis)) + '</div></td>';
+    }
+    function resolveChiller(p) {
+        return window.EquipmentThreshold.resolve(_meta.chillerStandard, p, (_meta.defaults || {}).chiller);
+    }
+    function fmt3(v) { return v == null ? '--' : Number(v).toFixed(3); }
+
+    // 冰機新增 / 掃描帶入預設：依標準、水冷離心定頻（使用者再依現場機型調整）
+    var CHILLER_DEFAULTS = { szCoolingType: 'water', szChillerType: 'centrifugal', szControlType: 'fixed', szThresholdMode: 'standard' };
+    function chillerDefaults(kind) { return kind === 'chiller' ? CHILLER_DEFAULTS : {}; }
 
     // ── 掃描 ──────────────────────────────────────────────
     function existingOf(kind) {
@@ -353,12 +372,13 @@
         var defaults = _meta.defaults[_kind] || {};
         var body = {
             aProfiles: picked.map(function (c) {
-                return {
+                return Object.assign({
                     nId: 0, szKind: c.szKind, szName: (c.szName || c.szLabel).trim(), isEnabled: true,
-                    dGoodThreshold: defaults.good, dFairThreshold: defaults.fair,
+                    dGoodThreshold: defaults.good, dFairThreshold: defaults.fair
+                }, chillerDefaults(c.szKind), {
                     aBindings: Object.keys(c.bindings).filter(function (r) { return c.bindings[r] && c.bindings[r].szSID; })
                         .map(function (r) { return { szRole: r, szSID: c.bindings[r].szSID, szUnit: c.bindings[r].szUnit }; })
-                };
+                });
             })
         };
         var btn = $('eqsScanImport');
@@ -376,12 +396,13 @@
     // ── 手動新增 / 編輯 ──────────────────────────────────
     function openEdit(p) {
         var defaults = (_meta.defaults && _meta.defaults[_kind]) || {};
-        _editing = p ? JSON.parse(JSON.stringify(p)) : {
+        _editing = p ? JSON.parse(JSON.stringify(p)) : Object.assign({
             nId: 0, szKind: _kind, szName: '', nSortOrder: 0, isEnabled: true,
             dRatedOutput: null, dRatedPower: null, dMaxKwh: null, dSpecificHeat: null,
             dGoodThreshold: defaults.good, dFairThreshold: defaults.fair, szDescription: '', aBindings: [],
-            szControlType: null, dMinLoadPct: null, dMaxPressure: null, nMaxStartsPerHour: null
-        };
+            szControlType: null, dMinLoadPct: null, dMaxPressure: null, nMaxStartsPerHour: null,
+            szCoolingType: null, szChillerType: null, szThresholdMode: null
+        }, chillerDefaults(_kind));
         renderEdit();
         bootstrap.Modal.getOrCreateInstance($('eqsEditModal')).show();
     }
@@ -426,9 +447,9 @@
               field('dGoodThreshold', t('eq.edit.good', { unit: isCh ? 'kW/RT' : 'kW/(m³/min)' }), e.dGoodThreshold) +
               field('dFairThreshold', t('eq.edit.fair', { unit: isCh ? 'kW/RT' : 'kW/(m³/min)' }), e.dFairThreshold) +
               (isCh ? field('dSpecificHeat', t('eq.edit.specific_heat'), e.dSpecificHeat, 'number', ' placeholder="' + esc(_meta.defaultSpecificHeat) + '"') : '') +
-              '<div class="col-12"><div class="form-text mt-0">' + esc(t('eq.edit.threshold_hint')) + '</div></div>' +
+              '<div class="col-12"><div class="form-text mt-0">' + esc(t(isCh ? 'eq.edit.threshold_hint_chiller' : 'eq.edit.threshold_hint')) + '</div></div>' +
             '</div>' +
-            (isCh ? '' : diagFieldsHtml(e)) +
+            (isCh ? chillerFieldsHtml(e) : diagFieldsHtml(e)) +
             '<h6 class="small fw-semibold mb-1">' + esc(t('eq.edit.roles')) + '</h6>' +
             '<div class="small text-muted mb-1">' + esc(t(isCh ? 'eq.edit.roles_hint_chiller' : 'eq.edit.roles_hint_compressor')) + '</div>' +
             '<table class="table table-sm align-middle mb-1"><tbody>' + roleRows + '</tbody></table>' +
@@ -436,6 +457,69 @@
             '<div class="mb-0"><label class="form-label small mb-0">' + esc(t('eq.edit.description')) + '</label>' +
               '<input class="form-control form-control-sm" data-edit="szDescription" maxlength="500" value="' + esc(e.szDescription || '') + '" /></div>';
         $('eqsEditSave').disabled = miss.length > 0;
+        if (isCh) updateThresholdPreview();
+    }
+
+    // 冰機機型 + 門檻模式（依標準 → 門檻由 90.1 表帶出、優 / 可輸入框鎖定；手動 → 用輸入值）
+    function chillerFieldsHtml(e) {
+        var sel = function (szKey, szLabel, aValues, szCur, fnText) {
+            return '<div class="col-6 col-md-3"><label class="form-label small mb-0">' + esc(szLabel) + '</label>' +
+                '<select class="form-select form-select-sm" data-edit="' + szKey + '">' + aValues.map(function (v) {
+                    return '<option value="' + v + '"' + ((szCur || '') === v ? ' selected' : '') + '>' + esc(fnText(v)) + '</option>';
+                }).join('') + '</select></div>';
+        };
+        var unset = function (fn) { return function (v) { return v ? fn(v) : t('eq.edit.unset'); }; };
+        return '<h6 class="small fw-semibold mb-1">' + esc(t('eq.edit.chiller_model')) + '</h6>' +
+            '<div class="row g-2 mb-2">' +
+              sel('szCoolingType', t('eq.edit.cooling_type'), [''].concat(window.EquipmentThreshold.COOLING), e.szCoolingType,
+                  unset(function (v) { return t('eq.cooling.' + v); })) +
+              sel('szChillerType', t('eq.edit.chiller_type'), [''].concat(window.EquipmentThreshold.TYPES), e.szChillerType,
+                  unset(function (v) { return t('eq.ctype.' + v); })) +
+              sel('szControlType', t('eq.edit.chiller_control'), ['', 'fixed', 'vsd'], e.szControlType,
+                  unset(function (v) { return t('eq.chctrl.' + v); })) +
+              sel('szThresholdMode', t('eq.edit.threshold_mode'), ['standard', 'manual'], e.szThresholdMode || 'standard',
+                  function (v) { return t('eq.thmode.' + v); }) +
+              '<div class="col-12"><div class="alert alert-light border py-1 px-2 small mb-0" id="eqsThPreview"></div></div>' +
+            '</div>';
+    }
+
+    function updateThresholdPreview() {
+        var host = $('eqsThPreview');
+        if (!host) return;
+        collectEditFields();
+        var e = _editing;
+        var isStd = e.szThresholdMode !== 'manual';
+        var elGood = document.querySelector('#eqsEditBody [data-edit="dGoodThreshold"]');
+        var elFair = document.querySelector('#eqsEditBody [data-edit="dFairThreshold"]');
+        var th = resolveChiller(e);
+        [elGood, elFair].forEach(function (el) { if (el) el.disabled = isStd; });
+        if (isStd) {
+            // 鎖定框只顯示解析值；不寫回 _editing（DB 的 Good/Fair 保留給切回手動時用）
+            if (elGood) elGood.value = th.good;
+            if (elFair) elFair.value = th.fair;
+            host.innerHTML = esc(t('eq.edit.th_preview_std', { fl: fmt3(th.basis.stdFl), good: fmt3(th.good), fair: fmt3(th.fair) })) +
+                '<div class="text-muted">' + esc(window.EquipmentThreshold.format(th.basis)) + '</div>';
+        } else {
+            if (elGood && elGood.value === '') { elGood.value = th.good; e.dGoodThreshold = th.good; }
+            if (elFair && elFair.value === '') { elFair.value = th.fair; e.dFairThreshold = th.fair; }
+            host.textContent = t('eq.edit.th_preview_manual');
+        }
+    }
+
+    function onEditChange(ev) {
+        var k = ev.target && ev.target.dataset && ev.target.dataset.edit;
+        if (!_editing || _editing.szKind !== 'chiller') return;
+        if (k === 'szCoolingType' || k === 'szChillerType' || k === 'szControlType' || k === 'szThresholdMode' || k === 'dRatedOutput') {
+            if (k === 'szThresholdMode' && ev.target.value === 'manual') {
+                // 切回手動：輸入框還是依標準時的解析值 → 改回 DB 原值（空則由 updateThresholdPreview 帶預設）
+                var elGood = document.querySelector('#eqsEditBody [data-edit="dGoodThreshold"]');
+                var elFair = document.querySelector('#eqsEditBody [data-edit="dFairThreshold"]');
+                if (elGood) elGood.value = _editing.dGoodThreshold == null ? '' : _editing.dGoodThreshold;
+                if (elFair) elFair.value = _editing.dFairThreshold == null ? '' : _editing.dFairThreshold;
+                [elGood, elFair].forEach(function (el) { if (el) el.disabled = false; });
+            }
+            updateThresholdPreview();
+        }
     }
 
     // 空壓系統診斷欄位（空壓機限定，皆可不填 → 診斷端退回推定 / 觀測值）
@@ -461,9 +545,10 @@
     function collectEditFields() {
         document.querySelectorAll('#eqsEditBody [data-edit]').forEach(function (el) {
             var k = el.dataset.edit;
+            if (el.disabled) return;   // 依標準時鎖定的優 / 可框顯示的是解析值，不收
             if (k === 'isEnabled') _editing.isEnabled = el.checked;
             else if (k === 'szName' || k === 'szDescription') _editing[k] = el.value;
-            else if (k === 'szControlType') _editing.szControlType = el.value || null;
+            else if (k === 'szControlType' || k === 'szCoolingType' || k === 'szChillerType' || k === 'szThresholdMode') _editing[k] = el.value || null;
             else if (k === 'nMaxStartsPerHour') _editing.nMaxStartsPerHour = el.value === '' ? null : (parseInt(el.value, 10) || null);
             else if (k === 'nSortOrder') _editing.nSortOrder = parseInt(el.value, 10) || 0;
             else _editing[k] = num(el.value);
@@ -503,6 +588,7 @@
             szDescription: e.szDescription,
             szControlType: e.szControlType || null, dMinLoadPct: e.dMinLoadPct, dMaxPressure: e.dMaxPressure,
             nMaxStartsPerHour: e.nMaxStartsPerHour,
+            szCoolingType: e.szCoolingType || null, szChillerType: e.szChillerType || null, szThresholdMode: e.szThresholdMode || null,
             aBindings: e.aBindings.map(function (b) { return { szRole: b.szRole, szSID: b.szSID, szUnit: b.szUnit }; })
         };
         if (!body.szName) { toast(t('eq.err.name_required'), 'warning'); return; }
@@ -566,6 +652,10 @@
             renderScanModal(_kind, false);
         });
         $('eqsEditSave').addEventListener('click', saveEdit);
+        $('eqsEditBody').addEventListener('change', onEditChange);
+        $('eqsEditBody').addEventListener('input', function (ev) {
+            if (ev.target && ev.target.dataset && ev.target.dataset.edit === 'dRatedOutput') onEditChange(ev);
+        });
         $('eqsBackfillRun').addEventListener('click', runBackfill);
 
         Promise.all([fetchJson(API + '/meta').then(function (m) { _meta = m; }), loadPoints()])

@@ -298,6 +298,12 @@
 | 同工況 | Matched operating conditions | 流量格 × 壓力格配對 |
 | 實測基線 | Measured baseline | 各機 kW / 流量 / 壓力分佈與狀態占比 |
 | 優 / 可 / 差 / 停機 / 資料不足 | Good / Fair / Poor / Off / No data | 效率評級（≤ 優門檻 / ≤ 可門檻 / 超過） |
+| 水冷 / 氣冷 | Water-cooled / Air-cooled | 冰機冷卻方式（EquipmentProfile.CoolingType） |
+| 離心 / 螺旋 / 渦卷 / 往復 | Centrifugal / Screw / Scroll / Reciprocating | 冰機壓縮機形式（ChillerType）；句中小寫 |
+| 容積式 | Positive displacement | ASHRAE 90.1 對螺旋 / 渦卷 / 往復的統稱 |
+| 定頻 / 變頻（冰機） | Constant speed / Variable speed (VSD) | 冰機 ControlType；對應 90.1 Path A / Path B（空壓機的「定頻加卸載」另列） |
+| 依標準 / 手動（門檻模式） | Standard / Manual | 冰機評級門檻模式（ThresholdMode）；依標準 = ASHRAE 90.1-2022 Table 6.8.1-3 |
+| 機型未設定 / 未填額定 RT | Model not set / Rated RT not set | 門檻依據字串旗標 |
 | 覆蓋率 | Coverage | 資料完整度 %（實際有效小時 ÷ 應有小時） |
 | 全場加權 | Plant weighted | 效率趨勢的全場 ΣkWh ÷ Σ產出線 |
 | 數據明細 | Data Detail | 表格區塊 |

@@ -40,7 +40,7 @@ public class EquipmentEfficiencySettingController : Controller
         });
     }
 
-    /// <summary>角色清單 / 單位表 / 別名表 / 預設門檻 / WaterCircuit RT 點（掃描與編輯共用）</summary>
+    /// <summary>角色清單 / 單位表 / 別名表 / 預設門檻 / 冰機 90.1 門檻表 / WaterCircuit RT 點（掃描與編輯共用）</summary>
     [HttpGet(ROUTE + "/api/meta")]
     public async Task<IActionResult> GetMeta()
     {
@@ -68,6 +68,16 @@ public class EquipmentEfficiencySettingController : Controller
                 return new { good = dGood, fair = dFair };
             }),
             defaultSpecificHeat = EquipmentMetricCalculator.DefaultSpecificHeat,
+            // 冰機 90.1 門檻表（設定頁即時預覽 / 列表依據用；評級以伺服端 ChillerEfficiencyStandard.Resolve 為準）
+            chillerStandard = new
+            {
+                name = ChillerEfficiencyStandard.StandardName,
+                fairFactor = ChillerEfficiencyStandard.FairFactor,
+                bands = ChillerEfficiencyStandard.Bands.Select(b => new
+                {
+                    family = b.szFamily, minRt = b.dMinRt, maxRt = b.dMaxRt, pathA = b.dPathAFl, pathB = b.dPathBFl,
+                }),
+            },
             rtSids = await _profileService.GetWaterCircuitRtSidsAsync(),
         });
     }
@@ -149,6 +159,9 @@ public class EquipmentEfficiencySettingController : Controller
         dFairThreshold = r.dFairThreshold,
         szDescription = r.szDescription,
         szControlType = r.szControlType,
+        szCoolingType = r.szCoolingType,
+        szChillerType = r.szChillerType,
+        szThresholdMode = r.szThresholdMode,
         dMinLoadPct = r.dMinLoadPct,
         dMaxPressure = r.dMaxPressure,
         nMaxStartsPerHour = r.nMaxStartsPerHour,

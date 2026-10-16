@@ -1,3 +1,5 @@
+using ScadaEngine.Common.Equipment;
+
 namespace ScadaEngine.Web.Features.Ems.Models;
 
 // 設備效率診斷（冰機 / 空壓機）— /EMS/api/equipment/* 回傳 DTO。
@@ -26,6 +28,8 @@ public class EquipmentRealtimeItemDto
     public double? loadPct { get; set; }
     public double? good { get; set; }
     public double? fair { get; set; }
+    /// <summary>門檻依據（前端組「90.1 水冷離心 400–600RT 定頻(Path A)」字串）</summary>
+    public EquipmentThresholdBasisDto? thresholdBasis { get; set; }
 
     // 冰機輔助
     public double? chws { get; set; }
@@ -110,7 +114,47 @@ public class EquipmentRankDto
     public string grade { get; set; } = "NoData";
     public double? good { get; set; }
     public double? fair { get; set; }
+    /// <summary>門檻依據（同即時）</summary>
+    public EquipmentThresholdBasisDto? thresholdBasis { get; set; }
     public double coveragePct { get; set; }
+}
+
+/// <summary>
+/// 評級門檻依據（Common <see cref="ChillerEfficiencyStandard.Resolve"/> 的結果）— 結構化欄位，前端依語系組字串。
+/// mode = manual 時其餘欄位為 null（空壓機恆為 manual）。
+/// </summary>
+public class EquipmentThresholdBasisDto
+{
+    /// <summary>standard / manual</summary>
+    public string mode { get; set; } = EquipmentThresholdMode.Manual;
+    /// <summary>water / air</summary>
+    public string? cooling { get; set; }
+    /// <summary>centrifugal / screw / scroll / reciprocating（氣冷可為 null）</summary>
+    public string? chillerType { get; set; }
+    /// <summary>90.1 系列：centrifugal / pd / air</summary>
+    public string? family { get; set; }
+    /// <summary>A（定頻）/ B（變頻）</summary>
+    public string? path { get; set; }
+    public double? bandMin { get; set; }
+    /// <summary>null = 無上限</summary>
+    public double? bandMax { get; set; }
+    public double? stdFl { get; set; }
+    public bool isTypeUnset { get; set; }
+    public bool isRatedMissing { get; set; }
+
+    public static EquipmentThresholdBasisDto From(EquipmentThresholdResult r) => new()
+    {
+        mode = r.szMode,
+        cooling = r.szCoolingType,
+        chillerType = r.szChillerType,
+        family = r.szFamily,
+        path = r.szPath,
+        bandMin = r.dBandMinRt,
+        bandMax = r.dBandMaxRt,
+        stdFl = r.dStandardFl,
+        isTypeUnset = r.isTypeUnset,
+        isRatedMissing = r.isRatedMissing,
+    };
 }
 
 /// <summary>期間：資料覆蓋率（沿用冷凍噸語意：未來時數不計入分母；報最差的那台）</summary>

@@ -53,9 +53,9 @@ public class EquipmentRealtimeService
             return v.dValue * (b.dScale == 0 ? 1 : b.dScale);
         }
 
-        var (dDefGood, dDefFair) = EquipmentKind.DefaultThresholds(p.szKind);
-        var dGood = p.dGoodThreshold ?? dDefGood;
-        var dFair = p.dFairThreshold ?? dDefFair;
+        var th = ChillerEfficiencyStandard.Resolve(p);
+        var dGood = th.dGood;
+        var dFair = th.dFair;
         var dKw = V(EquipmentRoles.KW);
         var dRun = V(EquipmentRoles.RUN);
         var dLoad = V(EquipmentRoles.LOAD);
@@ -66,6 +66,7 @@ public class EquipmentRealtimeService
             kw = dKw,
             good = dGood,
             fair = dFair,
+            thresholdBasis = EquipmentThresholdBasisDto.From(th),
         };
 
         if (p.szKind == EquipmentKind.Compressor)

@@ -18,6 +18,7 @@ public class EquipmentPeriodMetricTests
     private static EquipmentProfileModel Chiller(int id, string name, double? good = 0.65, double? fair = 0.85) => new()
     {
         nId = id, szKind = EquipmentKind.Chiller, szName = name, dGoodThreshold = good, dFairThreshold = fair,
+        szThresholdMode = EquipmentThresholdMode.Manual,   // 本檔鎖聚合 / 排名，門檻用手動值；依標準解析見 ChillerEfficiencyStandardTests
     };
 
     private static EquipmentHourlyModel Row(int id, int hour, double kwh, double? output, double run = 1,

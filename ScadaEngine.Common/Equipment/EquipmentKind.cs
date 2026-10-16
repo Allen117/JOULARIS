@@ -39,9 +39,13 @@ public static class EquipmentKind
     /// <summary>角色是否屬於該設備種類</summary>
     public static bool HasRole(string szKind, string szRole) => RolesOf(szKind).Contains(szRole);
 
-    /// <summary>預設門檻（主指標 ≤ Good 優、≤ Fair 可、&gt; Fair 差）— 僅供起點，應依銘牌 / 驗收報告調整</summary>
+    /// <summary>
+    /// 手動門檻預設值（主指標 ≤ Good 優、≤ Fair 可、&gt; Fair 差）— 僅供起點，應依銘牌 / 驗收報告調整。
+    /// 冰機 0.560 / 0.644 = 90.1 水冷離心 ≥300RT 定頻標準值 × (1, 1.15)，僅在切「手動」時帶入；
+    /// 冰機預設走「依標準」，門檻由 <see cref="ChillerEfficiencyStandard.Resolve"/> 依機型查表。
+    /// </summary>
     public static (double dGood, double dFair) DefaultThresholds(string szKind) =>
-        szKind == Compressor ? (7.0, 9.0) : (0.65, 0.85);
+        szKind == Compressor ? (7.0, 9.0) : (0.560, 0.644);
 
     /// <summary>
     /// 必要角色是否齊備（可存檔 / 可帶入判定）。

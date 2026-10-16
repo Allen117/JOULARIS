@@ -158,9 +158,9 @@ public class EquipmentEfficiencyReportService
 
         foreach (var p in profiles)
         {
-            var (dDefGood, dDefFair) = EquipmentKind.DefaultThresholds(p.szKind);
-            var dGood = p.dGoodThreshold ?? dDefGood;
-            var dFair = p.dFairThreshold ?? dDefFair;
+            var th = ChillerEfficiencyStandard.Resolve(p);
+            var dGood = th.dGood;
+            var dFair = th.dFair;
             var acc = new Acc();
             var perBucket = Enumerable.Range(0, nBuckets).Select(_ => new Acc()).ToArray();
             var nGoodHours = 0;
@@ -204,6 +204,7 @@ public class EquipmentEfficiencyReportService
                 grade = RankGrade(t.primary, acc.dRun, list.Count > 0, dGood, dFair).ToString(),
                 good = dGood,
                 fair = dFair,
+                thresholdBasis = EquipmentThresholdBasisDto.From(th),
                 coveragePct = Math.Round(dCoverage, 1),
             });
 

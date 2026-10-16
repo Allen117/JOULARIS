@@ -23,6 +23,7 @@ public class EquipmentProfileService
                SpecificHeat AS dSpecificHeat, GoodThreshold AS dGoodThreshold, FairThreshold AS dFairThreshold,
                Description AS szDescription, ControlType AS szControlType, MinLoadPct AS dMinLoadPct,
                MaxPressure AS dMaxPressure, MaxStartsPerHour AS nMaxStartsPerHour,
+               CoolingType AS szCoolingType, ChillerType AS szChillerType, ThresholdMode AS szThresholdMode,
                CreatedAt AS dtCreatedAt, UpdatedAt AS dtUpdatedAt
         FROM   EquipmentProfile";
 
@@ -73,7 +74,8 @@ public class EquipmentProfileService
 
     /// <summary>
     /// 驗證 + 正規化（純函式，供單元測試）：kind 合法、名稱必填、角色屬於該 kind、
-    /// 單位可換算（Scale 由單位重算）、必要角色齊備、門檻 Good ≤ Fair、數值非負。
+    /// 單位可換算（Scale 由單位重算）、必要角色齊備、門檻 Good ≤ Fair、數值非負；
+    /// 控制型式依 kind 分（空壓機 fixed/vsd/modulation、冰機 fixed/vsd），冰機機型 / 門檻模式欄位空壓機一律清空。
     /// </summary>
     public static void ValidateAndNormalize(EquipmentProfileModel m)
     {
@@ -107,10 +109,28 @@ public class EquipmentProfileService
         }
         else
         {
-            m.szControlType = null;
+            // 冰機：機型三欄 + 門檻模式（皆可不填 → 評級以水冷離心定頻、依標準計並標「機型未設定」）
+            m.szControlType = Blank(m.szControlType);
+            if (m.szControlType != null && !ChillerEfficiencyStandard.ChillerControl.IsValid(m.szControlType))
+                throw new EquipmentProfileValidationException("invalid_control_type", m.szControlType);
+            m.szCoolingType = Blank(m.szCoolingType);
+            if (m.szCoolingType != null && !ChillerCoolingType.IsValid(m.szCoolingType))
+                throw new EquipmentProfileValidationException("invalid_cooling_type", m.szCoolingType);
+            m.szChillerType = Blank(m.szChillerType);
+            if (m.szChillerType != null && !ChillerCompressorType.IsValid(m.szChillerType))
+                throw new EquipmentProfileValidationException("invalid_chiller_type", m.szChillerType);
+            m.szThresholdMode = Blank(m.szThresholdMode);
+            if (m.szThresholdMode != null && !EquipmentThresholdMode.IsValid(m.szThresholdMode))
+                throw new EquipmentProfileValidationException("invalid_threshold_mode", m.szThresholdMode);
             m.dMinLoadPct = null;
             m.dMaxPressure = null;
             m.nMaxStartsPerHour = null;
+        }
+        if (m.szKind == EquipmentKind.Compressor)
+        {
+            m.szCoolingType = null;
+            m.szChillerType = null;
+            m.szThresholdMode = null;
         }
         if (m.dGoodThreshold != null && m.dFairThreshold != null && m.dGoodThreshold > m.dFairThreshold)
             throw new EquipmentProfileValidationException("threshold_order");
@@ -143,6 +163,8 @@ public class EquipmentProfileService
         var missing = EquipmentKind.MissingRequired(m.szKind, cleaned.Select(b => b.szRole).ToList());
         if (missing.Count > 0) throw new EquipmentProfileValidationException("missing_required", string.Join(",", missing));
     }
+
+    private static string? Blank(string? sz) => string.IsNullOrWhiteSpace(sz) ? null : sz.Trim();
 
     /// <summary>新增或更新一台（nId = 0 → 新增）；回傳 Id</summary>
     public async Task<int> SaveAsync(EquipmentProfileModel m)
@@ -191,6 +213,9 @@ public class EquipmentProfileService
             MinLoadPct = m.dMinLoadPct,
             MaxPressure = m.dMaxPressure,
             MaxStartsPerHour = m.nMaxStartsPerHour,
+            CoolingType = m.szCoolingType,
+            ChillerType = m.szChillerType,
+            ThresholdMode = m.szThresholdMode,
         };
 
         int nId;
@@ -202,16 +227,19 @@ public class EquipmentProfileService
             nId = await conn.QuerySingleAsync<int>(@"
                 INSERT INTO EquipmentProfile (Kind, Name, SortOrder, IsEnabled, RatedOutput, RatedPower, MaxKwh,
                                               SpecificHeat, GoodThreshold, FairThreshold, Description,
-                                              ControlType, MinLoadPct, MaxPressure, MaxStartsPerHour, CreatedAt)
+                                              ControlType, MinLoadPct, MaxPressure, MaxStartsPerHour,
+                                              CoolingType, ChillerType, ThresholdMode, CreatedAt)
                 OUTPUT INSERTED.Id
                 VALUES (@Kind, @Name, @SortOrder, @IsEnabled, @RatedOutput, @RatedPower, @MaxKwh,
                         @SpecificHeat, @GoodThreshold, @FairThreshold, @Description,
-                        @ControlType, @MinLoadPct, @MaxPressure, @MaxStartsPerHour, GETDATE())",
+                        @ControlType, @MinLoadPct, @MaxPressure, @MaxStartsPerHour,
+                        @CoolingType, @ChillerType, @ThresholdMode, GETDATE())",
                 new
                 {
                     param.Kind, param.Name, SortOrder = nSort, param.IsEnabled, param.RatedOutput, param.RatedPower,
                     param.MaxKwh, param.SpecificHeat, param.GoodThreshold, param.FairThreshold, param.Description,
                     param.ControlType, param.MinLoadPct, param.MaxPressure, param.MaxStartsPerHour,
+                    param.CoolingType, param.ChillerType, param.ThresholdMode,
                 }, tx);
         }
         else
@@ -223,7 +251,8 @@ public class EquipmentProfileService
                        RatedPower = @RatedPower, MaxKwh = @MaxKwh, SpecificHeat = @SpecificHeat,
                        GoodThreshold = @GoodThreshold, FairThreshold = @FairThreshold, Description = @Description,
                        ControlType = @ControlType, MinLoadPct = @MinLoadPct, MaxPressure = @MaxPressure,
-                       MaxStartsPerHour = @MaxStartsPerHour, UpdatedAt = GETDATE()
+                       MaxStartsPerHour = @MaxStartsPerHour, CoolingType = @CoolingType,
+                       ChillerType = @ChillerType, ThresholdMode = @ThresholdMode, UpdatedAt = GETDATE()
                 WHERE  Id = @Id AND Kind = @Kind", param, tx);
             if (nRows == 0) throw new EquipmentProfileValidationException("not_found", m.nId.ToString());
             nId = m.nId;

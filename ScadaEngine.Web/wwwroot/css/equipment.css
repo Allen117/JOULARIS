@@ -131,6 +131,20 @@
     margin-top: 2px;
 }
 
+/* 冰機門檻依據（90.1 機型 / 級距 / 路徑）— 卡片窄，單行截斷、完整字串在 title */
+.eq-rt-basis {
+    font-size: 0.72rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eq-rank-basis,
+.eqs-th-basis {
+    font-size: 0.72rem;
+    white-space: normal;
+}
+
 /* ── 診斷頁：期間 ───────────────────────── */
 .eq-tiles {
     display: grid;

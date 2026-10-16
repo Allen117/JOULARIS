@@ -123,8 +123,18 @@
               aux +
             '</div>' + szSource +
             '<div class="eq-rt-foot small text-muted">' + (it.lastUpdate ? esc(timeStr(it.lastUpdate)) : esc(t('eq.diag.no_data'))) +
-              (it.good != null ? '<span class="ms-auto">' + esc(t('eq.diag.threshold', { good: it.good, fair: it.fair })) + '</span>' : '') + '</div>' +
+              (it.good != null ? '<span class="ms-auto">' + esc(t('eq.diag.threshold', { good: thr(it.good), fair: thr(it.fair) })) + '</span>' : '') + '</div>' +
+            basisHtml(it.thresholdBasis, 'eq-rt-basis small text-muted') +
         '</div>';
+    }
+
+    // 門檻顯示：冰機固定三位（90.1 表值 0.560 等），空壓機維持原值
+    function thr(v) { return _kind === 'chiller' ? fmt(v, 3) : v; }
+    // 冰機門檻依據（「90.1 水冷離心 400–600RT 定頻(Path A)」/ 手動門檻）；空壓機不顯示
+    function basisHtml(basis, szClass) {
+        if (_kind !== 'chiller' || !basis || !window.EquipmentThreshold) return '';
+        var s = window.EquipmentThreshold.format(basis);
+        return '<div class="' + szClass + '" title="' + esc(s) + '">' + esc(s) + '</div>';
     }
 
     // ── 期間 ──────────────────────────────────────────────
@@ -257,7 +267,8 @@
                 '<td class="text-end">' + fmt(r.output, 0) + '</td>' +
                 '<td class="text-end">' + fmt(r.runHours, 1) + '</td>' +
                 '<td class="text-end">' + fmt(r.avgLoadPct, 0) + '</td>' +
-                '<td class="text-end small text-muted">' + esc(r.good) + ' / ' + esc(r.fair) + '</td>' +
+                '<td class="text-end small text-muted">' + esc(thr(r.good)) + ' / ' + esc(thr(r.fair)) +
+                    basisHtml(r.thresholdBasis, 'eq-rank-basis') + '</td>' +
                 '<td class="text-end' + (r.coveragePct < ((d.coverage || {}).thresholdPct || 90) ? ' text-warning fw-semibold' : '') + '">' + fmt(r.coveragePct, 0) + '%</td>' +
             '</tr>';
         }).join('');
