@@ -94,6 +94,8 @@ public class DailyReportHtmlBuilder
             AppendMtdSection(sb, data);
         if (DailyReportSections.Has(nFlags, DailyReportSections.Insights) && data.insights.Count > 0)
             AppendInsightsSection(sb, data);
+        if (DailyReportSections.Has(nFlags, DailyReportSections.CompressorDiagnosis) && data.compressorDiagnosis != null)
+            AppendCompressorDiagnosisSection(sb, data.compressorDiagnosis);
 
         sb.Append($"<div style=\"color:{COLOR_MUTED};font-size:11px;margin-top:16px;border-top:1px solid {COLOR_BORDER};padding-top:8px;\">{H(_l["mail.footer"].Value)}</div>");
         sb.Append("</div></div>");
@@ -265,6 +267,28 @@ public class DailyReportHtmlBuilder
         foreach (var insight in data.insights)
             sb.Append($"<li style=\"margin-bottom:4px;\">{H(insight.szText)}</li>");
         sb.Append("</ul>");
+    }
+
+    /// <summary>空壓系統診斷（文字已於快照生成時依全局語言渲染，這裡只排版）</summary>
+    private void AppendCompressorDiagnosisSection(StringBuilder sb, DailyReportCompressorDiagnosis diag)
+    {
+        AppendSectionTitle(sb, _l["mail.section.compressor_diagnosis"].Value);
+        sb.Append($"<div style=\"color:{COLOR_MUTED};font-size:12px;margin-bottom:6px;\">{H(_l["mail.compressor_diagnosis.summary", diag.szPeriod, diag.nTriggered, diag.nPending].Value)}</div>");
+        if (diag.items.Count > 0)
+        {
+            sb.Append($"<table style=\"border-collapse:collapse;width:100%;font-size:13px;\">");
+            foreach (var item in diag.items)
+            {
+                sb.Append("<tr>");
+                sb.Append($"<td style=\"border:1px solid {COLOR_BORDER};padding:4px 8px;font-weight:bold;\">{H(item.szTitle)}{(item.isUnconfirmedDefault ? " *" : "")}</td>");
+                sb.Append($"<td style=\"border:1px solid {COLOR_BORDER};padding:4px 8px;white-space:nowrap;\">{H(item.szSavings)}</td>");
+                sb.Append($"<td style=\"border:1px solid {COLOR_BORDER};padding:4px 8px;\">{H(item.szNextStep)}</td>");
+                sb.Append("</tr>");
+            }
+            sb.Append("</table>");
+        }
+        foreach (var szNotice in diag.aNotices)
+            sb.Append($"<div style=\"color:{COLOR_MUTED};font-size:11px;margin-top:4px;\">{H(szNotice)}</div>");
     }
 
     // ────────────────────────── helpers ──────────────────────────

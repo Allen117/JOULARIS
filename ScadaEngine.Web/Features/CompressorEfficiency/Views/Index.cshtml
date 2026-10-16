@@ -5,12 +5,24 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <link rel="stylesheet" href="~/css/equipment.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/compressor-diagnosis.css" asp-append-version="true" />
+@if (ViewData["IsEngineer"] as bool? == true)
+{
+    <link rel="stylesheet" href="~/css/point-picker.css" asp-append-version="true" />
+}
 
-@* 版面與 Compressor / 另一類設備共用 Views/Shared/_EquipmentDiagnosis.cshtml，差別只在 data-kind *@
+@* 版面與 Compressor / 另一類設備共用 Views/Shared/_EquipmentDiagnosis.cshtml，差別只在 data-kind；
+   空壓機另有「系統診斷」/「診斷設定」tab（js/compressor-diagnosis.js），設定 tab 由 Controller ViewData["IsEngineer"] 決定是否輸出 *@
 <partial name="_EquipmentDiagnosis" />
 
 @section Scripts {
     <script src="~/lib/chartjs/chart.umd.min.js"></script>
     <script src="~/js/common/chart-defaults.js" asp-append-version="true"></script>
     <script src="~/js/ems-equipment.js" asp-append-version="true"></script>
+    @if (ViewData["IsEngineer"] as bool? == true)
+    {
+        <script src="~/js/common/point-grouping.js" asp-append-version="true"></script>
+        <script src="~/js/common/point-picker.js" asp-append-version="true"></script>
+    }
+    <script src="~/js/compressor-diagnosis.js" asp-append-version="true"></script>
 }

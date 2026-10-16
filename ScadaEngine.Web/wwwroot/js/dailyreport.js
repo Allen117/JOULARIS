@@ -3,7 +3,7 @@
     'use strict';
 
     var ALARM_COLLAPSE_LIMIT = 20;   // Web 頁預設收合前 20 筆
-    var SEC = { alarm: 1, electricity: 2, water: 4, gas: 8, rth: 16, dayCompare: 32, mtdCompare: 64, insights: 128 };
+    var SEC = { alarm: 1, electricity: 2, water: 4, gas: 8, rth: 16, dayCompare: 32, mtdCompare: 64, insights: 128, compressorDiagnosis: 256 };
 
     var g_charts = {};          // energyKey -> Chart instance
     var g_alarmItems = [];
@@ -81,6 +81,7 @@
         renderDayCompare(data);
         renderMtd(data);
         renderInsights(data);
+        renderCompressorDiagnosis(data);
     }
 
     // ── 警報摘要 ──
@@ -277,6 +278,25 @@
             html += '<li><i class="fas ' + szIcon + ' text-primary me-2"></i>' + escapeHtml(insight.szText) + '</li>';
         });
         $('drInsightList').innerHTML = html;
+    }
+
+    // ── 空壓系統診斷（文字已於快照生成時依日報語言渲染）──
+    function renderCompressorDiagnosis(data) {
+        var diag = data.compressorDiagnosis;
+        var isShow = hasFlag(SEC.compressorDiagnosis) && !!diag;
+        show('drCardCompressorDiag', isShow);
+        if (!isShow) return;
+
+        $('drCompressorDiagSummary').textContent = '診斷期間 ' + diag.szPeriod + '：觸發 ' + diag.nTriggered + ' 項、待補資料 ' + diag.nPending + ' 項';
+        var html = (diag.items || []).map(function (item) {
+            return '<tr><td class="fw-semibold">' + escapeHtml(item.szTitle) + (item.isUnconfirmedDefault ? ' <span class="badge bg-warning text-dark">*</span>' : '') + '</td>' +
+                '<td class="text-nowrap">' + escapeHtml(item.szSavings || '—') + '</td>' +
+                '<td>' + escapeHtml(item.szNextStep) + '</td></tr>';
+        }).join('');
+        $('drCompressorDiagBody').innerHTML = html || '<tr><td colspan="3" class="text-muted text-center">本期無觸發項目</td></tr>';
+        $('drCompressorDiagNotices').innerHTML = (diag.aNotices || []).map(function (sz) {
+            return '<div>' + escapeHtml(sz) + '</div>';
+        }).join('');
     }
 
     // ── helpers ──

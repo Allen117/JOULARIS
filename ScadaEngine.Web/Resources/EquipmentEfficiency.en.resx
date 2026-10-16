@@ -46,7 +46,6 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-
   <data name="eq.kind.chiller" xml:space="preserve"><value>chiller</value></data>
   <data name="eq.kind.compressor" xml:space="preserve"><value>air compressor</value></data>
   <data name="eq.role.KW" xml:space="preserve"><value>Power kW</value></data>
@@ -189,4 +188,309 @@
   <data name="eq.card.goto_setting" xml:space="preserve"><value>Go to Equipment Efficiency Settings</value></data>
   <data name="eq.card.month_summary" xml:space="preserve"><value>{month} to date: {value} {unit} · {hours} run h</value></data>
   <data name="eq.card.load_error" xml:space="preserve"><value>Failed to load</value></data>
+  <data name="eq.diag.rule.D" xml:space="preserve"><value>Data quality</value></data>
+  <data name="eq.diag.rule.P" xml:space="preserve"><value>Excess pressure</value></data>
+  <data name="eq.diag.rule.L" xml:space="preserve"><value>Leakage / idle loss</value></data>
+  <data name="eq.diag.rule.S1" xml:space="preserve"><value>High unloaded ratio</value></data>
+  <data name="eq.diag.rule.S2" xml:space="preserve"><value>Shorter shutdown delay</value></data>
+  <data name="eq.diag.rule.S3" xml:space="preserve"><value>Frequent load/unload cycling</value></data>
+  <data name="eq.diag.rule.S4" xml:space="preserve"><value>Multiple units at part load</value></data>
+  <data name="eq.diag.rule.S5" xml:space="preserve"><value>Trim order inverted (VSD full, fixed-speed unloaded)</value></data>
+  <data name="eq.diag.rule.S6" xml:space="preserve"><value>Running but never loaded</value></data>
+  <data name="eq.diag.rule.E1" xml:space="preserve"><value>Specific power degradation (matched conditions)</value></data>
+  <data name="eq.diag.rule.E2" xml:space="preserve"><value>Oversized</value></data>
+  <data name="eq.diag.rule.E3" xml:space="preserve"><value>Undersized</value></data>
+  <data name="eq.diag.rule.E4" xml:space="preserve"><value>Inlet modulation units</value></data>
+  <data name="eq.diag.group.pre" xml:space="preserve"><value>Prerequisite: data quality</value></data>
+  <data name="eq.diag.group.p1" xml:space="preserve"><value>① Pressure optimization</value></data>
+  <data name="eq.diag.group.p2" xml:space="preserve"><value>② Leakage and idle loss</value></data>
+  <data name="eq.diag.group.p3" xml:space="preserve"><value>③ Operation and sequencing</value></data>
+  <data name="eq.diag.group.p4" xml:space="preserve"><value>④ Equipment fit and lifecycle</value></data>
+  <data name="eq.diag.status.Triggered" xml:space="preserve"><value>Finding</value></data>
+  <data name="eq.diag.status.NotTriggered" xml:space="preserve"><value>Not triggered</value></data>
+  <data name="eq.diag.status.InsufficientData" xml:space="preserve"><value>Insufficient data</value></data>
+  <data name="eq.diag.status.PendingSiteData" xml:space="preserve"><value>Site data needed</value></data>
+  <data name="eq.diag.status.PendingSetting" xml:space="preserve"><value>Setting needed</value></data>
+  <data name="eq.diag.status.NotApplicable" xml:space="preserve"><value>Not applicable</value></data>
+  <data name="eq.diag.level.attention" xml:space="preserve"><value>Attention</value></data>
+  <data name="eq.diag.level.significant" xml:space="preserve"><value>Significant</value></data>
+  <data name="eq.diag.savings.ntd_year" xml:space="preserve"><value>Screening savings NT$ {low} ~ {high} / yr</value></data>
+  <data name="eq.diag.savings.kwh_year" xml:space="preserve"><value>Screening savings {low} ~ {high} kWh / yr</value></data>
+  <data name="eq.diag.next.fix_data" xml:space="preserve"><value>Fix the data issues (points, communication, units) first; affected rules will then produce conclusions</value></data>
+  <data name="eq.diag.next.pressure_trial" xml:space="preserve"><value>Lower the pressure setpoint step by step in a trial, watching end-use pressure and dew point</value></data>
+  <data name="eq.diag.next.measure_end_pressure" xml:space="preserve"><value>Measure (or bind) the critical end-use pressure to confirm the actual pressure drop, then run a pressure-reduction trial</value></data>
+  <data name="eq.diag.next.pressure_decay_test" xml:space="preserve"><value>Run a pressure-decay test during non-production hours to estimate leakage</value></data>
+  <data name="eq.diag.next.leak_survey" xml:space="preserve"><value>Ultrasonic leak survey and repair; isolate unused branches during non-production hours</value></data>
+  <data name="eq.diag.next.review_unload" xml:space="preserve"><value>Review the shutdown delay (see "Shorter shutdown delay") and sequencing</value></data>
+  <data name="eq.diag.next.shutdown_delay_trial" xml:space="preserve"><value>Trial a shorter shutdown delay (unload timer) while monitoring starts per hour</value></data>
+  <data name="eq.diag.next.control_band_storage" xml:space="preserve"><value>Widen the load/unload pressure band or add storage to reduce cycling</value></data>
+  <data name="eq.diag.next.sequencing_review" xml:space="preserve"><value>Review sequencing: let one unit trim, others run fully loaded or stop</value></data>
+  <data name="eq.diag.next.vsd_as_trim" xml:space="preserve"><value>Set the VSD as the trim unit (last to load, first to unload) with fixed-speed units as base load</value></data>
+  <data name="eq.diag.next.stop_standby" xml:space="preserve"><value>Put units that only run unloaded on standby (stopped, auto-start by sequencer)</value></data>
+  <data name="eq.diag.next.maintenance_check" xml:space="preserve"><value>Schedule maintenance: intake filter, oil separator, coolers, inlet valve</value></data>
+  <data name="eq.diag.next.right_size_review" xml:space="preserve"><value>Evaluate a smaller trim unit / VSD or storage to match actual demand</value></data>
+  <data name="eq.diag.next.leak_then_capacity" xml:space="preserve"><value>Address leakage and pressure losses first; evaluate added capacity only if still short</value></data>
+  <data name="eq.diag.next.replace_modulation" xml:space="preserve"><value>Evaluate replacing with a VSD or fixed-speed load/unload plus storage</value></data>
+  <data name="eq.diag.check.record_setpoint" xml:space="preserve"><value>Record the original setting (for rollback)</value></data>
+  <data name="eq.diag.check.step_down" xml:space="preserve"><value>Lower one trial step at a time; run at least one production cycle before the next step</value></data>
+  <data name="eq.diag.check.watch_end_pressure" xml:space="preserve"><value>Watch critical end-use pressure, dew point, and whether other units start</value></data>
+  <data name="eq.diag.check.stop_condition" xml:space="preserve"><value>Stop if end-use pressure falls below requirement, process upset, or start limit exceeded</value></data>
+  <data name="eq.diag.check.restore" xml:space="preserve"><value>Restore the original setting immediately on any issue and log it</value></data>
+  <data name="eq.diag.check.set_delay" xml:space="preserve"><value>Set the shutdown delay to the suggested candidate</value></data>
+  <data name="eq.diag.check.watch_starts" xml:space="preserve"><value>Monitor starts per hour and motor temperature</value></data>
+  <data name="eq.diag.check.leak_ultrasonic" xml:space="preserve"><value>Ultrasonic check of fittings, quick couplers, drains and hoses</value></data>
+  <data name="eq.diag.check.pressure_decay_test" xml:space="preserve"><value>Pressure-decay test: after shutdown, time the pressure drop to estimate leakage</value></data>
+  <data name="eq.diag.check.isolate_idle_branches" xml:space="preserve"><value>Close valves to idle areas during non-production hours</value></data>
+  <data name="eq.diag.ev.dq_coverage" xml:space="preserve"><value>{name} {signal} coverage {pct}% (threshold {min}%)</value></data>
+  <data name="eq.diag.ev.dq_flatline" xml:space="preserve"><value>{name} {signal} flat-lined (value unchanged for long periods) {pct}% of the time</value></data>
+  <data name="eq.diag.ev.dq_sentinel" xml:space="preserve"><value>{name} {signal} has {count} sentinel / negative values (excluded)</value></data>
+  <data name="eq.diag.ev.dq_conflict" xml:space="preserve"><value>{name} {signal} contradicts power {pct}% of the time (falling back to kW inference)</value></data>
+  <data name="eq.diag.ev.dq_gap" xml:space="preserve"><value>{name} {signal} has {count} gap(s) longer than {max} min (longest {longest} min)</value></data>
+  <data name="eq.diag.ev.dq_ok" xml:space="preserve"><value>All bound points pass coverage, flat-line, sentinel and state-conflict checks</value></data>
+  <data name="eq.diag.ev.p_supply" xml:space="preserve"><value>Supply pressure while running P05 {p05} / P50 {p50} / P95 {p95} bar</value></data>
+  <data name="eq.diag.ev.p_demand" xml:space="preserve"><value>Required pressure {demand} bar × {ratio} = trigger {threshold} bar</value></data>
+  <data name="eq.diag.ev.p_use" xml:space="preserve"><value>End-use pressure P05 {p05} bar, measured pressure-drop median {loss} bar</value></data>
+  <data name="eq.diag.ev.p_reducible" xml:space="preserve"><value>Reducible {raw} bar → {value} bar at trial step {step} bar</value></data>
+  <data name="eq.diag.ev.p_trough_starts" xml:space="preserve"><value>Unit starts within 5 min after pressure troughs (≤ P10 {p10} bar): {count}</value></data>
+  <data name="eq.diag.ev.p_dewpoint" xml:space="preserve"><value>Pressure dew point P50 {p50} / P95 {p95} °C</value></data>
+  <data name="eq.diag.ev.l_windows" xml:space="preserve"><value>{count} non-production windows ({days} distinct days), {hours} h non-production</value></data>
+  <data name="eq.diag.ev.l_flow" xml:space="preserve"><value>Non-production residual flow {low} ~ {high} (median {center}) m³/min vs production average {prod} m³/min, leak ratio {ratio}%</value></data>
+  <data name="eq.diag.ev.l_sp" xml:space="preserve"><value>Running-hour specific power P25 {p25} / P50 {p50} / P75 {p75} kW/(m³/min)</value></data>
+  <data name="eq.diag.ev.s1_unload" xml:space="preserve"><value>{name} unloaded ratio {pct}% ({hours} h unloaded, {kwh} kWh)</value></data>
+  <data name="eq.diag.ev.s2_best" xml:space="preserve"><value>Best feasible candidate: {delay} min delay, {starts} added starts, max {maxPerHour} starts/h</value></data>
+  <data name="eq.diag.ev.s3_cycles" xml:space="preserve"><value>{name} cycles per running hour P50 {p50} / P95 {p95}, shortest loaded period {minLoaded} min ({hours} running hours)</value></data>
+  <data name="eq.diag.ev.s4_single" xml:space="preserve"><value>Never two or more units running at the same time</value></data>
+  <data name="eq.diag.ev.s4_partload" xml:space="preserve"><value>Of {multiHours} h with multiple units running, two or more at part load {pct}% (two VSDs modulating {vsdHours} h)</value></data>
+  <data name="eq.diag.ev.s5_never_together" xml:space="preserve"><value>VSD and fixed-speed units never ran together</value></data>
+  <data name="eq.diag.ev.s5_invert" xml:space="preserve"><value>Of {hours} h with VSD and fixed-speed units running, VSD full while fixed-speed unloaded {pct}%</value></data>
+  <data name="eq.diag.ev.s6_idle" xml:space="preserve"><value>{name} ran {hours} h but loaded only {loadedPct}% ({kwh} kWh)</value></data>
+  <data name="eq.diag.ev.e1_diff" xml:space="preserve"><value>{name} matched specific power change {pct}% (95% CI {low} ~ {high}%, {cells} cells / {hours} h)</value></data>
+  <data name="eq.diag.ev.e2_fixed" xml:space="preserve"><value>{name} (fixed-speed) loaded ratio {loadedPct}%</value></data>
+  <data name="eq.diag.ev.e2_vsd" xml:space="preserve"><value>{name} (VSD) near minimum load {minLoad}% for {pct}% of running time</value></data>
+  <data name="eq.diag.ev.e3_short" xml:space="preserve"><value>All units fully loaded yet below required {demand} bar for {minutes} min (lowest {minPress} bar)</value></data>
+  <data name="eq.diag.ev.e4_modulation" xml:space="preserve"><value>{name} average load {avgLoad}%</value></data>
+  <data name="eq.diag.note.press_from_discharge" xml:space="preserve"><value>No header pressure bound; using the highest discharge pressure of running units (degraded)</value></data>
+  <data name="eq.diag.note.pipe_loss_assumed" xml:space="preserve"><value>No end-use pressure bound; pressure drop assumed {reserve} bar</value></data>
+  <data name="eq.diag.note.lowering_may_start_extra" xml:space="preserve"><value>Pressure troughs started other units {count} times; lowering pressure may cause more starts</value></data>
+  <data name="eq.diag.note.rated_pressure_missing" xml:space="preserve"><value>Nameplate max pressure not filled; upper-limit check skipped</value></data>
+  <data name="eq.diag.note.above_rated_pressure" xml:space="preserve"><value>{name} discharge pressure P95 {p95} bar above nameplate {max} bar</value></data>
+  <data name="eq.diag.note.dewpoint_unmonitored" xml:space="preserve"><value>Pressure dew point not monitored; check air quality manually during the trial</value></data>
+  <data name="eq.diag.note.trough_limits" xml:space="preserve"><value>Pressure troughs are close to the requirement; reducible margin is less than one trial step</value></data>
+  <data name="eq.diag.note.flow_from_compressors" xml:space="preserve"><value>No system flow bound; using the sum of unit air flows</value></data>
+  <data name="eq.diag.note.duty_cycle_upper_bound" xml:space="preserve"><value>No trusted flow; estimated as loaded ratio × rated air flow (upper bound)</value></data>
+  <data name="eq.diag.note.includes_legit_use" xml:space="preserve"><value>Residual flow includes legitimate non-production use; confirm actual leakage by survey</value></data>
+  <data name="eq.diag.note.no_specific_power" xml:space="preserve"><value>No valid specific power in the period (no air flow); kWh not estimated</value></data>
+  <data name="eq.diag.note.load_inferred" xml:space="preserve"><value>No trusted loaded signal; loaded state inferred from kW ≥ rated × unload ratio (inferred)</value></data>
+  <data name="eq.diag.note.s2_skip_no_kw" xml:space="preserve"><value>{name} has no trusted kW; excluded from the shutdown-delay simulation</value></data>
+  <data name="eq.diag.note.max_starts_unknown" xml:space="preserve"><value>Some units lack max starts per hour; check the motor nameplate</value></data>
+  <data name="eq.diag.note.current_timer_unknown" xml:space="preserve"><value>Assumes units stop after the candidate delay; if the current timer is already shorter, actual savings are lower</value></data>
+  <data name="eq.diag.note.control_type_inferred" xml:space="preserve"><value>Some control types inferred from the power distribution (inferred)</value></data>
+  <data name="eq.diag.note.not_quantified" xml:space="preserve"><value>Sequencing savings require multi-unit combination analysis; not quantified in v1</value></data>
+  <data name="eq.diag.note.baseline_overlap" xml:space="preserve"><value>Baseline overlaps the analysis period; the comparison may underestimate</value></data>
+  <data name="eq.diag.note.flow_bin_observed" xml:space="preserve"><value>{name} rated air flow not filled; flow bins split by observed maximum</value></data>
+  <data name="eq.diag.note.pressure_not_matched" xml:space="preserve"><value>Some hours lack average pressure; those are compared without pressure bins</value></data>
+  <data name="eq.diag.note.min_load_observed" xml:space="preserve"><value>{name} minimum load not filled; using observed P05 {pct}%</value></data>
+  <data name="eq.diag.miss.state_signals" xml:space="preserve"><value>{name} has no points to determine running state (RUN / kW)</value></data>
+  <data name="eq.diag.miss.demand_pressure" xml:space="preserve"><value>Required end-use pressure (Diagnosis Settings)</value></data>
+  <data name="eq.diag.miss.supply_pressure" xml:space="preserve"><value>Supply pressure: bind header pressure or unit discharge pressure</value></data>
+  <data name="eq.diag.miss.running_pressure_samples" xml:space="preserve"><value>Not enough pressure samples while running ({count} min)</value></data>
+  <data name="eq.diag.miss.use_pressure_samples" xml:space="preserve"><value>Not enough end-use pressure samples</value></data>
+  <data name="eq.diag.miss.production_schedule" xml:space="preserve"><value>Production hours (Diagnosis Settings)</value></data>
+  <data name="eq.diag.miss.flow_signal" xml:space="preserve"><value>Trusted flow: system flow or unit air flow</value></data>
+  <data name="eq.diag.miss.rated_flow" xml:space="preserve"><value>Rated air flow: {names}</value></data>
+  <data name="eq.diag.miss.load_state" xml:space="preserve"><value>Load state (LOADED or kW): {names}</value></data>
+  <data name="eq.diag.miss.idle_windows" xml:space="preserve"><value>Non-production windows on only {have} distinct days; need ≥ {need}</value></data>
+  <data name="eq.diag.miss.production_flow" xml:space="preserve"><value>No valid flow during production hours</value></data>
+  <data name="eq.diag.miss.kw_or_loaded" xml:space="preserve"><value>Load state: bind LOADED or kW</value></data>
+  <data name="eq.diag.miss.unloaded_kw" xml:space="preserve"><value>Unloaded power: bind kW</value></data>
+  <data name="eq.diag.miss.baseline_period" xml:space="preserve"><value>Degradation baseline period (Diagnosis Settings)</value></data>
+  <data name="eq.diag.miss.matched_cells" xml:space="preserve"><value>{name}: no matched cells with ≥ {min} h in both periods</value></data>
+  <data name="eq.diag.miss.vsd_kw" xml:space="preserve"><value>{name} (VSD) needs trusted kW and rated kW</value></data>
+  <data name="eq.diag.formula.D" xml:space="preserve"><value>Coverage = valid minutes ÷ period minutes; flat-line = non-zero value unchanged ≥ flat-line minutes; state conflict = RUN / LOADED disagreeing with kW (rated × 5%)</value></data>
+  <data name="eq.diag.formula.P" xml:space="preserve"><value>Trigger: supply P50 &gt; required × margin; reducible = end-use P05 − required (no end-use: supply P05 − required − drop reserve), floored to trial step; savings = bar × 5%~6% × period kWh</value></data>
+  <data name="eq.diag.formula.L" xml:space="preserve"><value>Leak ratio = median non-production residual flow ÷ production average flow; kWh = flow (low/mid/high) × specific power (P25/P50/P75) × non-production hours</value></data>
+  <data name="eq.diag.formula.S1" xml:space="preserve"><value>Unloaded ratio = unloaded min ÷ (loaded + unloaded min)</value></data>
+  <data name="eq.diag.formula.S2" xml:space="preserve"><value>For each unloaded period, minutes beyond the candidate delay × measured unloaded kW; periods ending in reload add one start</value></data>
+  <data name="eq.diag.formula.S3" xml:space="preserve"><value>P50 / P95 of unloaded→loaded transitions per running hour (≥ 30 min)</value></data>
+  <data name="eq.diag.formula.S4" xml:space="preserve"><value>Share of multi-unit running time with two or more units unloaded (or VSD &lt; full %)</value></data>
+  <data name="eq.diag.formula.S5" xml:space="preserve"><value>Share of joint running time with VSD ≥ full % while a fixed-speed unit is unloaded</value></data>
+  <data name="eq.diag.formula.S6" xml:space="preserve"><value>Units running ≥ 1 h with &lt; 1% loaded; savings = their running kWh</value></data>
+  <data name="eq.diag.formula.E1" xml:space="preserve"><value>Flow × pressure cells, compared only with ≥ min hours in both periods; difference weighted by recent kWh, interval ± 1.96 × SE; lower bound &gt; 0 and center &gt; threshold = degraded</value></data>
+  <data name="eq.diag.formula.E2" xml:space="preserve"><value>Fixed-speed: loaded ratio &lt; threshold and frequent cycling; VSD: share of time near minimum load &gt; threshold</value></data>
+  <data name="eq.diag.formula.E3" xml:space="preserve"><value>Minutes with all units fully loaded and supply pressure &lt; required ≥ threshold</value></data>
+  <data name="eq.diag.formula.E4" xml:space="preserve"><value>Control type = inlet modulation; average load &lt; 60% suggests VSD, otherwise fixed-speed + storage</value></data>
+  <data name="eq.diag.overlap.p_l_overlap" xml:space="preserve"><value>Excess pressure and leakage both triggered: leakage falls as pressure drops, so their savings cannot simply be added</value></data>
+  <data name="eq.diag.overlap.l_s_overlap" xml:space="preserve"><value>Leakage / idle loss and shutdown delay / never-loaded both triggered: unloaded running energy in non-production hours is counted in both, so savings cannot simply be added</value></data>
+  <data name="eq.diag.overlap.s2_s6_overlap" xml:space="preserve"><value>Shutdown delay and never-loaded both triggered: the same unloaded time is counted twice, so savings cannot simply be added</value></data>
+  <data name="eq.diag.baseline_missing" xml:space="preserve"><value>No degradation baseline period set; specific-power degradation (E1) cannot be assessed — set it in Diagnosis Settings</value></data>
+  <data name="eq.diag.default_flag_hint" xml:space="preserve"><value>* Default value (not site-confirmed): the conclusion uses default parameters not yet confirmed by an engineer</value></data>
+  <data name="eq.diag.screening_disclaimer" xml:space="preserve"><value>Savings are screening ranges; they become verified only after a site trial or measured response</value></data>
+  <data name="eq.diag.sys.SYS_SUPPLYPRESS" xml:space="preserve"><value>Header / supply pressure</value></data>
+  <data name="eq.diag.sys.SYS_USEPRESS" xml:space="preserve"><value>End-use (critical point) pressure</value></data>
+  <data name="eq.diag.sys.SYS_FLOW" xml:space="preserve"><value>System flow</value></data>
+  <data name="eq.diag.sys.SYS_DEWPOINT" xml:space="preserve"><value>Pressure dew point</value></data>
+  <data name="eq.diag.sys_hint.SYS_SUPPLYPRESS" xml:space="preserve"><value>Unbound → highest unit discharge pressure</value></data>
+  <data name="eq.diag.sys_hint.SYS_USEPRESS" xml:space="preserve"><value>Unbound → assumed pressure drop; pressure rule suggests measuring first</value></data>
+  <data name="eq.diag.sys_hint.SYS_FLOW" xml:space="preserve"><value>Unbound → sum of unit air flows, else loaded-ratio method (upper bound)</value></data>
+  <data name="eq.diag.sys_hint.SYS_DEWPOINT" xml:space="preserve"><value>Unbound → pressure advice notes manual dew-point check</value></data>
+  <data name="eq.ctrl.fixed" xml:space="preserve"><value>Fixed-speed load/unload</value></data>
+  <data name="eq.ctrl.vsd" xml:space="preserve"><value>VSD</value></data>
+  <data name="eq.ctrl.modulation" xml:space="preserve"><value>Inlet modulation</value></data>
+  <data name="eq.ctrl.auto" xml:space="preserve"><value>Not set (inferred from power)</value></data>
+  <data name="eq.diag.param.dq.min_coverage_pct" xml:space="preserve"><value>Min coverage %</value></data>
+  <data name="eq.diag.param.dq.flatline_minutes" xml:space="preserve"><value>Flat-line minutes</value></data>
+  <data name="eq.diag.param.dq.flatline_max_pct" xml:space="preserve"><value>Max flat-line share %</value></data>
+  <data name="eq.diag.param.dq.state_conflict_max_pct" xml:space="preserve"><value>Max state conflict %</value></data>
+  <data name="eq.diag.param.dq.max_gap_minutes" xml:space="preserve"><value>Gap minutes</value></data>
+  <data name="eq.diag.param.p.margin_ratio" xml:space="preserve"><value>Pressure margin ratio</value></data>
+  <data name="eq.diag.param.p.saving_per_bar_low_pct" xml:space="preserve"><value>Savings per bar % (low)</value></data>
+  <data name="eq.diag.param.p.saving_per_bar_high_pct" xml:space="preserve"><value>Savings per bar % (high)</value></data>
+  <data name="eq.diag.param.p.trial_step_bar" xml:space="preserve"><value>Trial step bar</value></data>
+  <data name="eq.diag.param.p.pipe_loss_reserve_bar" xml:space="preserve"><value>Pressure-drop reserve bar</value></data>
+  <data name="eq.diag.param.l.warn_pct" xml:space="preserve"><value>Leak ratio attention %</value></data>
+  <data name="eq.diag.param.l.significant_pct" xml:space="preserve"><value>Leak ratio significant %</value></data>
+  <data name="eq.diag.param.l.min_windows" xml:space="preserve"><value>Min non-production days</value></data>
+  <data name="eq.diag.param.l.min_window_minutes" xml:space="preserve"><value>Min window minutes</value></data>
+  <data name="eq.diag.param.s.unload_kw_ratio" xml:space="preserve"><value>Unloaded kW ÷ rated (no LOADED)</value></data>
+  <data name="eq.diag.param.s.unload_ratio_warn_pct" xml:space="preserve"><value>Unloaded ratio warning %</value></data>
+  <data name="eq.diag.param.s.cycles_per_hour_ref" xml:space="preserve"><value>Cycles reference /h</value></data>
+  <data name="eq.diag.param.s.multi_partload_pct" xml:space="preserve"><value>Multi-unit part-load share %</value></data>
+  <data name="eq.diag.param.s.order_invert_pct" xml:space="preserve"><value>Order inversion share %</value></data>
+  <data name="eq.diag.param.s.vsd_full_load_pct" xml:space="preserve"><value>VSD full-load %</value></data>
+  <data name="eq.diag.param.e.degrade_pct" xml:space="preserve"><value>Degradation threshold %</value></data>
+  <data name="eq.diag.param.e.flow_bins" xml:space="preserve"><value>Flow bins</value></data>
+  <data name="eq.diag.param.e.press_bin_bar" xml:space="preserve"><value>Pressure bin bar</value></data>
+  <data name="eq.diag.param.e.min_hours_per_cell" xml:space="preserve"><value>Min hours per cell</value></data>
+  <data name="eq.diag.param.e.oversize_load_pct" xml:space="preserve"><value>Fixed-speed oversize loaded %</value></data>
+  <data name="eq.diag.param.e.vsd_minload_fraction_pct" xml:space="preserve"><value>VSD near-min-load share %</value></data>
+  <data name="eq.diag.param.e.undersize_min_minutes" xml:space="preserve"><value>Undersize min minutes</value></data>
+  <data name="eq.diag.pgroup.dq" xml:space="preserve"><value>Data quality</value></data>
+  <data name="eq.diag.pgroup.p" xml:space="preserve"><value>Pressure</value></data>
+  <data name="eq.diag.pgroup.l" xml:space="preserve"><value>Leakage / idle</value></data>
+  <data name="eq.diag.pgroup.s" xml:space="preserve"><value>Operation and sequencing</value></data>
+  <data name="eq.diag.pgroup.e" xml:space="preserve"><value>Equipment fit</value></data>
+  <data name="eq.diag.src.skill" xml:space="preserve"><value>Skill</value></data>
+  <data name="eq.diag.src.system" xml:space="preserve"><value>System default</value></data>
+  <data name="eq.diag.ui.tab_efficiency" xml:space="preserve"><value>Efficiency</value></data>
+  <data name="eq.diag.ui.tab_diagnosis" xml:space="preserve"><value>System Diagnosis</value></data>
+  <data name="eq.diag.ui.tab_setting" xml:space="preserve"><value>Diagnosis Settings</value></data>
+  <data name="eq.diag.ui.loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="eq.diag.ui.no_compressor" xml:space="preserve"><value>No enabled air compressors.</value></data>
+  <data name="eq.diag.ui.no_snapshot" xml:space="preserve"><value>No scheduled diagnosis yet (generated daily at 02:00 for the last 7 days).</value></data>
+  <data name="eq.diag.ui.no_snapshot_engineer" xml:space="preserve"><value>You can run it now for a chosen period below.</value></data>
+  <data name="eq.diag.ui.period" xml:space="preserve"><value>Period</value></data>
+  <data name="eq.diag.ui.run_at" xml:space="preserve"><value>Run at</value></data>
+  <data name="eq.diag.ui.scheduled" xml:space="preserve"><value>Daily schedule (last 7 days)</value></data>
+  <data name="eq.diag.ui.manual" xml:space="preserve"><value>Manual run</value></data>
+  <data name="eq.diag.ui.from" xml:space="preserve"><value>From</value></data>
+  <data name="eq.diag.ui.to" xml:space="preserve"><value>To</value></data>
+  <data name="eq.diag.ui.run" xml:space="preserve"><value>Run</value></data>
+  <data name="eq.diag.ui.running" xml:space="preserve"><value>Running… (longer periods take longer)</value></data>
+  <data name="eq.diag.ui.back_latest" xml:space="preserve"><value>Back to latest scheduled</value></data>
+  <data name="eq.diag.ui.tile_triggered" xml:space="preserve"><value>Findings</value></data>
+  <data name="eq.diag.ui.tile_pending" xml:space="preserve"><value>Awaiting data</value></data>
+  <data name="eq.diag.ui.tile_kwh" xml:space="preserve"><value>Period energy</value></data>
+  <data name="eq.diag.ui.tile_sp" xml:space="preserve"><value>Period specific power</value></data>
+  <data name="eq.diag.ui.tile_price" xml:space="preserve"><value>Electricity price</value></data>
+  <data name="eq.diag.ui.price_tariff" xml:space="preserve"><value>Tariff average</value></data>
+  <data name="eq.diag.ui.price_manual" xml:space="preserve"><value>Manual</value></data>
+  <data name="eq.diag.ui.price_none" xml:space="preserve"><value>No price (kWh only)</value></data>
+  <data name="eq.diag.ui.not_additive" xml:space="preserve"><value>Savings across rules are not additive</value></data>
+  <data name="eq.diag.ui.inferred" xml:space="preserve"><value>Inferred</value></data>
+  <data name="eq.diag.ui.default_flag" xml:space="preserve"><value>Default value</value></data>
+  <data name="eq.diag.ui.default_flag_title" xml:space="preserve"><value>Uses default parameters not confirmed on site: {list}</value></data>
+  <data name="eq.diag.ui.next_step" xml:space="preserve"><value>Next step</value></data>
+  <data name="eq.diag.ui.checklist" xml:space="preserve"><value>Trial checklist</value></data>
+  <data name="eq.diag.ui.evidence" xml:space="preserve"><value>Evidence and formula</value></data>
+  <data name="eq.diag.ui.missing" xml:space="preserve"><value>Missing</value></data>
+  <data name="eq.diag.ui.notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="eq.diag.ui.formula" xml:space="preserve"><value>Formula</value></data>
+  <data name="eq.diag.ui.candidates" xml:space="preserve"><value>Shutdown delay candidates</value></data>
+  <data name="eq.diag.ui.col_delay" xml:space="preserve"><value>Delay (min)</value></data>
+  <data name="eq.diag.ui.col_kwh_period" xml:space="preserve"><value>Period kWh (low ~ high)</value></data>
+  <data name="eq.diag.ui.col_added_starts" xml:space="preserve"><value>Added starts</value></data>
+  <data name="eq.diag.ui.col_max_starts" xml:space="preserve"><value>Max starts/h</value></data>
+  <data name="eq.diag.ui.col_feasible" xml:space="preserve"><value>Feasible</value></data>
+  <data name="eq.diag.ui.feasible_yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="eq.diag.ui.feasible_no" xml:space="preserve"><value>Exceeds start limit</value></data>
+  <data name="eq.diag.ui.baseline_title" xml:space="preserve"><value>Measured baseline</value></data>
+  <data name="eq.diag.ui.col_name" xml:space="preserve"><value>Unit</value></data>
+  <data name="eq.diag.ui.col_ctrl" xml:space="preserve"><value>Control</value></data>
+  <data name="eq.diag.ui.col_kw" xml:space="preserve"><value>kW P05 / P50 / P95</value></data>
+  <data name="eq.diag.ui.col_flow" xml:space="preserve"><value>Air flow P50 m³/min</value></data>
+  <data name="eq.diag.ui.col_press" xml:space="preserve"><value>Pressure P50 bar</value></data>
+  <data name="eq.diag.ui.col_state" xml:space="preserve"><value>Loaded / Unloaded / Off / Unknown %</value></data>
+  <data name="eq.diag.ui.col_run_hours" xml:space="preserve"><value>Run h</value></data>
+  <data name="eq.diag.ui.col_starts" xml:space="preserve"><value>Starts</value></data>
+  <data name="eq.diag.ui.col_cycles" xml:space="preserve"><value>Cycles P50 / P95 /h</value></data>
+  <data name="eq.diag.ui.col_kwh" xml:space="preserve"><value>kWh</value></data>
+  <data name="eq.diag.ui.load_inferred_short" xml:space="preserve"><value>Load inferred</value></data>
+  <data name="eq.diag.ui.unconfirmed_banner" xml:space="preserve"><value>Some conclusions rely on default parameters (not site-confirmed): {list}</value></data>
+  <data name="eq.diag.ui.goto_setting" xml:space="preserve"><value>Open Diagnosis Settings</value></data>
+  <data name="eq.diag.ui.save" xml:space="preserve"><value>Save settings</value></data>
+  <data name="eq.diag.ui.saved" xml:space="preserve"><value>Saved; applies to the next run</value></data>
+  <data name="eq.diag.ui.site_title" xml:space="preserve"><value>Site data</value></data>
+  <data name="eq.diag.ui.demand_press" xml:space="preserve"><value>Required end-use pressure (bar)</value></data>
+  <data name="eq.diag.ui.demand_press_hint" xml:space="preserve"><value>Lowest acceptable pressure at the critical point; used by excess-pressure and undersize rules</value></data>
+  <data name="eq.diag.ui.manual_price" xml:space="preserve"><value>Manual price (NT$/kWh)</value></data>
+  <data name="eq.diag.ui.manual_price_hint" xml:space="preserve"><value>Used when the hourly electricity cost table has no data</value></data>
+  <data name="eq.diag.ui.holiday_off" xml:space="preserve"><value>Holidays (/HolidaySetting) count as non-production all day</value></data>
+  <data name="eq.diag.ui.sys_title" xml:space="preserve"><value>System points (all optional)</value></data>
+  <data name="eq.diag.ui.unbound" xml:space="preserve"><value>Not bound</value></data>
+  <data name="eq.diag.ui.pick" xml:space="preserve"><value>Pick point</value></data>
+  <data name="eq.diag.ui.clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="eq.diag.ui.schedule_title" xml:space="preserve"><value>Production hours (weekly)</value></data>
+  <data name="eq.diag.ui.schedule_hint" xml:space="preserve"><value>Unlisted time = non-production; split ranges crossing midnight</value></data>
+  <data name="eq.diag.ui.schedule_fill_weekday" xml:space="preserve"><value>Apply Mon–Fri 08:00–17:00</value></data>
+  <data name="eq.diag.ui.schedule_add" xml:space="preserve"><value>Add range</value></data>
+  <data name="eq.diag.ui.schedule_none" xml:space="preserve"><value>Non-production</value></data>
+  <data name="eq.diag.ui.baseline_period_title" xml:space="preserve"><value>Degradation baseline period</value></data>
+  <data name="eq.diag.ui.baseline_period_hint" xml:space="preserve"><value>Pick a period when units were in good condition (e.g., after maintenance) to compare matched specific power</value></data>
+  <data name="eq.diag.ui.params_title" xml:space="preserve"><value>Diagnosis parameters</value></data>
+  <data name="eq.diag.ui.params_hint" xml:space="preserve"><value>Blank = default; parameters neither overridden nor confirmed mark conclusions as "Default value"</value></data>
+  <data name="eq.diag.ui.confirm_all" xml:space="preserve"><value>Confirm all defaults</value></data>
+  <data name="eq.diag.ui.col_param" xml:space="preserve"><value>Parameter</value></data>
+  <data name="eq.diag.ui.col_value" xml:space="preserve"><value>Value</value></data>
+  <data name="eq.diag.ui.col_default" xml:space="preserve"><value>Default</value></data>
+  <data name="eq.diag.ui.col_range" xml:space="preserve"><value>Range</value></data>
+  <data name="eq.diag.ui.col_source" xml:space="preserve"><value>Source</value></data>
+  <data name="eq.diag.ui.col_state_param" xml:space="preserve"><value>State</value></data>
+  <data name="eq.diag.ui.param_overridden" xml:space="preserve"><value>Overridden</value></data>
+  <data name="eq.diag.ui.param_confirmed" xml:space="preserve"><value>Confirmed</value></data>
+  <data name="eq.diag.ui.param_default" xml:space="preserve"><value>Default (unconfirmed)</value></data>
+  <data name="eq.diag.ui.confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="eq.diag.ui.unconfirm" xml:space="preserve"><value>Unconfirm</value></data>
+  <data name="eq.diag.ui.device_fields_hint" xml:space="preserve"><value>Set each unit's control type, minimum load, nameplate max pressure and max starts per hour in Equipment Efficiency Settings → Air Compressor</value></data>
+  <data name="eq.diag.ui.updated_by" xml:space="preserve"><value>Last updated: {at} {by}</value></data>
+  <data name="eq.diag.ui.dow0" xml:space="preserve"><value>Sun</value></data>
+  <data name="eq.diag.ui.dow1" xml:space="preserve"><value>Mon</value></data>
+  <data name="eq.diag.ui.dow2" xml:space="preserve"><value>Tue</value></data>
+  <data name="eq.diag.ui.dow3" xml:space="preserve"><value>Wed</value></data>
+  <data name="eq.diag.ui.dow4" xml:space="preserve"><value>Thu</value></data>
+  <data name="eq.diag.ui.dow5" xml:space="preserve"><value>Fri</value></data>
+  <data name="eq.diag.ui.dow6" xml:space="preserve"><value>Sat</value></data>
+  <data name="eq.diag.err.demand_pressure_range" xml:space="preserve"><value>Required pressure out of range (0–100 bar)</value></data>
+  <data name="eq.diag.err.price_range" xml:space="preserve"><value>Price out of range</value></data>
+  <data name="eq.diag.err.invalid_role" xml:space="preserve"><value>Invalid system point role: {detail}</value></data>
+  <data name="eq.diag.err.invalid_unit" xml:space="preserve"><value>Unit cannot be converted: {detail}</value></data>
+  <data name="eq.diag.err.invalid_schedule" xml:space="preserve"><value>Invalid production range (start must be before end): {detail}</value></data>
+  <data name="eq.diag.err.baseline_incomplete" xml:space="preserve"><value>Baseline start and end must both be set</value></data>
+  <data name="eq.diag.err.baseline_range" xml:space="preserve"><value>Invalid baseline dates</value></data>
+  <data name="eq.diag.err.invalid_param" xml:space="preserve"><value>Unknown parameter: {detail}</value></data>
+  <data name="eq.diag.err.param_range" xml:space="preserve"><value>Parameter out of range: {detail}</value></data>
+  <data name="eq.diag.err.invalid_range" xml:space="preserve"><value>Invalid period</value></data>
+  <data name="eq.diag.err.range_too_long" xml:space="preserve"><value>Period cannot exceed {detail} days</value></data>
+  <data name="eq.diag.err.no_compressor" xml:space="preserve"><value>No enabled air compressors</value></data>
+  <data name="eq.edit.diag_fields" xml:space="preserve"><value>System diagnosis (all optional)</value></data>
+  <data name="eq.edit.control_type" xml:space="preserve"><value>Control type</value></data>
+  <data name="eq.edit.min_load_pct" xml:space="preserve"><value>VSD minimum load (%)</value></data>
+  <data name="eq.edit.max_pressure" xml:space="preserve"><value>Nameplate max pressure (bar)</value></data>
+  <data name="eq.edit.max_starts" xml:space="preserve"><value>Max starts per hour</value></data>
+  <data name="eq.edit.diag_fields_hint" xml:space="preserve"><value>When blank, diagnosis falls back to inferred / observed values and flags them (control type from power distribution, minimum load from observed P05, no hard pressure / start-limit checks)</value></data>
+  <data name="eq.err.invalid_control_type" xml:space="preserve"><value>Invalid control type: {detail}</value></data>
+  <data name="eq.err.min_load_pct_range" xml:space="preserve"><value>Minimum load must be 0–100%</value></data>
+  <data name="eq.diag.ui.suggest_vsd" xml:space="preserve"><value>suggest VSD</value></data>
+  <data name="eq.diag.ui.suggest_fixed_storage" xml:space="preserve"><value>suggest fixed-speed + storage</value></data>
+  <data name="eq.diag.ui.suggest_unknown" xml:space="preserve"><value>no kW to suggest</value></data>
+  <data name="eq.diag.ui.system" xml:space="preserve"><value>System</value></data>
 </root>

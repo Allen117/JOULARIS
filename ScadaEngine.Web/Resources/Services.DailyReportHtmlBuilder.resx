@@ -101,4 +101,6 @@
   <data name="mail.col.diff" xml:space="preserve"><value>差異</value></data>
   <data name="mail.section.insights" xml:space="preserve"><value>智慧摘要</value></data>
   <data name="mail.footer" xml:space="preserve"><value>本郵件由 JOULARIS 系統自動發送，請勿直接回覆</value></data>
+  <data name="mail.section.compressor_diagnosis" xml:space="preserve"><value>空壓系統診斷</value></data>
+  <data name="mail.compressor_diagnosis.summary" xml:space="preserve"><value>診斷期間 {0}：觸發 {1} 項、待補資料 {2} 項（詳見「空壓機效率診斷 → 系統診斷」）</value></data>
 </root>

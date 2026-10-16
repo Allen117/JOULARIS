@@ -148,6 +148,10 @@ public class EquipmentEfficiencySettingController : Controller
         dGoodThreshold = r.dGoodThreshold,
         dFairThreshold = r.dFairThreshold,
         szDescription = r.szDescription,
+        szControlType = r.szControlType,
+        dMinLoadPct = r.dMinLoadPct,
+        dMaxPressure = r.dMaxPressure,
+        nMaxStartsPerHour = r.nMaxStartsPerHour,
         aBindings = r.aBindings.Select(b => new EquipmentPointBindingModel
         {
             szRole = b.szRole,

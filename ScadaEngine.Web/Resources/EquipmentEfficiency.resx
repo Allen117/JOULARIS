@@ -46,7 +46,6 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-
   <data name="eq.kind.chiller" xml:space="preserve"><value>冰機</value></data>
   <data name="eq.kind.compressor" xml:space="preserve"><value>空壓機</value></data>
   <data name="eq.role.KW" xml:space="preserve"><value>電力 kW</value></data>
@@ -189,4 +188,309 @@
   <data name="eq.card.goto_setting" xml:space="preserve"><value>前往設備效率設定</value></data>
   <data name="eq.card.month_summary" xml:space="preserve"><value>{month} 累計平均 {value} {unit}・運轉 {hours} h</value></data>
   <data name="eq.card.load_error" xml:space="preserve"><value>載入失敗</value></data>
+  <data name="eq.diag.rule.D" xml:space="preserve"><value>資料品質</value></data>
+  <data name="eq.diag.rule.P" xml:space="preserve"><value>壓力過高</value></data>
+  <data name="eq.diag.rule.L" xml:space="preserve"><value>洩漏 / 閒置損失</value></data>
+  <data name="eq.diag.rule.S1" xml:space="preserve"><value>卸載比過高</value></data>
+  <data name="eq.diag.rule.S2" xml:space="preserve"><value>停機延遲可縮短</value></data>
+  <data name="eq.diag.rule.S3" xml:space="preserve"><value>頻繁加卸載循環</value></data>
+  <data name="eq.diag.rule.S4" xml:space="preserve"><value>多台同時部分負載</value></data>
+  <data name="eq.diag.rule.S5" xml:space="preserve"><value>調節機順序倒置（VSD 滿載、定頻卸載）</value></data>
+  <data name="eq.diag.rule.S6" xml:space="preserve"><value>運轉但從不加載</value></data>
+  <data name="eq.diag.rule.E1" xml:space="preserve"><value>同工況比功率劣化</value></data>
+  <data name="eq.diag.rule.E2" xml:space="preserve"><value>容量過大</value></data>
+  <data name="eq.diag.rule.E3" xml:space="preserve"><value>容量不足</value></data>
+  <data name="eq.diag.rule.E4" xml:space="preserve"><value>進氣節流機型</value></data>
+  <data name="eq.diag.group.pre" xml:space="preserve"><value>前置：資料品質</value></data>
+  <data name="eq.diag.group.p1" xml:space="preserve"><value>① 壓力最佳化</value></data>
+  <data name="eq.diag.group.p2" xml:space="preserve"><value>② 洩漏與閒置損失</value></data>
+  <data name="eq.diag.group.p3" xml:space="preserve"><value>③ 運轉與排序</value></data>
+  <data name="eq.diag.group.p4" xml:space="preserve"><value>④ 設備適配與生命週期</value></data>
+  <data name="eq.diag.status.Triggered" xml:space="preserve"><value>觸發</value></data>
+  <data name="eq.diag.status.NotTriggered" xml:space="preserve"><value>未觸發</value></data>
+  <data name="eq.diag.status.InsufficientData" xml:space="preserve"><value>資料不足</value></data>
+  <data name="eq.diag.status.PendingSiteData" xml:space="preserve"><value>待補場域資料</value></data>
+  <data name="eq.diag.status.PendingSetting" xml:space="preserve"><value>待設定</value></data>
+  <data name="eq.diag.status.NotApplicable" xml:space="preserve"><value>不適用</value></data>
+  <data name="eq.diag.level.attention" xml:space="preserve"><value>注意</value></data>
+  <data name="eq.diag.level.significant" xml:space="preserve"><value>顯著</value></data>
+  <data name="eq.diag.savings.ntd_year" xml:space="preserve"><value>篩檢節能 NT$ {low} ~ {high} / 年</value></data>
+  <data name="eq.diag.savings.kwh_year" xml:space="preserve"><value>篩檢節能 {low} ~ {high} kWh / 年</value></data>
+  <data name="eq.diag.next.fix_data" xml:space="preserve"><value>先修正資料問題（點位、通訊、單位），受影響的規則才會出結論</value></data>
+  <data name="eq.diag.next.pressure_trial" xml:space="preserve"><value>以試驗步階逐步降低設定壓力，監看末端壓力與露點</value></data>
+  <data name="eq.diag.next.measure_end_pressure" xml:space="preserve"><value>先量測（或綁定）末端關鍵用氣點壓力確認實際管損，再做降壓試驗</value></data>
+  <data name="eq.diag.next.pressure_decay_test" xml:space="preserve"><value>於非生產時段做停機保壓衰減測試以估算洩漏量</value></data>
+  <data name="eq.diag.next.leak_survey" xml:space="preserve"><value>超音波洩漏巡檢並修漏；非生產時段隔離不用的支管</value></data>
+  <data name="eq.diag.next.review_unload" xml:space="preserve"><value>檢視停機延遲（見「停機延遲可縮短」）與多機排序</value></data>
+  <data name="eq.diag.next.shutdown_delay_trial" xml:space="preserve"><value>縮短停機延遲（unload timer）試驗，監看每小時啟動次數</value></data>
+  <data name="eq.diag.next.control_band_storage" xml:space="preserve"><value>加寬加卸載壓力帶或增設儲氣桶，降低循環次數</value></data>
+  <data name="eq.diag.next.sequencing_review" xml:space="preserve"><value>檢視多機排序：讓一台當調節機，其餘滿載或停機</value></data>
+  <data name="eq.diag.next.vsd_as_trim" xml:space="preserve"><value>將 VSD 設為調節機（排序最後加載、最先卸載），定頻機作基載</value></data>
+  <data name="eq.diag.next.stop_standby" xml:space="preserve"><value>將長期只卸載的機台改為備援停機（由排序控制自動啟動）</value></data>
+  <data name="eq.diag.next.maintenance_check" xml:space="preserve"><value>安排保養檢查：進氣濾網、油分離器、冷卻器、進氣閥</value></data>
+  <data name="eq.diag.next.right_size_review" xml:space="preserve"><value>評估以較小調節機 / VSD 或儲氣桶匹配實際需求</value></data>
+  <data name="eq.diag.next.leak_then_capacity" xml:space="preserve"><value>先處理洩漏與壓力損失，仍不足再評估增加容量</value></data>
+  <data name="eq.diag.next.replace_modulation" xml:space="preserve"><value>評估更換為 VSD 或定頻加卸載 + 儲氣桶</value></data>
+  <data name="eq.diag.check.record_setpoint" xml:space="preserve"><value>記錄原設定值（可回復）</value></data>
+  <data name="eq.diag.check.step_down" xml:space="preserve"><value>每次調降一個試驗步階，穩定運轉至少一個生產週期再下一步</value></data>
+  <data name="eq.diag.check.watch_end_pressure" xml:space="preserve"><value>監看末端關鍵用氣點壓力、露點、他機是否被帶起</value></data>
+  <data name="eq.diag.check.stop_condition" xml:space="preserve"><value>停止條件：末端壓力低於需求、製程異常、啟動次數超限</value></data>
+  <data name="eq.diag.check.restore" xml:space="preserve"><value>異常時立即回復原設定並記錄</value></data>
+  <data name="eq.diag.check.set_delay" xml:space="preserve"><value>將停機延遲設為建議候選值</value></data>
+  <data name="eq.diag.check.watch_starts" xml:space="preserve"><value>監看每小時啟動次數與馬達溫度</value></data>
+  <data name="eq.diag.check.leak_ultrasonic" xml:space="preserve"><value>超音波巡檢接頭、快速接頭、排水器、軟管</value></data>
+  <data name="eq.diag.check.pressure_decay_test" xml:space="preserve"><value>停機保壓衰減測試：關機後記錄壓力下降時間換算洩漏量</value></data>
+  <data name="eq.diag.check.isolate_idle_branches" xml:space="preserve"><value>非生產時段關閉不用區域的支管閥</value></data>
+  <data name="eq.diag.ev.dq_coverage" xml:space="preserve"><value>{name} {signal} 覆蓋率 {pct}%（門檻 {min}%）</value></data>
+  <data name="eq.diag.ev.dq_flatline" xml:space="preserve"><value>{name} {signal} 平線（長時間數值完全不變）占 {pct}%</value></data>
+  <data name="eq.diag.ev.dq_sentinel" xml:space="preserve"><value>{name} {signal} 出現 {count} 筆哨兵值 / 負值（已排除）</value></data>
+  <data name="eq.diag.ev.dq_conflict" xml:space="preserve"><value>{name} {signal} 與功率矛盾 {pct}%（改用 kW 推定）</value></data>
+  <data name="eq.diag.ev.dq_gap" xml:space="preserve"><value>{name} {signal} 有 {count} 段缺口超過 {max} 分鐘（最長 {longest} 分鐘）</value></data>
+  <data name="eq.diag.ev.dq_ok" xml:space="preserve"><value>所有已綁定點位皆通過覆蓋率、平線、哨兵值、狀態矛盾檢查</value></data>
+  <data name="eq.diag.ev.p_supply" xml:space="preserve"><value>運轉期間供氣壓力 P05 {p05} / P50 {p50} / P95 {p95} bar</value></data>
+  <data name="eq.diag.ev.p_demand" xml:space="preserve"><value>需求壓力 {demand} bar × {ratio} = 觸發門檻 {threshold} bar</value></data>
+  <data name="eq.diag.ev.p_use" xml:space="preserve"><value>末端壓力 P05 {p05} bar，實測管損中位數 {loss} bar</value></data>
+  <data name="eq.diag.ev.p_reducible" xml:space="preserve"><value>可降量 {raw} bar → 依試驗步階 {step} bar 取 {value} bar</value></data>
+  <data name="eq.diag.ev.p_trough_starts" xml:space="preserve"><value>壓力低谷（≤ P10 {p10} bar）前 5 分鐘內的機台啟動 {count} 次</value></data>
+  <data name="eq.diag.ev.p_dewpoint" xml:space="preserve"><value>壓力露點 P50 {p50} / P95 {p95} °C</value></data>
+  <data name="eq.diag.ev.l_windows" xml:space="preserve"><value>非生產窗口 {count} 個（{days} 個不同日），非生產時數 {hours} h</value></data>
+  <data name="eq.diag.ev.l_flow" xml:space="preserve"><value>非生產殘餘流量 {low} ~ {high}（中位 {center}）m³/min，生產平均 {prod} m³/min，洩漏比 {ratio}%</value></data>
+  <data name="eq.diag.ev.l_sp" xml:space="preserve"><value>運轉小時比功率 P25 {p25} / P50 {p50} / P75 {p75} kW/(m³/min)</value></data>
+  <data name="eq.diag.ev.s1_unload" xml:space="preserve"><value>{name} 卸載比 {pct}%（卸載 {hours} h，{kwh} kWh）</value></data>
+  <data name="eq.diag.ev.s2_best" xml:space="preserve"><value>最佳可行候選：停機延遲 {delay} 分，新增啟動 {starts} 次，每小時最多 {maxPerHour} 次</value></data>
+  <data name="eq.diag.ev.s3_cycles" xml:space="preserve"><value>{name} 每運轉小時循環 P50 {p50} / P95 {p95} 次，最短加載段 {minLoaded} 分（{hours} 個運轉小時）</value></data>
+  <data name="eq.diag.ev.s4_single" xml:space="preserve"><value>期間從未有兩台以上同時運轉</value></data>
+  <data name="eq.diag.ev.s4_partload" xml:space="preserve"><value>多機同時運轉 {multiHours} h 中，兩台以上同時部分負載占 {pct}%（兩台 VSD 同時調頻 {vsdHours} h）</value></data>
+  <data name="eq.diag.ev.s5_never_together" xml:space="preserve"><value>VSD 與定頻機從未同時運轉</value></data>
+  <data name="eq.diag.ev.s5_invert" xml:space="preserve"><value>VSD 與定頻機同時運轉 {hours} h 中，VSD 滿載而定頻機卸載占 {pct}%</value></data>
+  <data name="eq.diag.ev.s6_idle" xml:space="preserve"><value>{name} 運轉 {hours} h，加載僅 {loadedPct}%（{kwh} kWh）</value></data>
+  <data name="eq.diag.ev.e1_diff" xml:space="preserve"><value>{name} 同工況比功率變化 {pct}%（95% 區間 {low} ~ {high}%，{cells} 格 / {hours} h）</value></data>
+  <data name="eq.diag.ev.e2_fixed" xml:space="preserve"><value>{name}（定頻）加載率 {loadedPct}%</value></data>
+  <data name="eq.diag.ev.e2_vsd" xml:space="preserve"><value>{name}（VSD）運轉時在最低負載 {minLoad}% 附近占 {pct}%</value></data>
+  <data name="eq.diag.ev.e3_short" xml:space="preserve"><value>全部機台滿載仍低於需求 {demand} bar 的時間 {minutes} 分（最低 {minPress} bar）</value></data>
+  <data name="eq.diag.ev.e4_modulation" xml:space="preserve"><value>{name} 平均負載 {avgLoad}%</value></data>
+  <data name="eq.diag.note.press_from_discharge" xml:space="preserve"><value>未綁總管壓力，以運轉中各機排氣壓力最高者代替（降級）</value></data>
+  <data name="eq.diag.note.pipe_loss_assumed" xml:space="preserve"><value>未綁末端壓力，管損以預留 {reserve} bar 假設</value></data>
+  <data name="eq.diag.note.lowering_may_start_extra" xml:space="preserve"><value>壓力低谷時曾帶起他機 {count} 次，降壓可能使他機更常啟動</value></data>
+  <data name="eq.diag.note.rated_pressure_missing" xml:space="preserve"><value>未填銘牌最高工作壓力，不做上限檢查</value></data>
+  <data name="eq.diag.note.above_rated_pressure" xml:space="preserve"><value>{name} 排氣壓力 P95 {p95} bar 高於銘牌 {max} bar</value></data>
+  <data name="eq.diag.note.dewpoint_unmonitored" xml:space="preserve"><value>未監測壓力露點，降壓試驗時須人工確認空氣品質</value></data>
+  <data name="eq.diag.note.trough_limits" xml:space="preserve"><value>壓力低谷已接近需求壓力，可降量不足一個試驗步階</value></data>
+  <data name="eq.diag.note.flow_from_compressors" xml:space="preserve"><value>未綁系統總流量，以各機空氣量加總</value></data>
+  <data name="eq.diag.note.duty_cycle_upper_bound" xml:space="preserve"><value>無可信流量，以加載比 × 額定空氣量估算（上限估計）</value></data>
+  <data name="eq.diag.note.includes_legit_use" xml:space="preserve"><value>殘餘流量含非生產時段的合理用氣，實際洩漏量需巡檢確認</value></data>
+  <data name="eq.diag.note.no_specific_power" xml:space="preserve"><value>期間無有效比功率（缺空氣量），不換算 kWh</value></data>
+  <data name="eq.diag.note.load_inferred" xml:space="preserve"><value>無可信加載點，以 kW ≥ 額定 × 卸載門檻 推定加載（推定）</value></data>
+  <data name="eq.diag.note.s2_skip_no_kw" xml:space="preserve"><value>{name} 無可信 kW，未納入停機延遲試算</value></data>
+  <data name="eq.diag.note.max_starts_unknown" xml:space="preserve"><value>有機台未填每小時最多啟動次數，請對照馬達銘牌</value></data>
+  <data name="eq.diag.note.current_timer_unknown" xml:space="preserve"><value>試算假設卸載後依候選延遲停機；現行設定若已更短，實際節能較少</value></data>
+  <data name="eq.diag.note.control_type_inferred" xml:space="preserve"><value>部分機台控制型式由功率分佈推定（推定）</value></data>
+  <data name="eq.diag.note.not_quantified" xml:space="preserve"><value>排序最佳化節能需多機組合試算，v1 不量化</value></data>
+  <data name="eq.diag.note.baseline_overlap" xml:space="preserve"><value>基準期與分析期重疊，比較結果可能低估</value></data>
+  <data name="eq.diag.note.flow_bin_observed" xml:space="preserve"><value>{name} 未填額定空氣量，流量格以觀測最大值等分</value></data>
+  <data name="eq.diag.note.pressure_not_matched" xml:space="preserve"><value>部分小時無平均壓力，該部分不分壓力格比較</value></data>
+  <data name="eq.diag.note.min_load_observed" xml:space="preserve"><value>{name} 未填最低負載，以觀測 P05 {pct}% 代替</value></data>
+  <data name="eq.diag.miss.state_signals" xml:space="preserve"><value>{name} 無可判定運轉狀態的點位（RUN / kW）</value></data>
+  <data name="eq.diag.miss.demand_pressure" xml:space="preserve"><value>末端最低需求壓力（診斷設定）</value></data>
+  <data name="eq.diag.miss.supply_pressure" xml:space="preserve"><value>供氣壓力：綁定總管壓力或各機排氣壓力</value></data>
+  <data name="eq.diag.miss.running_pressure_samples" xml:space="preserve"><value>運轉期間壓力樣本不足（{count} 分鐘）</value></data>
+  <data name="eq.diag.miss.use_pressure_samples" xml:space="preserve"><value>末端壓力樣本不足</value></data>
+  <data name="eq.diag.miss.production_schedule" xml:space="preserve"><value>生產時段（診斷設定）</value></data>
+  <data name="eq.diag.miss.flow_signal" xml:space="preserve"><value>可信流量：系統總流量或各機空氣量</value></data>
+  <data name="eq.diag.miss.rated_flow" xml:space="preserve"><value>額定空氣量：{names}</value></data>
+  <data name="eq.diag.miss.load_state" xml:space="preserve"><value>加卸載狀態（LOADED 或 kW）：{names}</value></data>
+  <data name="eq.diag.miss.idle_windows" xml:space="preserve"><value>非生產窗口僅 {have} 個不同日，需 ≥ {need}</value></data>
+  <data name="eq.diag.miss.production_flow" xml:space="preserve"><value>生產時段無有效流量</value></data>
+  <data name="eq.diag.miss.kw_or_loaded" xml:space="preserve"><value>加卸載狀態：綁定 LOADED 或 kW</value></data>
+  <data name="eq.diag.miss.unloaded_kw" xml:space="preserve"><value>卸載功率：需綁定 kW</value></data>
+  <data name="eq.diag.miss.baseline_period" xml:space="preserve"><value>劣化基準期（診斷設定）</value></data>
+  <data name="eq.diag.miss.matched_cells" xml:space="preserve"><value>{name} 兩期同工況格皆 ≥ {min} 小時者不足</value></data>
+  <data name="eq.diag.miss.vsd_kw" xml:space="preserve"><value>{name}（VSD）需可信 kW 與額定 kW</value></data>
+  <data name="eq.diag.formula.D" xml:space="preserve"><value>覆蓋率 = 有效分鐘 ÷ 期間分鐘；平線 = 非零值連續不變 ≥ 平線分鐘；狀態矛盾 = RUN / LOADED 與 kW（額定 × 5%）不一致比例</value></data>
+  <data name="eq.diag.formula.P" xml:space="preserve"><value>觸發：供氣 P50 &gt; 需求 × 裕度；可降量 = 末端 P05 − 需求（無末端：供氣 P05 − 需求 − 管損預留），捨去到試驗步階；節能 = 可降 bar × 5%~6% × 期間 kWh</value></data>
+  <data name="eq.diag.formula.L" xml:space="preserve"><value>洩漏比 = 非生產窗口殘餘流量中位數 ÷ 生產平均流量；kWh = 流量（低/中/高）× 比功率（P25/P50/P75）× 非生產時數</value></data>
+  <data name="eq.diag.formula.S1" xml:space="preserve"><value>卸載比 = 卸載分鐘 ÷（加載 + 卸載分鐘）</value></data>
+  <data name="eq.diag.formula.S2" xml:space="preserve"><value>每段連續卸載超過候選延遲的部分 × 實測卸載 kW；重新加載的段落 +1 次啟動</value></data>
+  <data name="eq.diag.formula.S3" xml:space="preserve"><value>每運轉小時（≥ 30 分）卸載→加載次數的 P50 / P95</value></data>
+  <data name="eq.diag.formula.S4" xml:space="preserve"><value>兩台以上運轉時，兩台以上同時卸載（或 VSD &lt; 滿載 %）的時間占比</value></data>
+  <data name="eq.diag.formula.S5" xml:space="preserve"><value>VSD 與定頻同時運轉時，VSD ≥ 滿載 % 且定頻卸載的時間占比</value></data>
+  <data name="eq.diag.formula.S6" xml:space="preserve"><value>運轉 ≥ 1 h 且加載 &lt; 1% 的機台；節能 = 其運轉 kWh</value></data>
+  <data name="eq.diag.formula.E1" xml:space="preserve"><value>流量格 × 壓力格配對，兩期同格 ≥ 最少小時才比；差異依分析期 kWh 加權，區間 ± 1.96 × 標準誤；下限 &gt; 0 且中心 &gt; 門檻 = 劣化</value></data>
+  <data name="eq.diag.formula.E2" xml:space="preserve"><value>定頻：加載率 &lt; 門檻且頻繁循環；VSD：最低負載附近時間占比 &gt; 門檻</value></data>
+  <data name="eq.diag.formula.E3" xml:space="preserve"><value>全部機台滿載且供氣壓力 &lt; 需求壓力的分鐘數 ≥ 門檻</value></data>
+  <data name="eq.diag.formula.E4" xml:space="preserve"><value>控制型式 = 進氣節流；平均負載 &lt; 60% 建議 VSD，否則定頻 + 儲氣</value></data>
+  <data name="eq.diag.overlap.p_l_overlap" xml:space="preserve"><value>壓力過高與洩漏同時觸發：降壓後洩漏量隨之變小，兩者節能不可直接相加</value></data>
+  <data name="eq.diag.overlap.l_s_overlap" xml:space="preserve"><value>洩漏 / 閒置與停機延遲 / 從不加載同時觸發：非生產時段的卸載空轉耗電在兩邊都有計入，節能不可直接相加</value></data>
+  <data name="eq.diag.overlap.s2_s6_overlap" xml:space="preserve"><value>停機延遲與從不加載同時觸發：同一段卸載時間重複計入，節能不可直接相加</value></data>
+  <data name="eq.diag.baseline_missing" xml:space="preserve"><value>尚未指定劣化基準期，比功率劣化（E1）無法判定 — 請至「診斷設定」指定</value></data>
+  <data name="eq.diag.default_flag_hint" xml:space="preserve"><value>* 依預設值（未經現場確認）：結論用到工程師尚未確認的預設參數</value></data>
+  <data name="eq.diag.screening_disclaimer" xml:space="preserve"><value>節能為篩檢估計區間，需經現場試驗或量測回應才能視為已驗證節能</value></data>
+  <data name="eq.diag.sys.SYS_SUPPLYPRESS" xml:space="preserve"><value>總管 / 供氣壓力</value></data>
+  <data name="eq.diag.sys.SYS_USEPRESS" xml:space="preserve"><value>末端（關鍵用氣點）壓力</value></data>
+  <data name="eq.diag.sys.SYS_FLOW" xml:space="preserve"><value>系統總流量</value></data>
+  <data name="eq.diag.sys.SYS_DEWPOINT" xml:space="preserve"><value>壓力露點</value></data>
+  <data name="eq.diag.sys_hint.SYS_SUPPLYPRESS" xml:space="preserve"><value>未綁 → 以各機排氣壓力最高者代替</value></data>
+  <data name="eq.diag.sys_hint.SYS_USEPRESS" xml:space="preserve"><value>未綁 → 管損以預留值假設，壓力規則先建議量測</value></data>
+  <data name="eq.diag.sys_hint.SYS_FLOW" xml:space="preserve"><value>未綁 → 各機空氣量加總，再無 → 加載比法（上限估計）</value></data>
+  <data name="eq.diag.sys_hint.SYS_DEWPOINT" xml:space="preserve"><value>未綁 → 降壓建議附註人工確認露點</value></data>
+  <data name="eq.ctrl.fixed" xml:space="preserve"><value>定頻加卸載</value></data>
+  <data name="eq.ctrl.vsd" xml:space="preserve"><value>變頻（VSD）</value></data>
+  <data name="eq.ctrl.modulation" xml:space="preserve"><value>進氣節流</value></data>
+  <data name="eq.ctrl.auto" xml:space="preserve"><value>未填（由功率分佈推定）</value></data>
+  <data name="eq.diag.param.dq.min_coverage_pct" xml:space="preserve"><value>最低覆蓋率 %</value></data>
+  <data name="eq.diag.param.dq.flatline_minutes" xml:space="preserve"><value>平線判定分鐘</value></data>
+  <data name="eq.diag.param.dq.flatline_max_pct" xml:space="preserve"><value>平線容許占比 %</value></data>
+  <data name="eq.diag.param.dq.state_conflict_max_pct" xml:space="preserve"><value>狀態矛盾容許 %</value></data>
+  <data name="eq.diag.param.dq.max_gap_minutes" xml:space="preserve"><value>缺口判定分鐘</value></data>
+  <data name="eq.diag.param.p.margin_ratio" xml:space="preserve"><value>壓力裕度觸發倍數</value></data>
+  <data name="eq.diag.param.p.saving_per_bar_low_pct" xml:space="preserve"><value>每降 1 bar 節能 % 下限</value></data>
+  <data name="eq.diag.param.p.saving_per_bar_high_pct" xml:space="preserve"><value>每降 1 bar 節能 % 上限</value></data>
+  <data name="eq.diag.param.p.trial_step_bar" xml:space="preserve"><value>降壓試驗步階 bar</value></data>
+  <data name="eq.diag.param.p.pipe_loss_reserve_bar" xml:space="preserve"><value>無末端壓力時管損預留 bar</value></data>
+  <data name="eq.diag.param.l.warn_pct" xml:space="preserve"><value>洩漏比注意 %</value></data>
+  <data name="eq.diag.param.l.significant_pct" xml:space="preserve"><value>洩漏比顯著 %</value></data>
+  <data name="eq.diag.param.l.min_windows" xml:space="preserve"><value>非生產窗口最少不同日數</value></data>
+  <data name="eq.diag.param.l.min_window_minutes" xml:space="preserve"><value>非生產窗口最短分鐘</value></data>
+  <data name="eq.diag.param.s.unload_kw_ratio" xml:space="preserve"><value>卸載判定 kW ÷ 額定（無 LOADED 點）</value></data>
+  <data name="eq.diag.param.s.unload_ratio_warn_pct" xml:space="preserve"><value>卸載比警示 %</value></data>
+  <data name="eq.diag.param.s.cycles_per_hour_ref" xml:space="preserve"><value>循環次數參考線 次/h</value></data>
+  <data name="eq.diag.param.s.multi_partload_pct" xml:space="preserve"><value>多台部分負載占比 %</value></data>
+  <data name="eq.diag.param.s.order_invert_pct" xml:space="preserve"><value>順序倒置占比 %</value></data>
+  <data name="eq.diag.param.s.vsd_full_load_pct" xml:space="preserve"><value>VSD 滿載判定 %</value></data>
+  <data name="eq.diag.param.e.degrade_pct" xml:space="preserve"><value>劣化門檻 %</value></data>
+  <data name="eq.diag.param.e.flow_bins" xml:space="preserve"><value>同工況流量分格數</value></data>
+  <data name="eq.diag.param.e.press_bin_bar" xml:space="preserve"><value>同工況壓力格寬 bar</value></data>
+  <data name="eq.diag.param.e.min_hours_per_cell" xml:space="preserve"><value>每格兩期最少小時</value></data>
+  <data name="eq.diag.param.e.oversize_load_pct" xml:space="preserve"><value>定頻過大加載率 %</value></data>
+  <data name="eq.diag.param.e.vsd_minload_fraction_pct" xml:space="preserve"><value>VSD 最低負載附近占比 %</value></data>
+  <data name="eq.diag.param.e.undersize_min_minutes" xml:space="preserve"><value>容量不足最少分鐘</value></data>
+  <data name="eq.diag.pgroup.dq" xml:space="preserve"><value>資料品質</value></data>
+  <data name="eq.diag.pgroup.p" xml:space="preserve"><value>壓力</value></data>
+  <data name="eq.diag.pgroup.l" xml:space="preserve"><value>洩漏 / 閒置</value></data>
+  <data name="eq.diag.pgroup.s" xml:space="preserve"><value>運轉與排序</value></data>
+  <data name="eq.diag.pgroup.e" xml:space="preserve"><value>設備適配</value></data>
+  <data name="eq.diag.src.skill" xml:space="preserve"><value>skill 原文</value></data>
+  <data name="eq.diag.src.system" xml:space="preserve"><value>本系統經驗值</value></data>
+  <data name="eq.diag.ui.tab_efficiency" xml:space="preserve"><value>效率儀表板</value></data>
+  <data name="eq.diag.ui.tab_diagnosis" xml:space="preserve"><value>系統診斷</value></data>
+  <data name="eq.diag.ui.tab_setting" xml:space="preserve"><value>診斷設定</value></data>
+  <data name="eq.diag.ui.loading" xml:space="preserve"><value>載入中…</value></data>
+  <data name="eq.diag.ui.no_compressor" xml:space="preserve"><value>尚未設定啟用中的空壓機。</value></data>
+  <data name="eq.diag.ui.no_snapshot" xml:space="preserve"><value>尚無排程診斷快照（每日 02:00 產生最近 7 天結果）。</value></data>
+  <data name="eq.diag.ui.no_snapshot_engineer" xml:space="preserve"><value>可於下方指定期間立即重算。</value></data>
+  <data name="eq.diag.ui.period" xml:space="preserve"><value>診斷期間</value></data>
+  <data name="eq.diag.ui.run_at" xml:space="preserve"><value>執行時間</value></data>
+  <data name="eq.diag.ui.scheduled" xml:space="preserve"><value>每日排程（最近 7 天）</value></data>
+  <data name="eq.diag.ui.manual" xml:space="preserve"><value>手動重算</value></data>
+  <data name="eq.diag.ui.from" xml:space="preserve"><value>起</value></data>
+  <data name="eq.diag.ui.to" xml:space="preserve"><value>訖</value></data>
+  <data name="eq.diag.ui.run" xml:space="preserve"><value>重算</value></data>
+  <data name="eq.diag.ui.running" xml:space="preserve"><value>計算中…（期間越長越久）</value></data>
+  <data name="eq.diag.ui.back_latest" xml:space="preserve"><value>回到最新排程快照</value></data>
+  <data name="eq.diag.ui.tile_triggered" xml:space="preserve"><value>觸發項目</value></data>
+  <data name="eq.diag.ui.tile_pending" xml:space="preserve"><value>待補資料</value></data>
+  <data name="eq.diag.ui.tile_kwh" xml:space="preserve"><value>期間耗電</value></data>
+  <data name="eq.diag.ui.tile_sp" xml:space="preserve"><value>期間比功率</value></data>
+  <data name="eq.diag.ui.tile_price" xml:space="preserve"><value>電價</value></data>
+  <data name="eq.diag.ui.price_tariff" xml:space="preserve"><value>電費逐時表平均</value></data>
+  <data name="eq.diag.ui.price_manual" xml:space="preserve"><value>手填</value></data>
+  <data name="eq.diag.ui.price_none" xml:space="preserve"><value>無電價（只列 kWh）</value></data>
+  <data name="eq.diag.ui.not_additive" xml:space="preserve"><value>各項節能不可直接相加</value></data>
+  <data name="eq.diag.ui.inferred" xml:space="preserve"><value>推定</value></data>
+  <data name="eq.diag.ui.default_flag" xml:space="preserve"><value>依預設值</value></data>
+  <data name="eq.diag.ui.default_flag_title" xml:space="preserve"><value>用到未經現場確認的預設參數：{list}</value></data>
+  <data name="eq.diag.ui.next_step" xml:space="preserve"><value>建議下一步</value></data>
+  <data name="eq.diag.ui.checklist" xml:space="preserve"><value>試驗檢查清單</value></data>
+  <data name="eq.diag.ui.evidence" xml:space="preserve"><value>證據與公式</value></data>
+  <data name="eq.diag.ui.missing" xml:space="preserve"><value>缺少</value></data>
+  <data name="eq.diag.ui.notes" xml:space="preserve"><value>附註</value></data>
+  <data name="eq.diag.ui.formula" xml:space="preserve"><value>公式</value></data>
+  <data name="eq.diag.ui.candidates" xml:space="preserve"><value>停機延遲候選試算</value></data>
+  <data name="eq.diag.ui.col_delay" xml:space="preserve"><value>延遲（分）</value></data>
+  <data name="eq.diag.ui.col_kwh_period" xml:space="preserve"><value>期間 kWh（低 ~ 高）</value></data>
+  <data name="eq.diag.ui.col_added_starts" xml:space="preserve"><value>新增啟動</value></data>
+  <data name="eq.diag.ui.col_max_starts" xml:space="preserve"><value>每小時最多啟動</value></data>
+  <data name="eq.diag.ui.col_feasible" xml:space="preserve"><value>可行</value></data>
+  <data name="eq.diag.ui.feasible_yes" xml:space="preserve"><value>可行</value></data>
+  <data name="eq.diag.ui.feasible_no" xml:space="preserve"><value>超過啟動上限</value></data>
+  <data name="eq.diag.ui.baseline_title" xml:space="preserve"><value>實測基線</value></data>
+  <data name="eq.diag.ui.col_name" xml:space="preserve"><value>機台</value></data>
+  <data name="eq.diag.ui.col_ctrl" xml:space="preserve"><value>控制型式</value></data>
+  <data name="eq.diag.ui.col_kw" xml:space="preserve"><value>kW P05 / P50 / P95</value></data>
+  <data name="eq.diag.ui.col_flow" xml:space="preserve"><value>空氣量 P50 m³/min</value></data>
+  <data name="eq.diag.ui.col_press" xml:space="preserve"><value>壓力 P50 bar</value></data>
+  <data name="eq.diag.ui.col_state" xml:space="preserve"><value>加載 / 卸載 / 停機 / 未知 %</value></data>
+  <data name="eq.diag.ui.col_run_hours" xml:space="preserve"><value>運轉 h</value></data>
+  <data name="eq.diag.ui.col_starts" xml:space="preserve"><value>啟動次數</value></data>
+  <data name="eq.diag.ui.col_cycles" xml:space="preserve"><value>循環 P50 / P95 次/h</value></data>
+  <data name="eq.diag.ui.col_kwh" xml:space="preserve"><value>kWh</value></data>
+  <data name="eq.diag.ui.load_inferred_short" xml:space="preserve"><value>加卸載推定</value></data>
+  <data name="eq.diag.ui.unconfirmed_banner" xml:space="preserve"><value>部分結論依預設參數（未經現場確認）：{list}</value></data>
+  <data name="eq.diag.ui.goto_setting" xml:space="preserve"><value>前往診斷設定</value></data>
+  <data name="eq.diag.ui.save" xml:space="preserve"><value>儲存設定</value></data>
+  <data name="eq.diag.ui.saved" xml:space="preserve"><value>已儲存，下次診斷生效</value></data>
+  <data name="eq.diag.ui.site_title" xml:space="preserve"><value>場域資料</value></data>
+  <data name="eq.diag.ui.demand_press" xml:space="preserve"><value>末端最低需求壓力（bar）</value></data>
+  <data name="eq.diag.ui.demand_press_hint" xml:space="preserve"><value>關鍵用氣點可接受的最低壓力；壓力過高與容量不足規則依此判定</value></data>
+  <data name="eq.diag.ui.manual_price" xml:space="preserve"><value>手填電價（NT$/kWh）</value></data>
+  <data name="eq.diag.ui.manual_price_hint" xml:space="preserve"><value>期間電費逐時表無資料時使用</value></data>
+  <data name="eq.diag.ui.holiday_off" xml:space="preserve"><value>假日（/HolidaySetting）整天視為非生產</value></data>
+  <data name="eq.diag.ui.sys_title" xml:space="preserve"><value>系統級點位（皆可不綁）</value></data>
+  <data name="eq.diag.ui.unbound" xml:space="preserve"><value>未綁定</value></data>
+  <data name="eq.diag.ui.pick" xml:space="preserve"><value>選擇點位</value></data>
+  <data name="eq.diag.ui.clear" xml:space="preserve"><value>清除</value></data>
+  <data name="eq.diag.ui.schedule_title" xml:space="preserve"><value>生產時段（每週）</value></data>
+  <data name="eq.diag.ui.schedule_hint" xml:space="preserve"><value>未列的時段 = 非生產；跨午夜請拆成兩段</value></data>
+  <data name="eq.diag.ui.schedule_fill_weekday" xml:space="preserve"><value>套用 週一~五 08:00–17:00</value></data>
+  <data name="eq.diag.ui.schedule_add" xml:space="preserve"><value>新增時段</value></data>
+  <data name="eq.diag.ui.schedule_none" xml:space="preserve"><value>非生產</value></data>
+  <data name="eq.diag.ui.baseline_period_title" xml:space="preserve"><value>劣化基準期</value></data>
+  <data name="eq.diag.ui.baseline_period_hint" xml:space="preserve"><value>選一段設備狀況良好（如保養後）的期間；與分析期比較同工況比功率</value></data>
+  <data name="eq.diag.ui.params_title" xml:space="preserve"><value>診斷參數</value></data>
+  <data name="eq.diag.ui.params_hint" xml:space="preserve"><value>留空 = 使用預設值；未覆寫也未確認的參數，結論會標「依預設值」</value></data>
+  <data name="eq.diag.ui.confirm_all" xml:space="preserve"><value>全部確認沿用預設</value></data>
+  <data name="eq.diag.ui.col_param" xml:space="preserve"><value>參數</value></data>
+  <data name="eq.diag.ui.col_value" xml:space="preserve"><value>值</value></data>
+  <data name="eq.diag.ui.col_default" xml:space="preserve"><value>預設</value></data>
+  <data name="eq.diag.ui.col_range" xml:space="preserve"><value>範圍</value></data>
+  <data name="eq.diag.ui.col_source" xml:space="preserve"><value>出處</value></data>
+  <data name="eq.diag.ui.col_state_param" xml:space="preserve"><value>狀態</value></data>
+  <data name="eq.diag.ui.param_overridden" xml:space="preserve"><value>已覆寫</value></data>
+  <data name="eq.diag.ui.param_confirmed" xml:space="preserve"><value>已確認</value></data>
+  <data name="eq.diag.ui.param_default" xml:space="preserve"><value>預設（未確認）</value></data>
+  <data name="eq.diag.ui.confirm" xml:space="preserve"><value>確認</value></data>
+  <data name="eq.diag.ui.unconfirm" xml:space="preserve"><value>取消確認</value></data>
+  <data name="eq.diag.ui.device_fields_hint" xml:space="preserve"><value>各機控制型式、最低負載、銘牌最高壓力、每小時最多啟動次數請至「設備效率設定 → 空壓機」編輯</value></data>
+  <data name="eq.diag.ui.updated_by" xml:space="preserve"><value>最後更新：{at} {by}</value></data>
+  <data name="eq.diag.ui.dow0" xml:space="preserve"><value>週日</value></data>
+  <data name="eq.diag.ui.dow1" xml:space="preserve"><value>週一</value></data>
+  <data name="eq.diag.ui.dow2" xml:space="preserve"><value>週二</value></data>
+  <data name="eq.diag.ui.dow3" xml:space="preserve"><value>週三</value></data>
+  <data name="eq.diag.ui.dow4" xml:space="preserve"><value>週四</value></data>
+  <data name="eq.diag.ui.dow5" xml:space="preserve"><value>週五</value></data>
+  <data name="eq.diag.ui.dow6" xml:space="preserve"><value>週六</value></data>
+  <data name="eq.diag.err.demand_pressure_range" xml:space="preserve"><value>需求壓力超出範圍（0~100 bar）</value></data>
+  <data name="eq.diag.err.price_range" xml:space="preserve"><value>電價超出範圍</value></data>
+  <data name="eq.diag.err.invalid_role" xml:space="preserve"><value>系統點位角色不正確：{detail}</value></data>
+  <data name="eq.diag.err.invalid_unit" xml:space="preserve"><value>單位無法換算：{detail}</value></data>
+  <data name="eq.diag.err.invalid_schedule" xml:space="preserve"><value>生產時段格式錯誤（起須早於訖）：{detail}</value></data>
+  <data name="eq.diag.err.baseline_incomplete" xml:space="preserve"><value>基準期起訖須同時填寫</value></data>
+  <data name="eq.diag.err.baseline_range" xml:space="preserve"><value>基準期日期錯誤</value></data>
+  <data name="eq.diag.err.invalid_param" xml:space="preserve"><value>未知參數：{detail}</value></data>
+  <data name="eq.diag.err.param_range" xml:space="preserve"><value>參數超出範圍：{detail}</value></data>
+  <data name="eq.diag.err.invalid_range" xml:space="preserve"><value>期間日期錯誤</value></data>
+  <data name="eq.diag.err.range_too_long" xml:space="preserve"><value>期間最長 {detail} 天</value></data>
+  <data name="eq.diag.err.no_compressor" xml:space="preserve"><value>沒有啟用中的空壓機</value></data>
+  <data name="eq.edit.diag_fields" xml:space="preserve"><value>空壓系統診斷（皆可不填）</value></data>
+  <data name="eq.edit.control_type" xml:space="preserve"><value>控制型式</value></data>
+  <data name="eq.edit.min_load_pct" xml:space="preserve"><value>VSD 最低負載（%）</value></data>
+  <data name="eq.edit.max_pressure" xml:space="preserve"><value>銘牌最高工作壓力（bar）</value></data>
+  <data name="eq.edit.max_starts" xml:space="preserve"><value>每小時最多啟動次數</value></data>
+  <data name="eq.edit.diag_fields_hint" xml:space="preserve"><value>未填時診斷改用推定 / 觀測值並標示（控制型式由功率分佈推定、最低負載取觀測 P05、不做壓力上限與啟動次數硬性檢查）</value></data>
+  <data name="eq.err.invalid_control_type" xml:space="preserve"><value>控制型式不正確：{detail}</value></data>
+  <data name="eq.err.min_load_pct_range" xml:space="preserve"><value>最低負載須介於 0~100%</value></data>
+  <data name="eq.diag.ui.suggest_vsd" xml:space="preserve"><value>建議改 VSD</value></data>
+  <data name="eq.diag.ui.suggest_fixed_storage" xml:space="preserve"><value>建議改定頻加卸載 + 儲氣桶</value></data>
+  <data name="eq.diag.ui.suggest_unknown" xml:space="preserve"><value>無 kW 無法建議</value></data>
+  <data name="eq.diag.ui.system" xml:space="preserve"><value>系統</value></data>
 </root>

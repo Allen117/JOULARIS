@@ -365,6 +365,10 @@ builder.Services.AddScoped<ScadaEngine.Web.Services.EquipmentEfficiencyReportSer
 builder.Services.AddSingleton<ScadaEngine.Web.Services.EquipmentBackfillPublisher>();
 builder.Services.AddHostedService<ScadaEngine.Web.Services.EquipmentBackfillPublisher>(provider =>
     provider.GetRequiredService<ScadaEngine.Web.Services.EquipmentBackfillPublisher>());
+// 空壓系統規則式診斷（移植 compressor-analysis-skill 領域規則，不經 LLM）— 設定 / 快照 / 每日 02:00 最近 7 天滾動快照
+builder.Services.AddScoped<ScadaEngine.Web.Services.CompressorDiagnosisService>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.CompressorDiagnosisTextRenderer>();
+builder.Services.AddHostedService<ScadaEngine.Web.Services.CompressorDiagnosisSchedulerService>();
 
 var app = builder.Build();
 

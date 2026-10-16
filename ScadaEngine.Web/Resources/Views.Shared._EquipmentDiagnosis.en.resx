@@ -62,4 +62,7 @@
   <data name="eqd.ranking" xml:space="preserve"><value>Ranking (by period efficiency)</value></data>
   <data name="eqd.method_chiller" xml:space="preserve"><value>Period kW/RT = total energy ÷ total cooling (energy-weighted, ASHRAE 90.1 / AHRI 550/590); COP = 3.517 ÷ kW/RT, EER = 12 ÷ kW/RT. Cooling is calculated minute by minute from CHW flow × supply/return ΔT.</value></data>
   <data name="eqd.method_compressor" xml:space="preserve"><value>Period specific power kW/(m³/min) = total energy ÷ total air × 60 (energy-weighted, ISO 11011 / CAGI); kW/100cfm = specific power × 2.832.</value></data>
+  <data name="eqd.tab.efficiency" xml:space="preserve"><value>Efficiency</value></data>
+  <data name="eqd.tab.diagnosis" xml:space="preserve"><value>System Diagnosis</value></data>
+  <data name="eqd.tab.setting" xml:space="preserve"><value>Diagnosis Settings</value></data>
 </root>

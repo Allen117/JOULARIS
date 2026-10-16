@@ -33,6 +33,35 @@ public class DailyReportData
     /// <summary>外氣日均溫（Weather Coordinator 未設定 → null）</summary>
     public DailyReportWeather? weather { get; set; }
     public List<DailyReportInsight> insights { get; set; } = new();
+    /// <summary>空壓系統診斷摘要（最近 7 天滾動排程快照；無空壓機 / 診斷失敗 → null）</summary>
+    public DailyReportCompressorDiagnosis? compressorDiagnosis { get; set; }
+}
+
+/// <summary>
+/// 空壓系統診斷摘要 — 文字已於日報生成時依全局語言渲染（同智慧提示），Email 與 /DailyReport 直接顯示。
+/// 只列觸發的規則；其餘以計數帶過，詳情請至 /CompressorEfficiency「系統診斷」。
+/// </summary>
+public class DailyReportCompressorDiagnosis
+{
+    /// <summary>診斷期間顯示字串，如 2026-10-09 ~ 2026-10-15</summary>
+    public string szPeriod { get; set; } = "";
+    public int nTriggered { get; set; }
+    /// <summary>資料不足 / 待補場域資料 / 待設定 的規則數</summary>
+    public int nPending { get; set; }
+    public List<DailyReportCompressorDiagnosisItem> items { get; set; } = new();
+    /// <summary>附註（重疊不可相加、基準期未設定、依預設值）</summary>
+    public List<string> aNotices { get; set; } = new();
+}
+
+public class DailyReportCompressorDiagnosisItem
+{
+    public string szRuleId { get; set; } = "";
+    public string szTitle { get; set; } = "";
+    /// <summary>篩檢節能文字（NTD/年 區間，無電價則 kWh/年）；無節能估計 → 空字串</summary>
+    public string szSavings { get; set; } = "";
+    public string szNextStep { get; set; } = "";
+    /// <summary>結論用到未經現場確認的預設參數</summary>
+    public bool isUnconfirmedDefault { get; set; }
 }
 
 /// <summary>前一日 EventLog 警報 + 故障（EventType 0+1）摘要</summary>
@@ -168,6 +197,9 @@ public static class DailyReportSections
     public const int DayCompare = 32;
     public const int MtdCompare = 64;
     public const int Insights = 128;
+    /// <summary>空壓系統診斷（預設關閉 — 不含在 All 內）</summary>
+    public const int CompressorDiagnosis = 256;
+    /// <summary>新設定的預設值（全部既有區塊；空壓系統診斷需另行勾選）</summary>
     public const int All = 255;
 
     public static bool Has(int nFlags, int nSection) => (nFlags & nSection) != 0;

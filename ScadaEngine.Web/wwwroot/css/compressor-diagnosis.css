@@ -1,0 +1,149 @@
+/* 空壓系統規則式診斷 — /CompressorEfficiency「系統診斷」/「診斷設定」tab（js/compressor-diagnosis.js）。
+   主色走 Bootstrap primary（EMS 模式由 ems.css 轉綠）；狀態色只用 Bootstrap 語意色 class。 */
+
+/* 未選 tab 沿用 EMS 綠（同設定頁 .eqs-page） */
+.eqd-tabs .nav-link:not(.active) {
+    color: #2e7d32;
+}
+
+.cdg-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.5rem;
+}
+
+.cdg-tile {
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.cdg-tile.is-hit {
+    border-left: 4px solid var(--bs-danger, #dc3545);
+}
+
+.cdg-tile.is-pending {
+    border-left: 4px solid var(--bs-warning, #ffc107);
+}
+
+.cdg-tile-label {
+    font-size: 0.78rem;
+    color: #6c757d;
+}
+
+.cdg-tile-value {
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.cdg-group-title {
+    font-weight: 600;
+    font-size: 0.92rem;
+    margin: 1rem 0 0.4rem;
+    padding-left: 0.5rem;
+    border-left: 4px solid var(--bs-primary, #0d6efd);
+}
+
+.cdg-rules {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 0.5rem;
+}
+
+@media (max-width: 576px) {
+    .cdg-rules {
+        grid-template-columns: 1fr;
+    }
+}
+
+.cdg-rule {
+    border-left: 4px solid #ced4da;
+}
+
+.cdg-rule.cdg-Triggered {
+    border-left-color: var(--bs-danger, #dc3545);
+}
+
+.cdg-rule.cdg-NotTriggered {
+    border-left-color: var(--bs-success, #198754);
+}
+
+.cdg-rule.cdg-PendingSiteData,
+.cdg-rule.cdg-PendingSetting {
+    border-left-color: var(--bs-warning, #ffc107);
+}
+
+.cdg-rule.cdg-NotApplicable {
+    opacity: 0.75;
+}
+
+.cdg-rule-head {
+    flex-wrap: wrap;
+}
+
+.cdg-rule-head .cdg-badges {
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+.cdg-candidates td,
+.cdg-candidates th {
+    white-space: nowrap;
+}
+
+.cdg-savings {
+    font-weight: 600;
+    color: var(--bs-danger, #dc3545);
+    margin-bottom: 0.25rem;
+}
+
+.cdg-next {
+    font-size: 0.85rem;
+}
+
+.cdg-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0.25rem 0 0;
+    font-size: 0.82rem;
+}
+
+.cdg-list li {
+    margin-bottom: 0.15rem;
+}
+
+.cdg-formula {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+}
+
+.cdg-rule details summary,
+details.card > summary {
+    cursor: pointer;
+}
+
+.cdg-run input[type="date"] {
+    width: 150px;
+}
+
+.cdg-time {
+    width: 92px;
+}
+
+.cdg-params input {
+    max-width: 120px;
+}
+
+.cdg-param-key {
+    font-size: 0.72rem;
+    font-family: Consolas, monospace;
+}
+
+.cdg-toast-host {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1080;
+    max-width: 360px;
+}

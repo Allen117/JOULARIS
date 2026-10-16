@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<!-- EMS 模式外殼（淡綠主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>空壓機效率診斷 - 系統診斷 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/equipment.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/compressor-diagnosis.css">
+    <style>*, *::before, *::after { transition: none !important; animation: none !important; }</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 9, 16, 10, 30, 5).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        // ═══ 換設備類別改這一行：'chiller' / 'compressor' ═══
+        var KIND = 'compressor';
+
+        // 決定性亂數（同一份 recipe 每次渲染數字相同）
+        var seed = 20260916;
+        function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
+        function r(v, d) { var p = Math.pow(10, d); return Math.round(v * p) / p; }
+
+        // 2026-09 共 30 天；9/1 為週二。dow: 0=日..6=六
+        var DAYS = []; for (var i = 1; i <= 30; i++) DAYS.push({ d: i, dow: (2 + i - 1) % 7 });
+        var LABELS = DAYS.map(function (x) { return '09/' + (x.d < 10 ? '0' + x.d : x.d); });
+        function isWe(x) { return x.dow === 0 || x.dow === 6; }
+
+        // 每台設備：每日 → {run 小時, load %, eff 主指標}；null = 當日停機
+        var DEV = {
+            chiller: [
+                { id: 1, name: 'CH-1 離心式 500RT', rated: 500, good: 0.65, fair: 0.85,
+                  day: function (x, k) { var we = isWe(x);
+                      var load = we ? 52 + rnd() * 6 : 74 + rnd() * 8;
+                      return { run: we ? 14 : 22, load: load, eff: 0.598 + (we ? 0.03 : 0) + (rnd() - 0.5) * 0.02 }; } },
+                { id: 2, name: 'CH-2 離心式 500RT', rated: 500, good: 0.65, fair: 0.85,
+                  // 冷凝器結垢：月初 ~0.66 → 月底 ~0.80，效率持續劣化
+                  day: function (x, k) { var we = isWe(x);
+                      var load = we ? 48 + rnd() * 6 : 70 + rnd() * 8;
+                      return { run: we ? 12 : 20, load: load, eff: 0.655 + k * 0.0048 + (rnd() - 0.5) * 0.015 }; } },
+                { id: 3, name: 'CH-3 螺旋式 350RT', rated: 350, good: 0.65, fair: 0.85,
+                  // 尖峰輔機：只在平日午間低載跑，低負載效率差
+                  day: function (x, k) { if (isWe(x)) return null;
+                      var load = 34 + rnd() * 10;
+                      return { run: 6 + Math.round(rnd() * 3), load: load, eff: 0.88 + (rnd() - 0.5) * 0.05 }; } }
+            ],
+            compressor: [
+                { id: 11, name: 'AC-1 變頻螺旋 75kW', rated: 12.5, good: 7, fair: 9,
+                  day: function (x, k) { var we = isWe(x);
+                      if (x.d === 14 || x.d === 15) return null;   // 保養停機
+                      var load = we ? 45 + rnd() * 8 : 78 + rnd() * 10;
+                      return { run: 24, load: load, eff: 6.18 + (rnd() - 0.5) * 0.25, loaded: 1.0, press: 6.92 + rnd() * 0.08 }; } },
+                { id: 12, name: 'AC-2 定頻螺旋 55kW', rated: 9.2, good: 7, fair: 9,
+                  day: function (x, k) { var we = isWe(x);
+                      var load = we ? 38 + rnd() * 8 : 72 + rnd() * 8;
+                      return { run: we ? 10 : 20, load: load, eff: 7.25 + (we ? 0.45 : 0) + (rnd() - 0.5) * 0.3, loaded: we ? 0.58 : 0.84, press: 7.05 + rnd() * 0.1 }; } },
+                { id: 13, name: 'AC-3 定頻螺旋 37kW', rated: 6.0, good: 7, fair: 9,
+                  // 修剪機：大量卸載空轉，比功率 > 9 → 差
+                  day: function (x, k) { if (isWe(x)) return null;
+                      var load = 30 + rnd() * 12;
+                      return { run: 16, load: load, eff: 9.6 + (rnd() - 0.5) * 0.7, loaded: 0.42 + rnd() * 0.08, press: 7.18 + rnd() * 0.08 }; } },
+                { id: 14, name: 'AC-4 備用機 37kW', rated: 6.0, good: 7, fair: 9,
+                  // 備機：只在 AC-1 保養日（9/14、9/15）上線
+                  day: function (x, k) { if (x.d !== 14 && x.d !== 15) return null;
+                      var load = 82 + rnd() * 6;
+                      return { run: 22, load: load, eff: 7.6 + (rnd() - 0.5) * 0.2, loaded: 0.92, press: 7.0 }; } }
+            ]
+        };
+
+        // ── 由逐日紀錄算出 period DTO（序列 / 全場 / 合計 / 負載分佈 / 排名同源 → 自洽） ──
+        function buildPeriod() {
+            seed = 20260916;
+            var devs = DEV[KIND], isC = KIND === 'compressor';
+            // 冰機 output = RT·h、eff = kWh / RT·h；空壓機 output = m³、eff = kWh / m³ × 60
+            function effOf(kwh, o) { return o > 0 ? (isC ? kwh / o * 60 : kwh / o) : null; }
+            var bins = [0, 1, 2, 3].map(function (b) { return { bin: b, hours: 0, kwh: 0, output: 0 }; });
+            var fleetK = DAYS.map(function () { return 0; }), fleetO = DAYS.map(function () { return 0; });
+            var T = { kwh: 0, output: 0, runHours: 0, loadW: 0, loadedH: 0, pressW: 0 };
+            var series = [], ranking = [];
+            devs.forEach(function (dv) {
+                var S = { kwh: 0, output: 0, runHours: 0, loadW: 0 }, vals = [];
+                DAYS.forEach(function (x, k) {
+                    var rec = dv.day(x, k);
+                    if (!rec) { vals.push(null); return; }
+                    var out = r(isC ? dv.rated * rec.load / 100 * 60 * rec.run : dv.rated * rec.load / 100 * rec.run, 1);
+                    var kwh = r(isC ? rec.eff * out / 60 : rec.eff * out, 1);
+                    vals.push(r(effOf(kwh, out), isC ? 2 : 3));
+                    fleetK[k] += kwh; fleetO[k] += out;
+                    S.kwh += kwh; S.output += out; S.runHours += rec.run; S.loadW += rec.load * rec.run;
+                    if (isC) { T.loadedH += rec.loaded * rec.run; T.pressW += rec.press * rec.run; }
+                    var b = bins[rec.load <= 25 ? 0 : rec.load <= 50 ? 1 : rec.load <= 75 ? 2 : 3];
+                    b.hours += rec.run; b.kwh += kwh; b.output += out;
+                });
+                series.push({ id: dv.id, name: dv.name, values: vals });
+                var p = effOf(S.kwh, S.output);
+                ranking.push({ id: dv.id, name: dv.name, kwh: S.kwh, output: S.output, primary: p,
+                    secondary: p == null ? null : (isC ? p * 2.832 : 3.517 / p),
+                    runHours: S.runHours, avgLoadPct: S.loadW / S.runHours,
+                    grade: p <= dv.good ? 'Good' : p <= dv.fair ? 'Fair' : 'Poor',
+                    good: dv.good, fair: dv.fair, coveragePct: 100 });
+                T.kwh += S.kwh; T.output += S.output; T.runHours += S.runHours; T.loadW += S.loadW;
+            });
+            ranking.sort(function (a, b) { return a.primary - b.primary; });
+            bins.forEach(function (b) {
+                b.kwhPct = T.kwh ? b.kwh / T.kwh * 100 : 0;
+                b.outputPct = T.output ? b.output / T.output * 100 : 0;
+                b.primary = effOf(b.kwh, b.output);
+            });
+            var P = effOf(T.kwh, T.output);
+            return {
+                kind: KIND, granularity: 'day', deviceCount: devs.length, labels: LABELS,
+                totals: { kwh: T.kwh, output: T.output, primary: P,
+                    secondary: isC ? P * 2.832 : 3.517 / P, tertiary: isC ? T.kwh / T.output : 12 / P,
+                    runHours: T.runHours, avgLoadPct: T.loadW / T.runHours,
+                    loadedRatio: isC ? T.loadedH / T.runHours : null, avgPressure: isC ? T.pressW / T.runHours : null },
+                series: series,
+                fleet: DAYS.map(function (x, k) { return fleetO[k] ? r(effOf(fleetK[k], fleetO[k]), isC ? 2 : 3) : null; }),
+                loadBins: bins, ranking: ranking,
+                coverage: { expectedHours: 720, actualHours: 720, coveragePct: 100, missingHours: 0, worstName: null, thresholdPct: 90, isBelowThreshold: false }
+            };
+        }
+
+        // ── 即時快照（2026-10-16 10:30:05）：kW = 主指標 × 產出、COP = 3.517 ÷ kW/RT、kW/100cfm = 比功率 × 2.832 ──
+        var TS = '2026-10-16T10:30:05';
+        var RT = {
+            chiller: [
+                { id: 1, name: 'CH-1 離心式 500RT', grade: 'Good', isRunning: true, hasData: true, primary: 0.604, secondary: 3.517 / 0.604, kw: 0.604 * 392.6, output: 392.6, loadPct: 79, chwDeltaT: 5.2, cdwDeltaT: 4.8, evapApproach: 1.1, condApproach: 1.4, outputSource: 'flow', rtPoint: 395.0, good: 0.65, fair: 0.85, lastUpdate: TS },
+                { id: 2, name: 'CH-2 離心式 500RT', grade: 'Fair', isRunning: true, hasData: true, primary: 0.812, secondary: 3.517 / 0.812, kw: 0.812 * 361.3, output: 361.3, loadPct: 72, chwDeltaT: 4.9, cdwDeltaT: 4.1, evapApproach: 1.3, condApproach: 4.6, outputSource: 'flow', rtPoint: 358.2, good: 0.65, fair: 0.85, lastUpdate: TS },
+                { id: 3, name: 'CH-3 螺旋式 350RT', grade: 'Off', isRunning: false, hasData: true, primary: null, secondary: null, kw: 0.8, output: 0, loadPct: 0, chwDeltaT: 0.2, cdwDeltaT: 0.1, evapApproach: null, condApproach: null, good: 0.65, fair: 0.85, lastUpdate: TS }
+            ],
+            compressor: [
+                { id: 11, name: 'AC-1 變頻螺旋 75kW', grade: 'Good', isRunning: true, hasData: true, primary: 6.21, secondary: 6.21 * 2.832, kw: 6.21 * 10.6, output: 10.6, loadPct: 85, pressBar: 6.95, tempC: 82.4, isLoaded: true, good: 7, fair: 9, lastUpdate: TS },
+                { id: 12, name: 'AC-2 定頻螺旋 55kW', grade: 'Fair', isRunning: true, hasData: true, primary: 7.18, secondary: 7.18 * 2.832, kw: 7.18 * 7.0, output: 7.0, loadPct: 76, pressBar: 7.08, tempC: 85.1, isLoaded: true, good: 7, fair: 9, lastUpdate: TS },
+                { id: 13, name: 'AC-3 定頻螺旋 37kW', grade: 'Poor', isRunning: true, hasData: true, primary: 10.35, secondary: 10.35 * 2.832, kw: 10.35 * 2.1, output: 2.1, loadPct: 35, pressBar: 7.21, tempC: 79.6, isLoaded: false, good: 7, fair: 9, lastUpdate: TS },
+                { id: 14, name: 'AC-4 備用機 37kW', grade: 'Off', isRunning: false, hasData: true, primary: null, secondary: null, kw: 0.0, output: 0, loadPct: 0, pressBar: 7.06, tempC: 31.2, isLoaded: false, good: 7, fair: 9, lastUpdate: TS }
+            ]
+        };
+
+        var DIAG_LATEST = {"hasCompressors": true, "snapshot": {"nId": 42, "dtRunAt": "2026-10-16T02:00:31", "isScheduled": true, "szRunBy": null, "result": {"dtFrom": "2026-10-09T00:00:00", "dtTo": "2026-10-16T00:00:00", "dtRunAt": "2026-10-16T02:00:31", "dDays": 7, "nCompressors": 3, "dPeriodKwh": 9113.6, "dSpecificPower": 7.035, "dPrice": 3.42, "szPriceSource": "tariff", "aBaseline": [{"nId": 11, "szName": "AC-1 定頻 75kW", "szControlType": "fixed", "isControlTypeInferred": false, "isLoadInferred": true, "isRatedKwObserved": false, "kw": {"nCount": 10080, "dCoveragePct": 100, "dMin": 11.88, "dMax": 75.75, "dMean": 35.85, "dP05": 11.88, "dP50": 12.072, "dP95": 75.6}, "flow": {"nCount": 10080, "dCoveragePct": 100, "dMin": 0, "dMax": 12.625, "dMean": 4.732, "dP05": 0, "dP50": 0, "dP95": 12.6}, "press": {"nCount": 10080, "dCoveragePct": 100, "dMin": 7.178, "dMax": 7.523, "dMean": 7.374, "dP05": 7.192, "dP50": 7.407, "dP95": 7.523}, "dLoadedPct": 37.9, "dUnloadedPct": 62.1, "dOffPct": 0, "dUnknownPct": 0, "dRunHours": 168, "nStarts": 0, "dCyclesP50": 3, "dCyclesP95": 3, "dKwh": 6022.8}, {"nId": 12, "szName": "AC-2 變頻 55kW", "szControlType": "vsd", "isControlTypeInferred": false, "isLoadInferred": true, "isRatedKwObserved": false, "kw": {"nCount": 2700, "dCoveragePct": 26.8, "dMin": 32.671, "dMax": 55.55, "dMean": 44.419, "dP05": 33.216, "dP50": 44.902, "dP95": 54.893}, "flow": {"nCount": 2700, "dCoveragePct": 26.8, "dMin": 5.643, "dMax": 9.595, "dMean": 7.672, "dP05": 5.737, "dP50": 7.756, "dP95": 9.482}, "press": {"nCount": 2700, "dCoveragePct": 26.8, "dMin": 7.128, "dMax": 7.272, "dMean": 7.2, "dP05": 7.128, "dP50": 7.2, "dP95": 7.272}, "dLoadedPct": 26.8, "dUnloadedPct": 0, "dOffPct": 73.2, "dUnknownPct": 0, "dRunHours": 45, "nStarts": 5, "dCyclesP50": 0, "dCyclesP95": 0, "dKwh": 1998.8}, {"nId": 13, "szName": "AC-3 定頻 37kW", "szControlType": "fixed", "isControlTypeInferred": true, "isLoadInferred": true, "isRatedKwObserved": false, "kw": {"nCount": 10080, "dCoveragePct": 100, "dMin": 6.435, "dMax": 6.565, "dMean": 6.5, "dP05": 6.435, "dP50": 6.5, "dP95": 6.565}, "flow": {"nCount": 10080, "dCoveragePct": 100, "dMin": 0, "dMax": 0, "dMean": 0, "dP05": 0, "dP50": 0, "dP95": 0}, "press": {"nCount": 10080, "dCoveragePct": 100, "dMin": 7.227, "dMax": 7.373, "dMean": 7.3, "dP05": 7.227, "dP50": 7.3, "dP95": 7.373}, "dLoadedPct": 0, "dUnloadedPct": 100, "dOffPct": 0, "dUnknownPct": 0, "dRunHours": 168, "nStarts": 0, "dCyclesP50": 0, "dCyclesP95": 0, "dKwh": 1092}], "supplyPress": {"nCount": 10080, "dCoveragePct": 100, "dMin": 7.029, "dMax": 7.171, "dMean": 7.1, "dP05": 7.029, "dP50": 7.1, "dP95": 7.171}, "usePress": null, "sysFlow": null, "aRules": [{"szId": "D", "status": "NotTriggered", "szLevel": null, "isInferred": false, "aEvidence": [{"szKey": "eq.diag.ev.dq_ok", "args": {}}], "aNotes": [], "aMissing": [], "szFormulaKey": "eq.diag.formula.D", "savings": null, "szNextStep": null, "aChecklist": [], "aParamsUsed": ["dq.min_coverage_pct", "dq.flatline_max_pct", "dq.flatline_minutes", "dq.state_conflict_max_pct", "dq.max_gap_minutes"], "aUnconfirmedDefaults": ["dq.flatline_max_pct", "dq.flatline_minutes", "dq.state_conflict_max_pct", "dq.max_gap_minutes"], "aCandidates": null}, {"szId": "P", "status": "Triggered", "szLevel": null, "isInferred": false, "aEvidence": [{"szKey": "eq.diag.ev.p_supply", "args": {"p05": 7.029, "p50": 7.1, "p95": 7.171}}, {"szKey": "eq.diag.ev.p_demand", "args": {"demand": 6, "ratio": 1.1, "threshold": 6.6}}, {"szKey": "eq.diag.ev.p_reducible", "args": {"raw": 0.729, "step": 0.2, "value": 0.6}}, {"szKey": "eq.diag.ev.p_trough_starts", "args": {"count": 2, "p10": 7.043}}], "aNotes": [{"szKey": "eq.diag.note.pipe_loss_assumed", "args": {"reserve": 0.3}}, {"szKey": "eq.diag.note.lowering_may_start_extra", "args": {"count": 2}}, {"szKey": "eq.diag.note.rated_pressure_missing", "args": {}}, {"szKey": "eq.diag.note.dewpoint_unmonitored", "args": {}}], "aMissing": [], "szFormulaKey": "eq.diag.formula.P", "savings": {"kwhPeriod": {"dLow": 273.4, "dCenter": 300.7, "dHigh": 328.1}, "kwhYear": {"dLow": 14256, "dCenter": 15682, "dHigh": 17108}, "ntdYear": {"dLow": 48757, "dCenter": 53632, "dHigh": 58508}}, "szNextStep": "measure_end_pressure", "aChecklist": ["record_setpoint", "step_down", "watch_end_pressure", "stop_condition", "restore"], "aParamsUsed": ["p.margin_ratio", "p.pipe_loss_reserve_bar", "p.trial_step_bar", "p.saving_per_bar_low_pct", "p.saving_per_bar_high_pct"], "aUnconfirmedDefaults": ["p.pipe_loss_reserve_bar", "p.saving_per_bar_low_pct", "p.saving_per_bar_high_pct"], "aCandidates": null}, {"szId": "L", "status": "Triggered", "szLevel": "attention", "isInferred": false, "aEvidence": [{"szKey": "eq.diag.ev.l_windows", "args": {"count": 6, "days": 5, "hours": 123}}, {"szKey": "eq.diag.ev.l_flow", "args": {"low": 2.5, "center": 2.5, "high": 2.5, "prod": 18.506, "ratio": 13.509}}, {"szKey": "eq.diag.ev.l_sp", "args": {"p25": 6.021, "p50": 9.834, "p75": 9.849}}], "aNotes": [{"szKey": "eq.diag.note.flow_from_compressors", "args": {}}, {"szKey": "eq.diag.note.includes_legit_use", "args": {}}], "aMissing": [], "szFormulaKey": "eq.diag.formula.L", "savings": {"kwhPeriod": {"dLow": 1851.3, "dCenter": 3023.8, "dHigh": 3028.9}, "kwhYear": {"dLow": 96534, "dCenter": 157670, "dHigh": 157936}, "ntdYear": {"dLow": 330145, "dCenter": 539230, "dHigh": 540141}}, "szNextStep": "leak_survey", "aChecklist": ["leak_ultrasonic", "pressure_decay_test", "isolate_idle_branches"], "aParamsUsed": ["l.min_window_minutes", "l.min_windows", "l.warn_pct", "l.significant_pct"], "aUnconfirmedDefaults": ["l.min_window_minutes", "l.min_windows", "l.warn_pct", "l.significant_pct"], "aCandidates": null}, {"szId": "S1", "status": "Triggered", "szLevel": null, "isInferred": true, "aEvidence": [{"szKey": "eq.diag.ev.s1_unload", "args": {"name": "AC-1 定頻 75kW", "pct": 62.143, "hours": 104.4, "kwh": 1252.807}}, {"szKey": "eq.diag.ev.s1_unload", "args": {"name": "AC-2 變頻 55kW", "pct": 0, "hours": 0, "kwh": 0}}, {"szKey": "eq.diag.ev.s1_unload", "args": {"name": "AC-3 定頻 37kW", "pct": 100, "hours": 168, "kwh": 1092}}], "aNotes": [{"szKey": "eq.diag.note.load_inferred", "args": {}}], "aMissing": [], "szFormulaKey": "eq.diag.formula.S1", "savings": null, "szNextStep": "review_unload", "aChecklist": [], "aParamsUsed": ["s.unload_kw_ratio", "s.unload_ratio_warn_pct"], "aUnconfirmedDefaults": ["s.unload_kw_ratio", "s.unload_ratio_warn_pct"], "aCandidates": null}, {"szId": "S2", "status": "Triggered", "szLevel": null, "isInferred": true, "aEvidence": [{"szKey": "eq.diag.ev.s2_best", "args": {"delay": 5, "starts": 370, "maxPerHour": 3}}], "aNotes": [{"szKey": "eq.diag.note.load_inferred", "args": {}}, {"szKey": "eq.diag.note.max_starts_unknown", "args": {}}, {"szKey": "eq.diag.note.current_timer_unknown", "args": {}}], "aMissing": [], "szFormulaKey": "eq.diag.formula.S2", "savings": {"kwhPeriod": {"dLow": 1891.8, "dCenter": 1903.3, "dHigh": 1914.7}, "kwhYear": {"dLow": 98644, "dCenter": 99244, "dHigh": 99838}, "ntdYear": {"dLow": 337362, "dCenter": 339413, "dHigh": 341446}}, "szNextStep": "shutdown_delay_trial", "aChecklist": ["record_setpoint", "set_delay", "watch_starts", "stop_condition", "restore"], "aParamsUsed": ["s.unload_kw_ratio"], "aUnconfirmedDefaults": ["s.unload_kw_ratio"], "aCandidates": [{"nDelayMinutes": 5, "kwhPeriod": {"dLow": 1891.8, "dCenter": 1903.3, "dHigh": 1914.7}, "nAddedStarts": 370, "nMaxStartsPerHour": 3, "isFeasible": true, "isLimitUnknown": true}, {"nDelayMinutes": 10, "kwhPeriod": {"dLow": 1524.5, "dCenter": 1533.7, "dHigh": 1542.9}, "nAddedStarts": 370, "nMaxStartsPerHour": 3, "isFeasible": true, "isLimitUnknown": true}, {"nDelayMinutes": 15, "kwhPeriod": {"dLow": 1157.2, "dCenter": 1164.2, "dHigh": 1171.2}, "nAddedStarts": 370, "nMaxStartsPerHour": 3, "isFeasible": true, "isLimitUnknown": true}, {"nDelayMinutes": 30, "kwhPeriod": {"dLow": 1082.2, "dCenter": 1088.8, "dHigh": 1095.3}, "nAddedStarts": 1, "nMaxStartsPerHour": 1, "isFeasible": true, "isLimitUnknown": true}]}, {"szId": "S3", "status": "NotTriggered", "szLevel": null, "isInferred": true, "aEvidence": [{"szKey": "eq.diag.ev.s3_cycles", "args": {"name": "AC-1 定頻 75kW", "p50": 3, "p95": 3, "minLoaded": 4, "hours": 168}}, {"szKey": "eq.diag.ev.s3_cycles", "args": {"name": "AC-2 變頻 55kW", "p50": 0, "p95": 0, "minLoaded": 540, "hours": 45}}, {"szKey": "eq.diag.ev.s3_cycles", "args": {"name": "AC-3 定頻 37kW", "p50": 0, "p95": 0, "minLoaded": null, "hours": 168}}], "aNotes": [{"szKey": "eq.diag.note.load_inferred", "args": {}}], "aMissing": [], "szFormulaKey": "eq.diag.formula.S3", "savings": null, "szNextStep": null, "aChecklist": [], "aParamsUsed": ["s.unload_kw_ratio", "s.cycles_per_hour_ref"], "aUnconfirmedDefaults": ["s.unload_kw_ratio", "s.cycles_per_hour_ref"], "aCandidates": null}, {"szId": "S4", "status": "Triggered", "szLevel": null, "isInferred": true, "aEvidence": [{"szKey": "eq.diag.ev.s4_partload", "args": {"pct": 79.643, "multiHours": 168, "vsdHours": 0}}], "aNotes": [{"szKey": "eq.diag.note.load_inferred", "args": {}}, {"szKey": "eq.diag.note.control_type_inferred", "args": {}}, {"szKey": "eq.diag.note.not_quantified", "args": {}}], "aMissing": [], "szFormulaKey": "eq.diag.formula.S4", "savings": null, "szNextStep": "sequencing_review", "aChecklist": [], "aParamsUsed": ["s.unload_kw_ratio", "s.vsd_full_load_pct", "s.multi_partload_pct"], "aUnconfirmedDefaults": ["s.unload_kw_ratio", "s.vsd_full_load_pct", "s.multi_partload_pct"], "aCandidates": null}, {"szId": "S5", "status": "Triggered", "szLevel": null, "isInferred": true, "aEvidence": [{"szKey": "eq.diag.ev.s5_invert", "args": {"pct": 24.704, "hours": 45}}], "aNotes": [{"szKey": "eq.diag.note.control_type_inferred", "args": {}}, {"szKey": "eq.diag.note.load_inferred", "args": {}}], "aMissing": [], "szFormulaKey": "eq.diag.formula.S5", "savings": null, "szNextStep": "vsd_as_trim", "aChecklist": [], "aParamsUsed": ["s.unload_kw_ratio", "s.vsd_full_load_pct", "s.order_invert_pct"], "aUnconfirmedDefaults": ["s.unload_kw_ratio", "s.vsd_full_load_pct", "s.order_invert_pct"], "aCandidates": null}, {"szId": "S6", "status": "Triggered", "szLevel": null, "isInferred": true, "aEvidence": [{"szKey": "eq.diag.ev.s6_idle", "args": {"name": "AC-3 定頻 37kW", "hours": 168, "loadedPct": 0, "kwh": 1092}}], "aNotes": [{"szKey": "eq.diag.note.load_inferred", "args": {}}], "aMissing": [], "szFormulaKey": "eq.diag.formula.S6", "savings": {"kwhPeriod": {"dLow": 1085.4, "dCenter": 1092, "dHigh": 1098.6}, "kwhYear": {"dLow": 56598, "dCenter": 56940, "dHigh": 57282}, "ntdYear": {"dLow": 193566, "dCenter": 194735, "dHigh": 195903}}, "szNextStep": "stop_standby", "aChecklist": [], "aParamsUsed": ["s.unload_kw_ratio"], "aUnconfirmedDefaults": ["s.unload_kw_ratio"], "aCandidates": null}, {"szId": "E1", "status": "PendingSetting", "szLevel": null, "isInferred": false, "aEvidence": [], "aNotes": [], "aMissing": [{"szKey": "eq.diag.miss.baseline_period", "args": {}}], "szFormulaKey": "eq.diag.formula.E1", "savings": null, "szNextStep": null, "aChecklist": [], "aParamsUsed": [], "aUnconfirmedDefaults": [], "aCandidates": null}, {"szId": "E2", "status": "NotTriggered", "szLevel": null, "isInferred": true, "aEvidence": [{"szKey": "eq.diag.ev.e2_fixed", "args": {"name": "AC-1 定頻 75kW", "loadedPct": 37.857, "frequent": false, "oversized": false}}, {"szKey": "eq.diag.ev.e2_vsd", "args": {"name": "AC-2 變頻 55kW", "minLoad": 60.393, "pct": 18.111, "oversized": false}}, {"szKey": "eq.diag.ev.e2_fixed", "args": {"name": "AC-3 定頻 37kW", "loadedPct": 0, "frequent": false, "oversized": false}}], "aNotes": [{"szKey": "eq.diag.note.control_type_inferred", "args": {}}, {"szKey": "eq.diag.note.min_load_observed", "args": {"name": "AC-2 變頻 55kW", "pct": 60.393}}], "aMissing": [], "szFormulaKey": "eq.diag.formula.E2", "savings": null, "szNextStep": null, "aChecklist": [], "aParamsUsed": ["s.unload_kw_ratio", "e.oversize_load_pct", "s.cycles_per_hour_ref", "e.vsd_minload_fraction_pct"], "aUnconfirmedDefaults": ["s.unload_kw_ratio", "e.oversize_load_pct", "s.cycles_per_hour_ref", "e.vsd_minload_fraction_pct"], "aCandidates": null}, {"szId": "E3", "status": "NotTriggered", "szLevel": null, "isInferred": true, "aEvidence": [{"szKey": "eq.diag.ev.e3_short", "args": {"minutes": 0, "minPress": null, "demand": 6}}], "aNotes": [], "aMissing": [], "szFormulaKey": "eq.diag.formula.E3", "savings": null, "szNextStep": null, "aChecklist": [], "aParamsUsed": ["s.unload_kw_ratio", "s.vsd_full_load_pct", "e.undersize_min_minutes"], "aUnconfirmedDefaults": ["s.unload_kw_ratio", "s.vsd_full_load_pct", "e.undersize_min_minutes"], "aCandidates": null}, {"szId": "E4", "status": "NotApplicable", "szLevel": null, "isInferred": false, "aEvidence": [], "aNotes": [], "aMissing": [], "szFormulaKey": "eq.diag.formula.E4", "savings": null, "szNextStep": null, "aChecklist": [], "aParamsUsed": [], "aUnconfirmedDefaults": [], "aCandidates": null}], "aOverlapFlags": ["p_l_overlap", "s2_s6_overlap", "l_s_overlap"], "aUnconfirmedDefaults": ["dq.flatline_max_pct", "dq.flatline_minutes", "dq.max_gap_minutes", "dq.state_conflict_max_pct", "e.oversize_load_pct", "e.undersize_min_minutes", "e.vsd_minload_fraction_pct", "l.min_window_minutes", "l.min_windows", "l.significant_pct", "l.warn_pct", "p.pipe_loss_reserve_bar", "p.saving_per_bar_high_pct", "p.saving_per_bar_low_pct", "s.cycles_per_hour_ref", "s.multi_partload_pct", "s.order_invert_pct", "s.unload_kw_ratio", "s.unload_ratio_warn_pct", "s.vsd_full_load_pct"], "isBaselinePeriodMissing": true}}};
+        var DIAG_SETTING = {"setting": {"dDemandPressBar": 6.0, "sysPoints": {"SYS_SUPPLYPRESS": {"szSID": "S0102030", "szUnit": "bar", "dScale": 1}}, "aProductionSchedule": [{"nDay": 1, "szStart": "08:00", "szEnd": "17:00"}, {"nDay": 2, "szStart": "08:00", "szEnd": "17:00"}, {"nDay": 3, "szStart": "08:00", "szEnd": "17:00"}, {"nDay": 4, "szStart": "08:00", "szEnd": "17:00"}, {"nDay": 5, "szStart": "08:00", "szEnd": "17:00"}], "isHolidayNonProduction": true, "szBaselineFrom": null, "szBaselineTo": null, "dManualPrice": null, "paramOverrides": {"p.margin_ratio": 1.1}, "aConfirmedParams": ["dq.min_coverage_pct", "p.trial_step_bar"], "dtUpdatedAt": "2026-10-15T16:20:00", "szUpdatedBy": "engineer"}, "parameters": [{"key": "dq.min_coverage_pct", "defaultValue": 90.0, "min": 50.0, "max": 100.0, "source": "system", "group": "dq"}, {"key": "dq.flatline_minutes", "defaultValue": 240.0, "min": 30.0, "max": 1440.0, "source": "system", "group": "dq"}, {"key": "dq.flatline_max_pct", "defaultValue": 10.0, "min": 0.0, "max": 100.0, "source": "system", "group": "dq"}, {"key": "dq.state_conflict_max_pct", "defaultValue": 5.0, "min": 0.0, "max": 100.0, "source": "system", "group": "dq"}, {"key": "dq.max_gap_minutes", "defaultValue": 60.0, "min": 5.0, "max": 1440.0, "source": "system", "group": "dq"}, {"key": "p.margin_ratio", "defaultValue": 1.1, "min": 1.0, "max": 2.0, "source": "skill", "group": "p"}, {"key": "p.saving_per_bar_low_pct", "defaultValue": 5.0, "min": 0.0, "max": 20.0, "source": "skill", "group": "p"}, {"key": "p.saving_per_bar_high_pct", "defaultValue": 6.0, "min": 0.0, "max": 20.0, "source": "skill", "group": "p"}, {"key": "p.trial_step_bar", "defaultValue": 0.2, "min": 0.05, "max": 2.0, "source": "system", "group": "p"}, {"key": "p.pipe_loss_reserve_bar", "defaultValue": 0.3, "min": 0.0, "max": 3.0, "source": "system", "group": "p"}, {"key": "l.warn_pct", "defaultValue": 10.0, "min": 0.0, "max": 100.0, "source": "system", "group": "l"}, {"key": "l.significant_pct", "defaultValue": 20.0, "min": 0.0, "max": 100.0, "source": "system", "group": "l"}, {"key": "l.min_windows", "defaultValue": 3.0, "min": 1.0, "max": 60.0, "source": "system", "group": "l"}, {"key": "l.min_window_minutes", "defaultValue": 60.0, "min": 10.0, "max": 1440.0, "source": "system", "group": "l"}, {"key": "s.unload_kw_ratio", "defaultValue": 0.2, "min": 0.05, "max": 0.6, "source": "skill", "group": "s"}, {"key": "s.unload_ratio_warn_pct", "defaultValue": 20.0, "min": 0.0, "max": 100.0, "source": "skill", "group": "s"}, {"key": "s.cycles_per_hour_ref", "defaultValue": 10.0, "min": 1.0, "max": 120.0, "source": "system", "group": "s"}, {"key": "s.multi_partload_pct", "defaultValue": 20.0, "min": 0.0, "max": 100.0, "source": "system", "group": "s"}, {"key": "s.order_invert_pct", "defaultValue": 10.0, "min": 0.0, "max": 100.0, "source": "system", "group": "s"}, {"key": "s.vsd_full_load_pct", "defaultValue": 95.0, "min": 50.0, "max": 100.0, "source": "system", "group": "s"}, {"key": "e.degrade_pct", "defaultValue": 5.0, "min": 0.0, "max": 100.0, "source": "system", "group": "e"}, {"key": "e.flow_bins", "defaultValue": 10.0, "min": 2.0, "max": 50.0, "source": "system", "group": "e"}, {"key": "e.press_bin_bar", "defaultValue": 0.5, "min": 0.1, "max": 5.0, "source": "system", "group": "e"}, {"key": "e.min_hours_per_cell", "defaultValue": 10.0, "min": 1.0, "max": 500.0, "source": "system", "group": "e"}, {"key": "e.oversize_load_pct", "defaultValue": 50.0, "min": 0.0, "max": 100.0, "source": "system", "group": "e"}, {"key": "e.vsd_minload_fraction_pct", "defaultValue": 30.0, "min": 0.0, "max": 100.0, "source": "system", "group": "e"}, {"key": "e.undersize_min_minutes", "defaultValue": 30.0, "min": 1.0, "max": 10000.0, "source": "system", "group": "e"}], "sysRoles": {"SYS_SUPPLYPRESS": ["bar", "kPa", "psi", "MPa"], "SYS_USEPRESS": ["bar", "kPa", "psi", "MPa"], "SYS_FLOW": ["m³/min", "m³/h", "Nm³/h", "cfm", "L/min"], "SYS_DEWPOINT": ["°C"]}, "unitAliases": {}, "sysQuantities": {"SYS_SUPPLYPRESS": "Pressure", "SYS_USEPRESS": "Pressure", "SYS_FLOW": "AirFlow", "SYS_DEWPOINT": "Temperature"}, "defaultPeriodDays": 30, "maxPeriodDays": 92};
+        var MOCK = {
+            '/EMS/api/equipment/realtime': function () { return { kind: KIND, items: RT[KIND], serverTime: TS }; },
+            '/EMS/api/equipment/period': function () { return buildPeriod(); },
+            // 空壓系統診斷：snapshot.result 為真實 Common CompressorDiagnosisEngine 對合成分鐘序列的輸出
+            '/CompressorEfficiency/api/diagnosis/latest': function () { return DIAG_LATEST; },
+            '/CompressorEfficiency/api/diagnosis/setting': function () { return DIAG_SETTING; }
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-search me-1"></i><span class="d-none d-lg-inline">搜尋</span>
+                            <span class="gs-nav-kbd d-none d-xl-inline ms-1"><kbd>Ctrl</kbd> <kbd>K</kbd></span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- PAGE_CONTENT：Views/Shared/_EquipmentDiagnosis.cshtml -->
+<div class="container-fluid mt-3 eqd-page" id="eqdRoot" data-kind="compressor">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h5 class="mb-0"><i class="fas fa-compress-arrows-alt me-2 text-primary"></i>空壓機效率診斷</h5>
+        <a class="btn btn-sm btn-outline-primary" href="#"><i class="fas fa-sliders-h me-1"></i>設備效率設定</a>
+    </div>
+    <ul class="nav nav-tabs mb-2 eqd-tabs" id="eqdTabs">
+        <li class="nav-item"><a class="nav-link active" href="#efficiency" data-tab="efficiency"><i class="fas fa-chart-line me-1"></i>效率儀表板</a></li>
+        <li class="nav-item"><a class="nav-link" href="#diagnosis" data-tab="diagnosis"><i class="fas fa-stethoscope me-1"></i>系統診斷</a></li>
+        <li class="nav-item"><a class="nav-link" href="#setting" data-tab="setting"><i class="fas fa-sliders-h me-1"></i>診斷設定</a></li>
+    </ul>
+    <div id="eqdPaneEfficiency">
+    <div id="eqdEmpty" class="text-center text-muted py-5" style="display:none;">尚未設定任何設備。</div>
+    <div id="eqdMain">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center eq-green-header">
+                <span><i class="fas fa-bolt me-1"></i>即時</span>
+                <span class="small opacity-75" id="eqdRealtimeTime"></span>
+            </div>
+            <div class="card-body p-2">
+                <div id="eqdRealtime" class="eq-rt-grid"><div class="text-center text-muted py-3 w-100">載入中…</div></div>
+            </div>
+        </div>
+        <div class="card shadow-sm mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2 eq-green-header">
+                <span><i class="fas fa-chart-line me-1"></i>累計</span>
+                <span class="d-flex align-items-center gap-2">
+                    <span class="btn-group btn-group-sm ems-gran-group" role="group" id="eqdGranGroup">
+                        <button type="button" class="btn ems-gran-btn active" data-gran="hour">日</button>
+                        <button type="button" class="btn ems-gran-btn" data-gran="day">月</button>
+                        <button type="button" class="btn ems-gran-btn" data-gran="month">年</button>
+                    </span>
+                    <input type="date" id="eqdPivotDate" class="form-control form-control-sm ems-hub-picker" />
+                    <input type="month" id="eqdPivotMonth" class="form-control form-control-sm ems-hub-picker" style="display:none;" />
+                    <input type="number" id="eqdPivotYear" min="2000" max="2100" class="form-control form-control-sm ems-hub-picker" style="display:none;" />
+                </span>
+            </div>
+            <div class="card-body p-2">
+                <div id="eqdCoverage" class="alert alert-warning py-1 px-2 small mb-2" style="display:none;"></div>
+                <div id="eqdTiles" class="eq-tiles mb-2"></div>
+                <div class="row g-2">
+                    <div class="col-lg-8">
+                        <div class="eq-chart-title small fw-semibold">效率趨勢</div>
+                        <div class="eq-chart-wrap"><canvas id="eqdTrendChart"></canvas></div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="eq-chart-title small fw-semibold">負載率分佈 <i class="fas fa-question-circle text-muted"></i></div>
+                        <div class="eq-chart-wrap"><canvas id="eqdLoadChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="eq-chart-title small fw-semibold mt-3">設備排名（依期間平均效率）</div>
+                <div class="table-responsive" id="eqdRanking"></div>
+                <div class="small text-muted mt-2"><i class="fas fa-info-circle me-1"></i>期間比功率 kW/(m³/min) = 總耗電 ÷ 總空氣量 × 60（能量加權，ISO 11011 / CAGI）；kW/100cfm = 比功率 × 2.832。</div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <div id="eqdPaneDiagnosis" style="display:none;"><div id="cdgRoot" data-engineer="1"></div></div>
+    <div id="eqdPaneSetting" style="display:none;"><div id="cdgSettingRoot"></div></div>
+</div>
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 2.2.3
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- PAGE_SCRIPTS -->
+<script>
+/* i18n stub（字串取自 Resources/EquipmentEfficiency.resx zh-TW） */
+window.i18n = { t: function (k, a) {
+    var D = {"eq.kind.chiller": "冰機", "eq.kind.compressor": "空壓機", "eq.role.KW": "電力 kW", "eq.role.KWH": "電能 kWh（累積）", "eq.role.RT": "冷量 RT（直接點）", "eq.role.FLOW": "冰水流量", "eq.role.CHWS": "冰水出水溫", "eq.role.CHWR": "冰水回水溫", "eq.role.CDWS": "冷卻水進水溫", "eq.role.CDWR": "冷卻水出水溫", "eq.role.EVAPT": "蒸發飽和溫度", "eq.role.CONDT": "冷凝飽和溫度", "eq.role.LOAD": "負載率 %", "eq.role.RUN": "運轉狀態", "eq.role.AIRFLOW": "空氣量（排氣量）", "eq.role.DISCHPRESS": "排氣壓力", "eq.role.DISCHTEMP": "排氣溫度", "eq.role.LOADED": "加載狀態", "eq.missing.power": "電力（kW 或 kWh）", "eq.missing.chiller_output": "冷量（冰水流量 + 出回水溫，或 RT 點）", "eq.missing.airflow": "空氣量", "eq.err.invalid_kind": "設備種類不正確", "eq.err.name_required": "請輸入設備名稱", "eq.err.name_too_long": "設備名稱過長（上限 100 字）", "eq.err.negative_value": "數值不可為負（{detail}）", "eq.err.threshold_order": "「優」門檻不可大於「可」門檻", "eq.err.invalid_role": "角色不屬於此設備種類：{detail}", "eq.err.duplicate_role": "角色重複綁定：{detail}", "eq.err.invalid_unit": "單位無法換算：{detail}", "eq.err.missing_required": "必要點位未綁定：{detail}", "eq.err.not_found": "找不到設備（可能已被刪除）", "eq.err.empty": "沒有要帶入的設備", "eq.err.invalid_range": "日期區間不正確", "eq.err.range_too_long": "回填區間最多 366 天", "eq.err.mqtt_unavailable": "無法連線 MQTT，Engine 未收到回填指令", "eq.setting.empty": "尚未設定任何{kind}。可按「掃描」從點位自動判定，或手動新增。", "eq.setting.btn_scan": "掃描", "eq.setting.btn_add": "手動新增", "eq.setting.enabled": "啟用", "eq.setting.disabled": "停用", "eq.setting.edit": "編輯", "eq.setting.backfill": "回填歷史", "eq.setting.delete": "刪除", "eq.setting.col_sort": "排序", "eq.setting.col_name": "設備名稱", "eq.setting.col_status": "狀態", "eq.setting.col_roles": "已綁點位", "eq.setting.col_rated": "額定產出 / 電力", "eq.setting.col_threshold": "門檻（優 / 可）", "eq.setting.delete_confirm": "確定刪除「{name}」？已累計的效率資料會一併刪除。", "eq.setting.deleted": "已刪除", "eq.scan.title_auto": "掃描到 {n} 台疑似{kind}，要帶入嗎？", "eq.scan.title": "掃描結果：{n} 台疑似{kind}", "eq.scan.none": "沒有掃描到疑似{kind}的設備。可改用手動新增。", "eq.scan.hint": "依設備分群與點位名稱判定；可改名、改點位、改單位後再帶入。缺必要點位者需先補齊才能勾選。", "eq.scan.existing": "已存在", "eq.scan.conf_high": "高信心", "eq.scan.conf_medium": "中信心", "eq.scan.conf_low": "低信心", "eq.scan.missing": "缺：{list}", "eq.scan.unbound": "— 未綁定 —", "eq.scan.multi": "{n} 筆命中", "eq.scan.multi_hint": "多筆點位符合此角色，已取第一筆，請確認", "eq.scan.pick_other": "從其他設備挑選點位", "eq.scan.device": "設備分群", "eq.scan.basis": "判定依據", "eq.scan.roles_detail": "角色點位", "eq.scan.import": "帶入勾選的 {n} 台", "eq.scan.imported": "已帶入 {n} 台", "eq.edit.title_edit": "編輯設備", "eq.edit.title_add": "新增{kind}", "eq.edit.name": "名稱", "eq.edit.sort": "排序", "eq.edit.rated_rt": "額定冷量（RT）", "eq.edit.rated_flow": "額定空氣量（m³/min）", "eq.edit.rated_kw": "額定電力（kW）", "eq.edit.max_kwh": "kWh 累積點溢位上限", "eq.edit.good": "「優」門檻（≤ {unit}）", "eq.edit.fair": "「可」門檻（≤ {unit}）", "eq.edit.specific_heat": "比熱 kJ/(kg·K)（乙二醇系統）", "eq.edit.threshold_hint": "預設門檻僅供起點，請依機型銘牌或驗收報告調整。額定電力用於停機判定（低於 5% 視為停機）。", "eq.edit.roles": "角色點位", "eq.edit.roles_hint_chiller": "* 必要：電力 kW 或 kWh 擇一；冷量以「冰水流量 + 出水溫 + 回水溫」計算為主，或綁直接 RT 點。", "eq.edit.roles_hint_compressor": "* 必要：電力 kW 或 kWh 擇一，以及空氣量。", "eq.edit.missing": "尚缺必要點位：{list}", "eq.edit.description": "備註", "eq.edit.saved": "已儲存，下一個整點起 Engine 依新設定聚合", "eq.backfill.all": "全部設備（冰機 + 空壓機）", "eq.backfill.sent": "已送出回填指令，Engine 會在背景逐小時重算", "eq.grade.Good": "優", "eq.grade.Fair": "可", "eq.grade.Poor": "差", "eq.grade.Off": "停機", "eq.grade.NoData": "資料不足", "eq.metric.cop": "COP", "eq.metric.eer": "EER", "eq.metric.cooling": "冷量", "eq.metric.airflow": "空氣量", "eq.metric.load": "負載率", "eq.metric.chw_dt": "冰水 ΔT", "eq.metric.cdw_dt": "冷卻水 ΔT", "eq.metric.evap_approach": "蒸發器趨近", "eq.metric.cond_approach": "冷凝器趨近", "eq.metric.kw_per_100cfm": "kW/100cfm", "eq.metric.specific_energy": "比能耗", "eq.metric.press": "排氣壓力", "eq.metric.disch_temp": "排氣溫度", "eq.metric.loaded_state": "加載", "eq.metric.power": "電力", "eq.diag.load_error": "載入失敗", "eq.diag.updated_at": "更新於 {time}", "eq.diag.running": "運轉中", "eq.diag.stopped": "停機", "eq.diag.run_unknown": "運轉狀態未知", "eq.diag.loaded": "加載", "eq.diag.unloaded": "卸載", "eq.diag.rt_point_compare": "RT 點對照：{v} RT", "eq.diag.no_data": "尚無即時值", "eq.diag.threshold": "門檻 {good} / {fair}", "eq.diag.coverage_warn": "資料覆蓋率 {pct}%（{name} 缺 {missing} 小時，低於 {threshold}%），缺漏時段不計入效率分子分母。", "eq.diag.tile_primary": "期間平均效率", "eq.diag.tile_kwh": "總耗電", "eq.diag.tile_output": "總{name}", "eq.diag.tile_run_hours": "運轉時數", "eq.diag.tile_avg_load": "平均負載率", "eq.diag.tile_loaded_ratio": "加載時間比", "eq.diag.tile_avg_press": "平均排氣壓力", "eq.diag.fleet": "全場加權", "eq.diag.bin_kwh_pct": "耗電占比", "eq.diag.bin_output_pct": "{name}占比", "eq.diag.bin_hours": "運轉 {h} 小時", "eq.diag.bin_efficiency": "效率 {v} {unit}", "eq.diag.col_name": "設備", "eq.diag.col_grade": "評級", "eq.diag.col_run_hours": "運轉時數", "eq.diag.col_avg_load": "平均負載 %", "eq.diag.col_threshold": "門檻", "eq.diag.col_coverage": "覆蓋率", "eq.card.not_configured": "尚未設定", "eq.card.goto_setting": "前往設備效率設定", "eq.card.month_summary": "{month} 累計平均 {value} {unit}・運轉 {hours} h", "eq.card.load_error": "載入失敗", "eq.diag.rule.D": "資料品質", "eq.diag.rule.P": "壓力過高", "eq.diag.rule.L": "洩漏 / 閒置損失", "eq.diag.rule.S1": "卸載比過高", "eq.diag.rule.S2": "停機延遲可縮短", "eq.diag.rule.S3": "頻繁加卸載循環", "eq.diag.rule.S4": "多台同時部分負載", "eq.diag.rule.S5": "調節機順序倒置（VSD 滿載、定頻卸載）", "eq.diag.rule.S6": "運轉但從不加載", "eq.diag.rule.E1": "同工況比功率劣化", "eq.diag.rule.E2": "容量過大", "eq.diag.rule.E3": "容量不足", "eq.diag.rule.E4": "進氣節流機型", "eq.diag.group.pre": "前置：資料品質", "eq.diag.group.p1": "① 壓力最佳化", "eq.diag.group.p2": "② 洩漏與閒置損失", "eq.diag.group.p3": "③ 運轉與排序", "eq.diag.group.p4": "④ 設備適配與生命週期", "eq.diag.status.Triggered": "觸發", "eq.diag.status.NotTriggered": "未觸發", "eq.diag.status.InsufficientData": "資料不足", "eq.diag.status.PendingSiteData": "待補場域資料", "eq.diag.status.PendingSetting": "待設定", "eq.diag.status.NotApplicable": "不適用", "eq.diag.level.attention": "注意", "eq.diag.level.significant": "顯著", "eq.diag.savings.ntd_year": "篩檢節能 NT$ {low} ~ {high} / 年", "eq.diag.savings.kwh_year": "篩檢節能 {low} ~ {high} kWh / 年", "eq.diag.next.fix_data": "先修正資料問題（點位、通訊、單位），受影響的規則才會出結論", "eq.diag.next.pressure_trial": "以試驗步階逐步降低設定壓力，監看末端壓力與露點", "eq.diag.next.measure_end_pressure": "先量測（或綁定）末端關鍵用氣點壓力確認實際管損，再做降壓試驗", "eq.diag.next.pressure_decay_test": "於非生產時段做停機保壓衰減測試以估算洩漏量", "eq.diag.next.leak_survey": "超音波洩漏巡檢並修漏；非生產時段隔離不用的支管", "eq.diag.next.review_unload": "檢視停機延遲（見「停機延遲可縮短」）與多機排序", "eq.diag.next.shutdown_delay_trial": "縮短停機延遲（unload timer）試驗，監看每小時啟動次數", "eq.diag.next.control_band_storage": "加寬加卸載壓力帶或增設儲氣桶，降低循環次數", "eq.diag.next.sequencing_review": "檢視多機排序：讓一台當調節機，其餘滿載或停機", "eq.diag.next.vsd_as_trim": "將 VSD 設為調節機（排序最後加載、最先卸載），定頻機作基載", "eq.diag.next.stop_standby": "將長期只卸載的機台改為備援停機（由排序控制自動啟動）", "eq.diag.next.maintenance_check": "安排保養檢查：進氣濾網、油分離器、冷卻器、進氣閥", "eq.diag.next.right_size_review": "評估以較小調節機 / VSD 或儲氣桶匹配實際需求", "eq.diag.next.leak_then_capacity": "先處理洩漏與壓力損失，仍不足再評估增加容量", "eq.diag.next.replace_modulation": "評估更換為 VSD 或定頻加卸載 + 儲氣桶", "eq.diag.check.record_setpoint": "記錄原設定值（可回復）", "eq.diag.check.step_down": "每次調降一個試驗步階，穩定運轉至少一個生產週期再下一步", "eq.diag.check.watch_end_pressure": "監看末端關鍵用氣點壓力、露點、他機是否被帶起", "eq.diag.check.stop_condition": "停止條件：末端壓力低於需求、製程異常、啟動次數超限", "eq.diag.check.restore": "異常時立即回復原設定並記錄", "eq.diag.check.set_delay": "將停機延遲設為建議候選值", "eq.diag.check.watch_starts": "監看每小時啟動次數與馬達溫度", "eq.diag.check.leak_ultrasonic": "超音波巡檢接頭、快速接頭、排水器、軟管", "eq.diag.check.pressure_decay_test": "停機保壓衰減測試：關機後記錄壓力下降時間換算洩漏量", "eq.diag.check.isolate_idle_branches": "非生產時段關閉不用區域的支管閥", "eq.diag.ev.dq_coverage": "{name} {signal} 覆蓋率 {pct}%（門檻 {min}%）", "eq.diag.ev.dq_flatline": "{name} {signal} 平線（長時間數值完全不變）占 {pct}%", "eq.diag.ev.dq_sentinel": "{name} {signal} 出現 {count} 筆哨兵值 / 負值（已排除）", "eq.diag.ev.dq_conflict": "{name} {signal} 與功率矛盾 {pct}%（改用 kW 推定）", "eq.diag.ev.dq_gap": "{name} {signal} 有 {count} 段缺口超過 {max} 分鐘（最長 {longest} 分鐘）", "eq.diag.ev.dq_ok": "所有已綁定點位皆通過覆蓋率、平線、哨兵值、狀態矛盾檢查", "eq.diag.ev.p_supply": "運轉期間供氣壓力 P05 {p05} / P50 {p50} / P95 {p95} bar", "eq.diag.ev.p_demand": "需求壓力 {demand} bar × {ratio} = 觸發門檻 {threshold} bar", "eq.diag.ev.p_use": "末端壓力 P05 {p05} bar，實測管損中位數 {loss} bar", "eq.diag.ev.p_reducible": "可降量 {raw} bar → 依試驗步階 {step} bar 取 {value} bar", "eq.diag.ev.p_trough_starts": "壓力低谷（≤ P10 {p10} bar）前 5 分鐘內的機台啟動 {count} 次", "eq.diag.ev.p_dewpoint": "壓力露點 P50 {p50} / P95 {p95} °C", "eq.diag.ev.l_windows": "非生產窗口 {count} 個（{days} 個不同日），非生產時數 {hours} h", "eq.diag.ev.l_flow": "非生產殘餘流量 {low} ~ {high}（中位 {center}）m³/min，生產平均 {prod} m³/min，洩漏比 {ratio}%", "eq.diag.ev.l_sp": "運轉小時比功率 P25 {p25} / P50 {p50} / P75 {p75} kW/(m³/min)", "eq.diag.ev.s1_unload": "{name} 卸載比 {pct}%（卸載 {hours} h，{kwh} kWh）", "eq.diag.ev.s2_best": "最佳可行候選：停機延遲 {delay} 分，新增啟動 {starts} 次，每小時最多 {maxPerHour} 次", "eq.diag.ev.s3_cycles": "{name} 每運轉小時循環 P50 {p50} / P95 {p95} 次，最短加載段 {minLoaded} 分（{hours} 個運轉小時）", "eq.diag.ev.s4_single": "期間從未有兩台以上同時運轉", "eq.diag.ev.s4_partload": "多機同時運轉 {multiHours} h 中，兩台以上同時部分負載占 {pct}%（兩台 VSD 同時調頻 {vsdHours} h）", "eq.diag.ev.s5_never_together": "VSD 與定頻機從未同時運轉", "eq.diag.ev.s5_invert": "VSD 與定頻機同時運轉 {hours} h 中，VSD 滿載而定頻機卸載占 {pct}%", "eq.diag.ev.s6_idle": "{name} 運轉 {hours} h，加載僅 {loadedPct}%（{kwh} kWh）", "eq.diag.ev.e1_diff": "{name} 同工況比功率變化 {pct}%（95% 區間 {low} ~ {high}%，{cells} 格 / {hours} h）", "eq.diag.ev.e2_fixed": "{name}（定頻）加載率 {loadedPct}%", "eq.diag.ev.e2_vsd": "{name}（VSD）運轉時在最低負載 {minLoad}% 附近占 {pct}%", "eq.diag.ev.e3_short": "全部機台滿載仍低於需求 {demand} bar 的時間 {minutes} 分（最低 {minPress} bar）", "eq.diag.ev.e4_modulation": "{name} 平均負載 {avgLoad}%", "eq.diag.note.press_from_discharge": "未綁總管壓力，以運轉中各機排氣壓力最高者代替（降級）", "eq.diag.note.pipe_loss_assumed": "未綁末端壓力，管損以預留 {reserve} bar 假設", "eq.diag.note.lowering_may_start_extra": "壓力低谷時曾帶起他機 {count} 次，降壓可能使他機更常啟動", "eq.diag.note.rated_pressure_missing": "未填銘牌最高工作壓力，不做上限檢查", "eq.diag.note.above_rated_pressure": "{name} 排氣壓力 P95 {p95} bar 高於銘牌 {max} bar", "eq.diag.note.dewpoint_unmonitored": "未監測壓力露點，降壓試驗時須人工確認空氣品質", "eq.diag.note.trough_limits": "壓力低谷已接近需求壓力，可降量不足一個試驗步階", "eq.diag.note.flow_from_compressors": "未綁系統總流量，以各機空氣量加總", "eq.diag.note.duty_cycle_upper_bound": "無可信流量，以加載比 × 額定空氣量估算（上限估計）", "eq.diag.note.includes_legit_use": "殘餘流量含非生產時段的合理用氣，實際洩漏量需巡檢確認", "eq.diag.note.no_specific_power": "期間無有效比功率（缺空氣量），不換算 kWh", "eq.diag.note.load_inferred": "無可信加載點，以 kW ≥ 額定 × 卸載門檻 推定加載（推定）", "eq.diag.note.s2_skip_no_kw": "{name} 無可信 kW，未納入停機延遲試算", "eq.diag.note.max_starts_unknown": "有機台未填每小時最多啟動次數，請對照馬達銘牌", "eq.diag.note.current_timer_unknown": "試算假設卸載後依候選延遲停機；現行設定若已更短，實際節能較少", "eq.diag.note.control_type_inferred": "部分機台控制型式由功率分佈推定（推定）", "eq.diag.note.not_quantified": "排序最佳化節能需多機組合試算，v1 不量化", "eq.diag.note.baseline_overlap": "基準期與分析期重疊，比較結果可能低估", "eq.diag.note.flow_bin_observed": "{name} 未填額定空氣量，流量格以觀測最大值等分", "eq.diag.note.pressure_not_matched": "部分小時無平均壓力，該部分不分壓力格比較", "eq.diag.note.min_load_observed": "{name} 未填最低負載，以觀測 P05 {pct}% 代替", "eq.diag.miss.state_signals": "{name} 無可判定運轉狀態的點位（RUN / kW）", "eq.diag.miss.demand_pressure": "末端最低需求壓力（診斷設定）", "eq.diag.miss.supply_pressure": "供氣壓力：綁定總管壓力或各機排氣壓力", "eq.diag.miss.running_pressure_samples": "運轉期間壓力樣本不足（{count} 分鐘）", "eq.diag.miss.use_pressure_samples": "末端壓力樣本不足", "eq.diag.miss.production_schedule": "生產時段（診斷設定）", "eq.diag.miss.flow_signal": "可信流量：系統總流量或各機空氣量", "eq.diag.miss.rated_flow": "額定空氣量：{names}", "eq.diag.miss.load_state": "加卸載狀態（LOADED 或 kW）：{names}", "eq.diag.miss.idle_windows": "非生產窗口僅 {have} 個不同日，需 ≥ {need}", "eq.diag.miss.production_flow": "生產時段無有效流量", "eq.diag.miss.kw_or_loaded": "加卸載狀態：綁定 LOADED 或 kW", "eq.diag.miss.unloaded_kw": "卸載功率：需綁定 kW", "eq.diag.miss.baseline_period": "劣化基準期（診斷設定）", "eq.diag.miss.matched_cells": "{name} 兩期同工況格皆 ≥ {min} 小時者不足", "eq.diag.miss.vsd_kw": "{name}（VSD）需可信 kW 與額定 kW", "eq.diag.formula.D": "覆蓋率 = 有效分鐘 ÷ 期間分鐘；平線 = 非零值連續不變 ≥ 平線分鐘；狀態矛盾 = RUN / LOADED 與 kW（額定 × 5%）不一致比例", "eq.diag.formula.P": "觸發：供氣 P50 > 需求 × 裕度；可降量 = 末端 P05 − 需求（無末端：供氣 P05 − 需求 − 管損預留），捨去到試驗步階；節能 = 可降 bar × 5%~6% × 期間 kWh", "eq.diag.formula.L": "洩漏比 = 非生產窗口殘餘流量中位數 ÷ 生產平均流量；kWh = 流量（低/中/高）× 比功率（P25/P50/P75）× 非生產時數", "eq.diag.formula.S1": "卸載比 = 卸載分鐘 ÷（加載 + 卸載分鐘）", "eq.diag.formula.S2": "每段連續卸載超過候選延遲的部分 × 實測卸載 kW；重新加載的段落 +1 次啟動", "eq.diag.formula.S3": "每運轉小時（≥ 30 分）卸載→加載次數的 P50 / P95", "eq.diag.formula.S4": "兩台以上運轉時，兩台以上同時卸載（或 VSD < 滿載 %）的時間占比", "eq.diag.formula.S5": "VSD 與定頻同時運轉時，VSD ≥ 滿載 % 且定頻卸載的時間占比", "eq.diag.formula.S6": "運轉 ≥ 1 h 且加載 < 1% 的機台；節能 = 其運轉 kWh", "eq.diag.formula.E1": "流量格 × 壓力格配對，兩期同格 ≥ 最少小時才比；差異依分析期 kWh 加權，區間 ± 1.96 × 標準誤；下限 > 0 且中心 > 門檻 = 劣化", "eq.diag.formula.E2": "定頻：加載率 < 門檻且頻繁循環；VSD：最低負載附近時間占比 > 門檻", "eq.diag.formula.E3": "全部機台滿載且供氣壓力 < 需求壓力的分鐘數 ≥ 門檻", "eq.diag.formula.E4": "控制型式 = 進氣節流；平均負載 < 60% 建議 VSD，否則定頻 + 儲氣", "eq.diag.overlap.p_l_overlap": "壓力過高與洩漏同時觸發：降壓後洩漏量隨之變小，兩者節能不可直接相加", "eq.diag.overlap.l_s_overlap": "洩漏 / 閒置與停機延遲 / 從不加載同時觸發：非生產時段的卸載空轉耗電在兩邊都有計入，節能不可直接相加", "eq.diag.overlap.s2_s6_overlap": "停機延遲與從不加載同時觸發：同一段卸載時間重複計入，節能不可直接相加", "eq.diag.baseline_missing": "尚未指定劣化基準期，比功率劣化（E1）無法判定 — 請至「診斷設定」指定", "eq.diag.default_flag_hint": "* 依預設值（未經現場確認）：結論用到工程師尚未確認的預設參數", "eq.diag.screening_disclaimer": "節能為篩檢估計區間，需經現場試驗或量測回應才能視為已驗證節能", "eq.diag.sys.SYS_SUPPLYPRESS": "總管 / 供氣壓力", "eq.diag.sys.SYS_USEPRESS": "末端（關鍵用氣點）壓力", "eq.diag.sys.SYS_FLOW": "系統總流量", "eq.diag.sys.SYS_DEWPOINT": "壓力露點", "eq.diag.sys_hint.SYS_SUPPLYPRESS": "未綁 → 以各機排氣壓力最高者代替", "eq.diag.sys_hint.SYS_USEPRESS": "未綁 → 管損以預留值假設，壓力規則先建議量測", "eq.diag.sys_hint.SYS_FLOW": "未綁 → 各機空氣量加總，再無 → 加載比法（上限估計）", "eq.diag.sys_hint.SYS_DEWPOINT": "未綁 → 降壓建議附註人工確認露點", "eq.ctrl.fixed": "定頻加卸載", "eq.ctrl.vsd": "變頻（VSD）", "eq.ctrl.modulation": "進氣節流", "eq.ctrl.auto": "未填（由功率分佈推定）", "eq.diag.param.dq.min_coverage_pct": "最低覆蓋率 %", "eq.diag.param.dq.flatline_minutes": "平線判定分鐘", "eq.diag.param.dq.flatline_max_pct": "平線容許占比 %", "eq.diag.param.dq.state_conflict_max_pct": "狀態矛盾容許 %", "eq.diag.param.dq.max_gap_minutes": "缺口判定分鐘", "eq.diag.param.p.margin_ratio": "壓力裕度觸發倍數", "eq.diag.param.p.saving_per_bar_low_pct": "每降 1 bar 節能 % 下限", "eq.diag.param.p.saving_per_bar_high_pct": "每降 1 bar 節能 % 上限", "eq.diag.param.p.trial_step_bar": "降壓試驗步階 bar", "eq.diag.param.p.pipe_loss_reserve_bar": "無末端壓力時管損預留 bar", "eq.diag.param.l.warn_pct": "洩漏比注意 %", "eq.diag.param.l.significant_pct": "洩漏比顯著 %", "eq.diag.param.l.min_windows": "非生產窗口最少不同日數", "eq.diag.param.l.min_window_minutes": "非生產窗口最短分鐘", "eq.diag.param.s.unload_kw_ratio": "卸載判定 kW ÷ 額定（無 LOADED 點）", "eq.diag.param.s.unload_ratio_warn_pct": "卸載比警示 %", "eq.diag.param.s.cycles_per_hour_ref": "循環次數參考線 次/h", "eq.diag.param.s.multi_partload_pct": "多台部分負載占比 %", "eq.diag.param.s.order_invert_pct": "順序倒置占比 %", "eq.diag.param.s.vsd_full_load_pct": "VSD 滿載判定 %", "eq.diag.param.e.degrade_pct": "劣化門檻 %", "eq.diag.param.e.flow_bins": "同工況流量分格數", "eq.diag.param.e.press_bin_bar": "同工況壓力格寬 bar", "eq.diag.param.e.min_hours_per_cell": "每格兩期最少小時", "eq.diag.param.e.oversize_load_pct": "定頻過大加載率 %", "eq.diag.param.e.vsd_minload_fraction_pct": "VSD 最低負載附近占比 %", "eq.diag.param.e.undersize_min_minutes": "容量不足最少分鐘", "eq.diag.pgroup.dq": "資料品質", "eq.diag.pgroup.p": "壓力", "eq.diag.pgroup.l": "洩漏 / 閒置", "eq.diag.pgroup.s": "運轉與排序", "eq.diag.pgroup.e": "設備適配", "eq.diag.src.skill": "skill 原文", "eq.diag.src.system": "本系統經驗值", "eq.diag.ui.tab_efficiency": "效率儀表板", "eq.diag.ui.tab_diagnosis": "系統診斷", "eq.diag.ui.tab_setting": "診斷設定", "eq.diag.ui.loading": "載入中…", "eq.diag.ui.no_compressor": "尚未設定啟用中的空壓機。", "eq.diag.ui.no_snapshot": "尚無排程診斷快照（每日 02:00 產生最近 7 天結果）。", "eq.diag.ui.no_snapshot_engineer": "可於下方指定期間立即重算。", "eq.diag.ui.period": "診斷期間", "eq.diag.ui.run_at": "執行時間", "eq.diag.ui.scheduled": "每日排程（最近 7 天）", "eq.diag.ui.manual": "手動重算", "eq.diag.ui.from": "起", "eq.diag.ui.to": "訖", "eq.diag.ui.run": "重算", "eq.diag.ui.running": "計算中…（期間越長越久）", "eq.diag.ui.back_latest": "回到最新排程快照", "eq.diag.ui.tile_triggered": "觸發項目", "eq.diag.ui.tile_pending": "待補資料", "eq.diag.ui.tile_kwh": "期間耗電", "eq.diag.ui.tile_sp": "期間比功率", "eq.diag.ui.tile_price": "電價", "eq.diag.ui.price_tariff": "電費逐時表平均", "eq.diag.ui.price_manual": "手填", "eq.diag.ui.price_none": "無電價（只列 kWh）", "eq.diag.ui.not_additive": "各項節能不可直接相加", "eq.diag.ui.inferred": "推定", "eq.diag.ui.default_flag": "依預設值", "eq.diag.ui.default_flag_title": "用到未經現場確認的預設參數：{list}", "eq.diag.ui.next_step": "建議下一步", "eq.diag.ui.checklist": "試驗檢查清單", "eq.diag.ui.evidence": "證據與公式", "eq.diag.ui.missing": "缺少", "eq.diag.ui.notes": "附註", "eq.diag.ui.formula": "公式", "eq.diag.ui.candidates": "停機延遲候選試算", "eq.diag.ui.col_delay": "延遲（分）", "eq.diag.ui.col_kwh_period": "期間 kWh（低 ~ 高）", "eq.diag.ui.col_added_starts": "新增啟動", "eq.diag.ui.col_max_starts": "每小時最多啟動", "eq.diag.ui.col_feasible": "可行", "eq.diag.ui.feasible_yes": "可行", "eq.diag.ui.feasible_no": "超過啟動上限", "eq.diag.ui.baseline_title": "實測基線", "eq.diag.ui.col_name": "機台", "eq.diag.ui.col_ctrl": "控制型式", "eq.diag.ui.col_kw": "kW P05 / P50 / P95", "eq.diag.ui.col_flow": "空氣量 P50 m³/min", "eq.diag.ui.col_press": "壓力 P50 bar", "eq.diag.ui.col_state": "加載 / 卸載 / 停機 / 未知 %", "eq.diag.ui.col_run_hours": "運轉 h", "eq.diag.ui.col_starts": "啟動次數", "eq.diag.ui.col_cycles": "循環 P50 / P95 次/h", "eq.diag.ui.col_kwh": "kWh", "eq.diag.ui.load_inferred_short": "加卸載推定", "eq.diag.ui.unconfirmed_banner": "部分結論依預設參數（未經現場確認）：{list}", "eq.diag.ui.goto_setting": "前往診斷設定", "eq.diag.ui.save": "儲存設定", "eq.diag.ui.saved": "已儲存，下次診斷生效", "eq.diag.ui.site_title": "場域資料", "eq.diag.ui.demand_press": "末端最低需求壓力（bar）", "eq.diag.ui.demand_press_hint": "關鍵用氣點可接受的最低壓力；壓力過高與容量不足規則依此判定", "eq.diag.ui.manual_price": "手填電價（NT$/kWh）", "eq.diag.ui.manual_price_hint": "期間電費逐時表無資料時使用", "eq.diag.ui.holiday_off": "假日（/HolidaySetting）整天視為非生產", "eq.diag.ui.sys_title": "系統級點位（皆可不綁）", "eq.diag.ui.unbound": "未綁定", "eq.diag.ui.pick": "選擇點位", "eq.diag.ui.clear": "清除", "eq.diag.ui.schedule_title": "生產時段（每週）", "eq.diag.ui.schedule_hint": "未列的時段 = 非生產；跨午夜請拆成兩段", "eq.diag.ui.schedule_fill_weekday": "套用 週一~五 08:00–17:00", "eq.diag.ui.schedule_add": "新增時段", "eq.diag.ui.schedule_none": "非生產", "eq.diag.ui.baseline_period_title": "劣化基準期", "eq.diag.ui.baseline_period_hint": "選一段設備狀況良好（如保養後）的期間；與分析期比較同工況比功率", "eq.diag.ui.params_title": "診斷參數", "eq.diag.ui.params_hint": "留空 = 使用預設值；未覆寫也未確認的參數，結論會標「依預設值」", "eq.diag.ui.confirm_all": "全部確認沿用預設", "eq.diag.ui.col_param": "參數", "eq.diag.ui.col_value": "值", "eq.diag.ui.col_default": "預設", "eq.diag.ui.col_range": "範圍", "eq.diag.ui.col_source": "出處", "eq.diag.ui.col_state_param": "狀態", "eq.diag.ui.param_overridden": "已覆寫", "eq.diag.ui.param_confirmed": "已確認", "eq.diag.ui.param_default": "預設（未確認）", "eq.diag.ui.confirm": "確認", "eq.diag.ui.unconfirm": "取消確認", "eq.diag.ui.device_fields_hint": "各機控制型式、最低負載、銘牌最高壓力、每小時最多啟動次數請至「設備效率設定 → 空壓機」編輯", "eq.diag.ui.updated_by": "最後更新：{at} {by}", "eq.diag.ui.dow0": "週日", "eq.diag.ui.dow1": "週一", "eq.diag.ui.dow2": "週二", "eq.diag.ui.dow3": "週三", "eq.diag.ui.dow4": "週四", "eq.diag.ui.dow5": "週五", "eq.diag.ui.dow6": "週六", "eq.diag.err.demand_pressure_range": "需求壓力超出範圍（0~100 bar）", "eq.diag.err.price_range": "電價超出範圍", "eq.diag.err.invalid_role": "系統點位角色不正確：{detail}", "eq.diag.err.invalid_unit": "單位無法換算：{detail}", "eq.diag.err.invalid_schedule": "生產時段格式錯誤（起須早於訖）：{detail}", "eq.diag.err.baseline_incomplete": "基準期起訖須同時填寫", "eq.diag.err.baseline_range": "基準期日期錯誤", "eq.diag.err.invalid_param": "未知參數：{detail}", "eq.diag.err.param_range": "參數超出範圍：{detail}", "eq.diag.err.invalid_range": "期間日期錯誤", "eq.diag.err.range_too_long": "期間最長 {detail} 天", "eq.diag.err.no_compressor": "沒有啟用中的空壓機", "eq.edit.diag_fields": "空壓系統診斷（皆可不填）", "eq.edit.control_type": "控制型式", "eq.edit.min_load_pct": "VSD 最低負載（%）", "eq.edit.max_pressure": "銘牌最高工作壓力（bar）", "eq.edit.max_starts": "每小時最多啟動次數", "eq.edit.diag_fields_hint": "未填時診斷改用推定 / 觀測值並標示（控制型式由功率分佈推定、最低負載取觀測 P05、不做壓力上限與啟動次數硬性檢查）", "eq.err.invalid_control_type": "控制型式不正確：{detail}", "eq.err.min_load_pct_range": "最低負載須介於 0~100%", "eq.diag.ui.suggest_vsd": "建議改 VSD", "eq.diag.ui.suggest_fixed_storage": "建議改定頻加卸載 + 儲氣桶", "eq.diag.ui.suggest_unknown": "無 kW 無法建議", "eq.diag.ui.system": "系統"};
+    var s = D[k] || k;
+    if (a) Object.keys(a).forEach(function (n) { s = s.split('{' + n + '}').join(a[n] == null ? '' : a[n]); });
+    return s;
+}, ready: function (cb) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', cb); else cb(); } };
+</script>
+<script src="{{WWWROOT}}/js/ems-equipment.js"></script>
+<script src="{{WWWROOT}}/js/compressor-diagnosis.js"></script>
+<script>
+/* driver：切「月」粒度、pivot = 2026-09（init 已在前一個 DOMContentLoaded 跑完；
+   點按鈕時 _hasDevices 仍 null → 不發 period，等 realtime 回來 isFirst 才以 day 粒度查） */
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('eqdPivotMonth').value = '2026-09';
+    document.querySelector('#eqdGranGroup .ems-gran-btn[data-gran="day"]').click();
+    setTimeout(function () { document.querySelector('#eqdTabs [data-tab="diagnosis"]').click(); }, 50);
+});
+</script>
+
+
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

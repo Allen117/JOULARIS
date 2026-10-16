@@ -27,6 +27,8 @@ public class DailyReportService
     private readonly HolidayService _holidayService;
     private readonly AlarmMessageLocalizer _alarmMessageLocalizer;
     private readonly DailyReportInsightService _insightService;
+    private readonly CompressorDiagnosisService _compressorDiagnosisService;
+    private readonly CompressorDiagnosisTextRenderer _compressorDiagnosisRenderer;
     private readonly ILogger<DailyReportService> _logger;
     private string? _szConnectionString;
 
@@ -50,6 +52,8 @@ public class DailyReportService
         HolidayService holidayService,
         AlarmMessageLocalizer alarmMessageLocalizer,
         DailyReportInsightService insightService,
+        CompressorDiagnosisService compressorDiagnosisService,
+        CompressorDiagnosisTextRenderer compressorDiagnosisRenderer,
         ILogger<DailyReportService> logger)
     {
         _configService = configService;
@@ -64,6 +68,8 @@ public class DailyReportService
         _holidayService = holidayService;
         _alarmMessageLocalizer = alarmMessageLocalizer;
         _insightService = insightService;
+        _compressorDiagnosisService = compressorDiagnosisService;
+        _compressorDiagnosisRenderer = compressorDiagnosisRenderer;
         _logger = logger;
     }
 
@@ -196,6 +202,18 @@ public class DailyReportService
             data.isStaleLastHour = LastHourStale(elec) || LastHourStale(water) || LastHourStale(gas);
 
             data.insights = _insightService.BuildInsights(data, setting);
+
+            // 空壓系統診斷：取（或生成）報告日最近 7 天滾動排程快照，依全局語言渲染摘要。
+            // 生成時一律填入（區段開關 SectionFlags=256 於顯示端過濾，同其他區塊）；失敗不影響日報其餘內容
+            try
+            {
+                var snap = await _compressorDiagnosisService.GetOrRunScheduledAsync(dtDate);
+                if (snap != null) data.compressorDiagnosis = _compressorDiagnosisRenderer.BuildDailySection(snap.result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "日報空壓系統診斷區段生成失敗 ReportDate={ReportDate:yyyy-MM-dd}", dtDate);
+            }
             return data;
         }
         finally

@@ -62,4 +62,7 @@
   <data name="eqd.ranking" xml:space="preserve"><value>設備排名（依期間平均效率）</value></data>
   <data name="eqd.method_chiller" xml:space="preserve"><value>期間 kW/RT = 期間總耗電 ÷ 總冷量（能量加權，ASHRAE 90.1 / AHRI 550/590）；COP = 3.517 ÷ kW/RT、EER = 12 ÷ kW/RT。冷量以冰水流量 × 出回水溫差逐分鐘計算。</value></data>
   <data name="eqd.method_compressor" xml:space="preserve"><value>期間比功率 kW/(m³/min) = 總耗電 ÷ 總空氣量 × 60（能量加權，ISO 11011 / CAGI）；kW/100cfm = 比功率 × 2.832。</value></data>
+  <data name="eqd.tab.efficiency" xml:space="preserve"><value>效率儀表板</value></data>
+  <data name="eqd.tab.diagnosis" xml:space="preserve"><value>系統診斷</value></data>
+  <data name="eqd.tab.setting" xml:space="preserve"><value>診斷設定</value></data>
 </root>

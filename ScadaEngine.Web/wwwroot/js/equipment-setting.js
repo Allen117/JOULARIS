@@ -379,7 +379,8 @@
         _editing = p ? JSON.parse(JSON.stringify(p)) : {
             nId: 0, szKind: _kind, szName: '', nSortOrder: 0, isEnabled: true,
             dRatedOutput: null, dRatedPower: null, dMaxKwh: null, dSpecificHeat: null,
-            dGoodThreshold: defaults.good, dFairThreshold: defaults.fair, szDescription: '', aBindings: []
+            dGoodThreshold: defaults.good, dFairThreshold: defaults.fair, szDescription: '', aBindings: [],
+            szControlType: null, dMinLoadPct: null, dMaxPressure: null, nMaxStartsPerHour: null
         };
         renderEdit();
         bootstrap.Modal.getOrCreateInstance($('eqsEditModal')).show();
@@ -427,6 +428,7 @@
               (isCh ? field('dSpecificHeat', t('eq.edit.specific_heat'), e.dSpecificHeat, 'number', ' placeholder="' + esc(_meta.defaultSpecificHeat) + '"') : '') +
               '<div class="col-12"><div class="form-text mt-0">' + esc(t('eq.edit.threshold_hint')) + '</div></div>' +
             '</div>' +
+            (isCh ? '' : diagFieldsHtml(e)) +
             '<h6 class="small fw-semibold mb-1">' + esc(t('eq.edit.roles')) + '</h6>' +
             '<div class="small text-muted mb-1">' + esc(t(isCh ? 'eq.edit.roles_hint_chiller' : 'eq.edit.roles_hint_compressor')) + '</div>' +
             '<table class="table table-sm align-middle mb-1"><tbody>' + roleRows + '</tbody></table>' +
@@ -436,11 +438,33 @@
         $('eqsEditSave').disabled = miss.length > 0;
     }
 
+    // 空壓系統診斷欄位（空壓機限定，皆可不填 → 診斷端退回推定 / 觀測值）
+    function diagFieldsHtml(e) {
+        var ctrl = ['', 'fixed', 'vsd', 'modulation'].map(function (v) {
+            return '<option value="' + v + '"' + ((e.szControlType || '') === v ? ' selected' : '') + '>' + esc(t(v ? 'eq.ctrl.' + v : 'eq.ctrl.auto')) + '</option>';
+        }).join('');
+        var input = function (szKey, szLabel, v, szStep) {
+            return '<div class="col-6 col-md-3"><label class="form-label small mb-0">' + esc(szLabel) + '</label>' +
+                '<input class="form-control form-control-sm" data-edit="' + szKey + '" type="number" min="0" step="' + (szStep || 'any') + '" value="' + esc(v == null ? '' : v) + '" /></div>';
+        };
+        return '<h6 class="small fw-semibold mb-1">' + esc(t('eq.edit.diag_fields')) + '</h6>' +
+            '<div class="row g-2 mb-2">' +
+              '<div class="col-6 col-md-3"><label class="form-label small mb-0">' + esc(t('eq.edit.control_type')) + '</label>' +
+                '<select class="form-select form-select-sm" data-edit="szControlType">' + ctrl + '</select></div>' +
+              input('dMinLoadPct', t('eq.edit.min_load_pct'), e.dMinLoadPct) +
+              input('dMaxPressure', t('eq.edit.max_pressure'), e.dMaxPressure) +
+              input('nMaxStartsPerHour', t('eq.edit.max_starts'), e.nMaxStartsPerHour, '1') +
+              '<div class="col-12"><div class="form-text mt-0">' + esc(t('eq.edit.diag_fields_hint')) + '</div></div>' +
+            '</div>';
+    }
+
     function collectEditFields() {
         document.querySelectorAll('#eqsEditBody [data-edit]').forEach(function (el) {
             var k = el.dataset.edit;
             if (k === 'isEnabled') _editing.isEnabled = el.checked;
             else if (k === 'szName' || k === 'szDescription') _editing[k] = el.value;
+            else if (k === 'szControlType') _editing.szControlType = el.value || null;
+            else if (k === 'nMaxStartsPerHour') _editing.nMaxStartsPerHour = el.value === '' ? null : (parseInt(el.value, 10) || null);
             else if (k === 'nSortOrder') _editing.nSortOrder = parseInt(el.value, 10) || 0;
             else _editing[k] = num(el.value);
         });
@@ -477,6 +501,8 @@
             isEnabled: !!e.isEnabled, dRatedOutput: e.dRatedOutput, dRatedPower: e.dRatedPower, dMaxKwh: e.dMaxKwh,
             dSpecificHeat: e.dSpecificHeat, dGoodThreshold: e.dGoodThreshold, dFairThreshold: e.dFairThreshold,
             szDescription: e.szDescription,
+            szControlType: e.szControlType || null, dMinLoadPct: e.dMinLoadPct, dMaxPressure: e.dMaxPressure,
+            nMaxStartsPerHour: e.nMaxStartsPerHour,
             aBindings: e.aBindings.map(function (b) { return { szRole: b.szRole, szSID: b.szSID, szUnit: b.szUnit }; })
         };
         if (!body.szName) { toast(t('eq.err.name_required'), 'warning'); return; }

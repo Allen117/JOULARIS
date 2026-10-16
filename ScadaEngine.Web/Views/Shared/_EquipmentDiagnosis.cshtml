@@ -1,10 +1,13 @@
 @* 設備效率診斷頁共用版面（/ChillerEfficiency、/CompressorEfficiency）。
    呼叫端以 ViewData["EqKind"] 傳 chiller / compressor；ViewData["EqTitle"] 傳頁面標題。
-   內容全由 js/ems-equipment.js 依 data-kind 渲染；字串集中在 Views.Shared._EquipmentDiagnosis.resx（兩頁共用一份）。 *@
+   內容全由 js/ems-equipment.js 依 data-kind 渲染；字串集中在 Views.Shared._EquipmentDiagnosis.resx（兩頁共用一份）。
+   空壓機頁另有「系統診斷」/「診斷設定」tab（js/compressor-diagnosis.js；設定 tab 只有 ViewData["IsEngineer"] = true 才輸出）。 *@
 @{
     var szKind = (ViewData["EqKind"] as string) == "compressor" ? "compressor" : "chiller";
     var szTitle = ViewData["EqTitle"] as string ?? string.Empty;
     var szIcon = szKind == "compressor" ? "fa-compress-arrows-alt" : "fa-temperature-low";
+    var isCompressor = szKind == "compressor";
+    var isEngineer = ViewData["IsEngineer"] as bool? == true;
 }
 <div class="container-fluid mt-3 eqd-page" id="eqdRoot" data-kind="@szKind">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
@@ -14,6 +17,19 @@
         </a>
     </div>
 
+    @if (isCompressor)
+    {
+        <ul class="nav nav-tabs mb-2 eqd-tabs" id="eqdTabs">
+            <li class="nav-item"><a class="nav-link active" href="#efficiency" data-tab="efficiency"><i class="fas fa-chart-line me-1"></i>@Localizer["eqd.tab.efficiency"]</a></li>
+            <li class="nav-item"><a class="nav-link" href="#diagnosis" data-tab="diagnosis"><i class="fas fa-stethoscope me-1"></i>@Localizer["eqd.tab.diagnosis"]</a></li>
+            @if (isEngineer)
+            {
+                <li class="nav-item"><a class="nav-link" href="#setting" data-tab="setting"><i class="fas fa-sliders-h me-1"></i>@Localizer["eqd.tab.setting"]</a></li>
+            }
+        </ul>
+    }
+
+    <div id="eqdPaneEfficiency">
     <div id="eqdEmpty" class="text-center text-muted py-5" style="display:none;">
         <i class="fas fa-inbox fa-2x mb-2 d-block opacity-50"></i>
         @Localizer["eqd.empty"]
@@ -70,4 +86,18 @@
             </div>
         </div>
     </div>
+    </div>
+
+    @if (isCompressor)
+    {
+        <div id="eqdPaneDiagnosis" style="display:none;">
+            <div id="cdgRoot" data-engineer="@(isEngineer ? "1" : "0")"></div>
+        </div>
+        if (isEngineer)
+        {
+            <div id="eqdPaneSetting" style="display:none;">
+                <div id="cdgSettingRoot"></div>
+            </div>
+        }
+    }
 </div>

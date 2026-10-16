@@ -280,6 +280,23 @@
 | 趨近溫度（蒸發器 / 冷凝器） | Approach (Evap. / Cond.) | 冰水出水 − 蒸發飽和溫度；冷凝飽和溫度 − 冷卻水出水 |
 | 冰水 ΔT / 冷卻水 ΔT | CHW ΔT / CW ΔT | 回水 − 出水 / 出水 − 進水 |
 | 加載 / 卸載 | Loaded / Unloaded | 空壓機狀態；加載時間比 = Loaded time ratio |
+| 空壓系統診斷 / 系統診斷 | Compressed-Air System Diagnosis / System Diagnosis | `/CompressorEfficiency` 第二 tab；規則式篩檢（移植 compressor-analysis-skill，不經 LLM） |
+| 診斷設定 | Diagnosis Settings | `/CompressorEfficiency` 第三 tab（Engineer 限定） |
+| 篩檢節能 | Screening savings | 規則估算區間，非已驗證節能；勿譯 Savings 單字（易誤為已驗證） |
+| 依預設值（未經現場確認） | Default value (not site-confirmed) | 結論用到未覆寫、未確認的參數 |
+| 觸發 / 未觸發 / 資料不足 / 待補場域資料 / 待設定 / 不適用 | Finding / Not triggered / Insufficient data / Site data needed / Setting needed / Not applicable | 規則狀態 |
+| 需求壓力（末端最低） | Required end-use pressure | bar；P / E3 規則 |
+| 供氣壓力 / 總管壓力 | Supply (header) pressure | SYS_SUPPLYPRESS |
+| 末端壓力 | End-use pressure | SYS_USEPRESS；與供氣壓力之差 = 管損 Pressure drop |
+| 壓力露點 | Pressure dew point | SYS_DEWPOINT |
+| 洩漏 / 閒置損失 | Leakage / idle loss | L 規則；洩漏比 = Leak ratio |
+| 非生產時段 / 生產時段 | Non-production / Production hours | 週排程 + 假日 |
+| 停機延遲 | Shutdown delay (unload timer) | S2 試算候選 |
+| 加卸載循環 | Load/unload cycles | 次/h |
+| 定頻加卸載 / 變頻 / 進氣節流 | Fixed-speed load/unload / VSD / Inlet modulation | EquipmentProfile.ControlType |
+| 劣化基準期 | Degradation baseline period | E1 同工況比較的基準期 |
+| 同工況 | Matched operating conditions | 流量格 × 壓力格配對 |
+| 實測基線 | Measured baseline | 各機 kW / 流量 / 壓力分佈與狀態占比 |
 | 優 / 可 / 差 / 停機 / 資料不足 | Good / Fair / Poor / Off / No data | 效率評級（≤ 優門檻 / ≤ 可門檻 / 超過） |
 | 覆蓋率 | Coverage | 資料完整度 %（實際有效小時 ÷ 應有小時） |
 | 全場加權 | Plant weighted | 效率趨勢的全場 ΣkWh ÷ Σ產出線 |

@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using ScadaEngine.Common.Data.Models;
 using ScadaEngine.Common.Data.Services;
 using ScadaEngine.Common.Equipment;
+using ScadaEngine.Common.Equipment.CompressorDiagnosis;
 
 namespace ScadaEngine.Web.Services;
 
@@ -20,7 +21,9 @@ public class EquipmentProfileService
         SELECT Id AS nId, Kind AS szKind, Name AS szName, SortOrder AS nSortOrder, IsEnabled AS isEnabled,
                RatedOutput AS dRatedOutput, RatedPower AS dRatedPower, MaxKwh AS dMaxKwh,
                SpecificHeat AS dSpecificHeat, GoodThreshold AS dGoodThreshold, FairThreshold AS dFairThreshold,
-               Description AS szDescription, CreatedAt AS dtCreatedAt, UpdatedAt AS dtUpdatedAt
+               Description AS szDescription, ControlType AS szControlType, MinLoadPct AS dMinLoadPct,
+               MaxPressure AS dMaxPressure, MaxStartsPerHour AS nMaxStartsPerHour,
+               CreatedAt AS dtCreatedAt, UpdatedAt AS dtUpdatedAt
         FROM   EquipmentProfile";
 
     public EquipmentProfileService(DatabaseConfigService configService)
@@ -83,12 +86,32 @@ public class EquipmentProfileService
                  {
                      (m.dRatedOutput, "rated_output"), (m.dRatedPower, "rated_power"), (m.dMaxKwh, "max_kwh"),
                      (m.dSpecificHeat, "specific_heat"), (m.dGoodThreshold, "good"), (m.dFairThreshold, "fair"),
+                     (m.dMinLoadPct, "min_load_pct"), (m.dMaxPressure, "max_pressure"), ((double?)m.nMaxStartsPerHour, "max_starts"),
                  })
         {
             if (dValue != null && (double.IsNaN(dValue.Value) || dValue.Value < 0))
                 throw new EquipmentProfileValidationException("negative_value", szField);
         }
         if (m.dSpecificHeat is 0) m.dSpecificHeat = null;
+
+        // 空壓系統診斷欄位：僅空壓機有意義，冰機一律清空；皆可不填（診斷端退回推定 / 觀測值）
+        if (m.szKind == EquipmentKind.Compressor)
+        {
+            m.szControlType = string.IsNullOrWhiteSpace(m.szControlType) ? null : m.szControlType.Trim();
+            if (m.szControlType != null && !CompressorControlType.IsValid(m.szControlType))
+                throw new EquipmentProfileValidationException("invalid_control_type", m.szControlType);
+            if (m.dMinLoadPct is > 100) throw new EquipmentProfileValidationException("min_load_pct_range");
+            if (m.dMinLoadPct is 0) m.dMinLoadPct = null;
+            if (m.dMaxPressure is 0) m.dMaxPressure = null;
+            if (m.nMaxStartsPerHour is 0) m.nMaxStartsPerHour = null;
+        }
+        else
+        {
+            m.szControlType = null;
+            m.dMinLoadPct = null;
+            m.dMaxPressure = null;
+            m.nMaxStartsPerHour = null;
+        }
         if (m.dGoodThreshold != null && m.dFairThreshold != null && m.dGoodThreshold > m.dFairThreshold)
             throw new EquipmentProfileValidationException("threshold_order");
 
@@ -164,6 +187,10 @@ public class EquipmentProfileService
             GoodThreshold = m.dGoodThreshold,
             FairThreshold = m.dFairThreshold,
             Description = string.IsNullOrWhiteSpace(m.szDescription) ? null : m.szDescription.Trim(),
+            ControlType = m.szControlType,
+            MinLoadPct = m.dMinLoadPct,
+            MaxPressure = m.dMaxPressure,
+            MaxStartsPerHour = m.nMaxStartsPerHour,
         };
 
         int nId;
@@ -174,14 +201,17 @@ public class EquipmentProfileService
                 "SELECT ISNULL(MAX(SortOrder), 0) + 1 FROM EquipmentProfile WHERE Kind = @Kind", new { Kind = m.szKind }, tx);
             nId = await conn.QuerySingleAsync<int>(@"
                 INSERT INTO EquipmentProfile (Kind, Name, SortOrder, IsEnabled, RatedOutput, RatedPower, MaxKwh,
-                                              SpecificHeat, GoodThreshold, FairThreshold, Description, CreatedAt)
+                                              SpecificHeat, GoodThreshold, FairThreshold, Description,
+                                              ControlType, MinLoadPct, MaxPressure, MaxStartsPerHour, CreatedAt)
                 OUTPUT INSERTED.Id
                 VALUES (@Kind, @Name, @SortOrder, @IsEnabled, @RatedOutput, @RatedPower, @MaxKwh,
-                        @SpecificHeat, @GoodThreshold, @FairThreshold, @Description, GETDATE())",
+                        @SpecificHeat, @GoodThreshold, @FairThreshold, @Description,
+                        @ControlType, @MinLoadPct, @MaxPressure, @MaxStartsPerHour, GETDATE())",
                 new
                 {
                     param.Kind, param.Name, SortOrder = nSort, param.IsEnabled, param.RatedOutput, param.RatedPower,
                     param.MaxKwh, param.SpecificHeat, param.GoodThreshold, param.FairThreshold, param.Description,
+                    param.ControlType, param.MinLoadPct, param.MaxPressure, param.MaxStartsPerHour,
                 }, tx);
         }
         else
@@ -192,7 +222,8 @@ public class EquipmentProfileService
                 SET    Name = @Name, SortOrder = @SortOrder, IsEnabled = @IsEnabled, RatedOutput = @RatedOutput,
                        RatedPower = @RatedPower, MaxKwh = @MaxKwh, SpecificHeat = @SpecificHeat,
                        GoodThreshold = @GoodThreshold, FairThreshold = @FairThreshold, Description = @Description,
-                       UpdatedAt = GETDATE()
+                       ControlType = @ControlType, MinLoadPct = @MinLoadPct, MaxPressure = @MaxPressure,
+                       MaxStartsPerHour = @MaxStartsPerHour, UpdatedAt = GETDATE()
                 WHERE  Id = @Id AND Kind = @Kind", param, tx);
             if (nRows == 0) throw new EquipmentProfileValidationException("not_found", m.nId.ToString());
             nId = m.nId;

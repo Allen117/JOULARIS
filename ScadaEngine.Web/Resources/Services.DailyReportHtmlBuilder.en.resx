@@ -101,4 +101,6 @@
   <data name="mail.col.diff" xml:space="preserve"><value>Diff</value></data>
   <data name="mail.section.insights" xml:space="preserve"><value>Insights</value></data>
   <data name="mail.footer" xml:space="preserve"><value>This email was sent automatically by the JOULARIS system; please do not reply.</value></data>
+  <data name="mail.section.compressor_diagnosis" xml:space="preserve"><value>Compressed-Air System Diagnosis</value></data>
+  <data name="mail.compressor_diagnosis.summary" xml:space="preserve"><value>Period {0}: {1} finding(s), {2} rule(s) awaiting data (see Compressor Efficiency → System Diagnosis)</value></data>
 </root>

@@ -30,6 +30,11 @@ public class EquipmentProfileSaveRequest
     public double? dGoodThreshold { get; set; }
     public double? dFairThreshold { get; set; }
     public string? szDescription { get; set; }
+    /// <summary>空壓機：fixed / vsd / modulation / null</summary>
+    public string? szControlType { get; set; }
+    public double? dMinLoadPct { get; set; }
+    public double? dMaxPressure { get; set; }
+    public int? nMaxStartsPerHour { get; set; }
     public List<EquipmentBindingRequest> aBindings { get; set; } = [];
 }
 

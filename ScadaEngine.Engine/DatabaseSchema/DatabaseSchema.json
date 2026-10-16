@@ -948,7 +948,7 @@
       ]
     },
     {
-      "_comment": "能源日報設定 — 單列（Id=1）。/DailyReportSetting 頁維護。SectionFlags bitmask：1=警報 2=電 4=水 8=氣 16=RTh 32=單日比較 64=月累計比較 128=智慧提示。",
+      "_comment": "能源日報設定 — 單列（Id=1）。/DailyReportSetting 頁維護。SectionFlags bitmask：1=警報 2=電 4=水 8=氣 16=RTh 32=單日比較 64=月累計比較 128=智慧提示 256=空壓系統診斷（預設關）。",
       "TableName": "DailyReportSetting",
       "Columns": [
         { "Name": "Id",                   "Type": "int",      "IsPrimaryKey": true, "Nullable": false,
@@ -956,7 +956,7 @@
         { "Name": "IsMailEnabled",        "Type": "bit",      "Nullable": false, "Default": 0,
           "_comment": "每日自動寄送開關（快照照常生成，只是不寄）" },
         { "Name": "SectionFlags",         "Type": "int",      "Nullable": false, "Default": 255,
-          "_comment": "內容區塊 bitmask，預設全開" },
+          "_comment": "內容區塊 bitmask，預設 255（256=空壓系統診斷預設不開）" },
         { "Name": "DiffThresholdPercent", "Type": "float",    "Nullable": false, "Default": 15,
           "_comment": "差異提示門檻 ±%（智慧摘要觸發用）" },
         { "Name": "Language",             "Type": "nvarchar", "Length": 10, "Nullable": false, "Default": "zh-TW",
@@ -1013,6 +1013,14 @@
         { "Name": "FairThreshold",  "Type": "float",    "Nullable": true,
           "_comment": "主指標 ≤ 此值 = 可，> 此值 = 差" },
         { "Name": "Description",    "Type": "nvarchar", "Length": 500, "Nullable": true },
+        { "Name": "ControlType",    "Type": "nvarchar", "Length": 20,  "Nullable": true,
+          "_comment": "空壓機控制型式：fixed（定頻加卸載）/ vsd / modulation（節流）；NULL = 由功率分佈推定（空壓系統診斷 S4/S5/E2/E4）" },
+        { "Name": "MinLoadPct",     "Type": "float",    "Nullable": true,
+          "_comment": "空壓機 VSD 最低負載 %；NULL = 退回觀測值（運轉 kW P05 ÷ 額定）" },
+        { "Name": "MaxPressure",    "Type": "float",    "Nullable": true,
+          "_comment": "空壓機銘牌最高工作壓力 bar；NULL = 診斷不做上限檢查" },
+        { "Name": "MaxStartsPerHour", "Type": "int",    "Nullable": true,
+          "_comment": "空壓機馬達每小時最多啟動次數；NULL = 停機延遲試算不硬性否決，改提示對照銘牌" },
         { "Name": "CreatedAt",      "Type": "datetime", "Nullable": false, "Default": "getdate()" },
         { "Name": "UpdatedAt",      "Type": "datetime", "Nullable": true }
       ]
@@ -1055,6 +1063,33 @@
         { "Name": "Quality",      "Type": "tinyint",  "Nullable": false, "Default": 1 },
         { "Name": "IsBackfilled", "Type": "bit",      "Nullable": false, "Default": 0 },
         { "Name": "CreatedAt",    "Type": "datetime", "Nullable": false, "Default": "getdate()" }
+      ]
+    },
+    {
+      "_comment": "空壓系統診斷 — 場域設定單列（Id=1）。SettingJson = 需求壓力、系統級點位（SYS_SUPPLYPRESS / SYS_USEPRESS / SYS_FLOW / SYS_DEWPOINT）、生產週排程、劣化基準期、手填電價、參數覆寫與已確認清單。/CompressorEfficiency「診斷設定」tab（Engineer）維護。",
+      "TableName": "CompressorDiagnosisSetting",
+      "Columns": [
+        { "Name": "Id",          "Type": "int",      "IsPrimaryKey": true, "Nullable": false,
+          "_comment": "固定 1（v1 所有啟用空壓機 = 一個系統）" },
+        { "Name": "SettingJson", "Type": "nvarchar", "Length": -1, "Nullable": false,
+          "_comment": "CompressorDiagnosisSettingModel 序列化 JSON" },
+        { "Name": "UpdatedAt",   "Type": "datetime", "Nullable": true },
+        { "Name": "UpdatedBy",   "Type": "nvarchar", "Length": 100, "Nullable": true }
+      ]
+    },
+    {
+      "_comment": "空壓系統診斷快照 — 一列 = 一次診斷結果 JSON。IsScheduled=1 為每日 02:00 最近 7 天滾動（一般使用者看最新一筆、能源日報引用）；0 為 Engineer 指定期間手動重算。",
+      "TableName": "CompressorDiagnosisSnapshot",
+      "Columns": [
+        { "Name": "Id",          "Type": "int",      "IsPrimaryKey": true, "IsIdentity": true, "Nullable": false },
+        { "Name": "RunAt",       "Type": "datetime", "Nullable": false, "Default": "getdate()" },
+        { "Name": "PeriodFrom",  "Type": "datetime", "Nullable": false },
+        { "Name": "PeriodTo",    "Type": "datetime", "Nullable": false,
+          "_comment": "期間訖（不含）" },
+        { "Name": "IsScheduled", "Type": "bit",      "Nullable": false, "Default": 0 },
+        { "Name": "ResultJson",  "Type": "nvarchar", "Length": -1, "Nullable": false,
+          "_comment": "Common CompressorDiagnosisResult 序列化 JSON；nvarchar(MAX)" },
+        { "Name": "RunBy",       "Type": "nvarchar", "Length": 100, "Nullable": true }
       ]
     }
   ]

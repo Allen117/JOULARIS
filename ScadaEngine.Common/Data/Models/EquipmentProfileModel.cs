@@ -26,6 +26,14 @@ public class EquipmentProfileModel
     /// <summary>主指標 ≤ Fair → 可，&gt; Fair → 差</summary>
     public double? dFairThreshold { get; set; }
     public string? szDescription { get; set; }
+    /// <summary>空壓機控制型式 fixed / vsd / modulation（Common CompressorControlType）；null = 診斷時由功率分佈推定</summary>
+    public string? szControlType { get; set; }
+    /// <summary>空壓機 VSD 最低負載 %；null = 診斷退回觀測值</summary>
+    public double? dMinLoadPct { get; set; }
+    /// <summary>空壓機銘牌最高工作壓力 bar</summary>
+    public double? dMaxPressure { get; set; }
+    /// <summary>空壓機馬達每小時最多啟動次數</summary>
+    public int? nMaxStartsPerHour { get; set; }
     public DateTime dtCreatedAt { get; set; }
     public DateTime? dtUpdatedAt { get; set; }
 
