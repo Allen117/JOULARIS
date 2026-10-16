@@ -24,6 +24,10 @@ public class TariffSettingService
     /// <summary>使用者自建方案的類別代碼（與台電 lighting/lv/hv/ehv 分開列示）</summary>
     public const string CustomCategory = "custom";
 
+    /// <summary>契約容量歷史可記錄的契約別（= 基本電費 kW 類 szKey）</summary>
+    public static readonly string[] ContractKeys =
+        ["regular_kw", "nonsummer_kw", "semipeak_kw", "sat_semipeak_kw", "offpeak_kw"];
+
     /// <summary>舊資料遷移用的極早生效日 — 任何歷史日期都選得到，確保歷史電費數字不變</summary>
     private const string LegacyEffectiveDate = "2000-01-01";
 
@@ -235,6 +239,32 @@ public class TariffSettingService
     }
 
     /// <summary>
+    /// 存回採用時間軸 + 方案目錄（電費設定頁「儲存採用時間軸」）— 契約容量歷史沿用 DB 現值，
+    /// 避免前端只送兩個欄位時把 contracts 清空。
+    /// </summary>
+    public async Task SaveAdoptionsAndPlansAsync(List<TariffAdoption>? adoptions, List<TariffPlan>? plans)
+    {
+        var existing = await GetConfigAsync();
+        await SaveConfigAsync(new TariffConfig
+        {
+            adoptions = adoptions ?? [],
+            plans = plans ?? [],
+            contracts = existing.contracts,
+        });
+    }
+
+    /// <summary>存回契約容量歷史（整份覆蓋 contracts，方案與時間軸沿用現值）。驗證失敗丟 ArgumentException。</summary>
+    public async Task SaveContractsAsync(List<ContractCapacityRecord>? contracts)
+    {
+        var config = await GetConfigAsync();
+        config.contracts = (contracts ?? [])
+            .OrderBy(c => c.szEffectiveDate?.Trim(), StringComparer.Ordinal)
+            .ToList();
+        await SaveConfigAsync(config);
+        _logger.LogInformation("電費設定契約容量歷史已更新（{Count} 筆）", config.contracts.Count);
+    }
+
+    /// <summary>
     /// 儲存整份設定 — 存前驗證所有方案與採用時間軸，並重算衍生欄位 szActivePlanId。
     /// 驗證失敗丟 ArgumentException。
     /// </summary>
@@ -258,6 +288,11 @@ public class TariffSettingService
         var (isValid, szError) = ValidateAdoptions(config);
         if (!isValid)
             throw new ArgumentException(szError);
+
+        config.contracts ??= [];
+        var (isContractsValid, szContractsError) = ValidateContracts(config.contracts);
+        if (!isContractsValid)
+            throw new ArgumentException(szContractsError);
 
         // szActivePlanId 為衍生欄位 — 每次存檔由時間軸反推今日採用方案
         config.szActivePlanId = SelectPlanForDate(config, DateTime.Today)?.szPlanId ?? string.Empty;
@@ -304,6 +339,63 @@ public class TariffSettingService
         var szBestPlanId = best.szPlanId;
         return config.plans.FirstOrDefault(p =>
             string.Equals(p.szPlanId, szBestPlanId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// 依日期選用有效的契約容量紀錄 — 生效日 &lt;= dtDate 的最新一筆；查無（未設定 / 早於所有生效日）回 null。
+    /// </summary>
+    public static ContractCapacityRecord? SelectContractForDate(TariffConfig config, DateTime dtDate)
+    {
+        if (config?.contracts == null || config.contracts.Count == 0) return null;
+
+        ContractCapacityRecord? best = null;
+        var dtBest = DateTime.MinValue;
+        foreach (var record in config.contracts)
+        {
+            if (!TryParseDate(record.szEffectiveDate, out var dtEffective)) continue;
+            if (dtEffective > dtDate.Date) continue;
+            if (best == null || dtEffective >= dtBest)
+            {
+                best = record;
+                dtBest = dtEffective;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>契約紀錄取某契約別 kW（缺 key 或負值視為 0）</summary>
+    public static double ContractKw(ContractCapacityRecord? record, string szKey) =>
+        record?.kw != null && record.kw.TryGetValue(szKey, out var dKw) && dKw > 0 ? dKw : 0;
+
+    /// <summary>
+    /// 契約容量歷史驗證 — 生效日 yyyy-MM-dd 且不重複；kW 不可為負；key 須為 <see cref="ContractKeys"/>；
+    /// 每筆至少一個契約別 &gt; 0。空清單合法。
+    /// </summary>
+    public static (bool isValid, string szError) ValidateContracts(List<ContractCapacityRecord>? contracts)
+    {
+        if (contracts == null || contracts.Count == 0) return (true, string.Empty);
+
+        var seenDates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var record in contracts)
+        {
+            var szDate = record.szEffectiveDate?.Trim() ?? string.Empty;
+            if (!TryParseDate(szDate, out _))
+                return (false, $"契約容量生效日格式不正確（應為 yyyy-MM-dd）：{record.szEffectiveDate}");
+            if (!seenDates.Add(szDate))
+                return (false, $"契約容量生效日重複：{szDate}");
+
+            var kw = record.kw ?? [];
+            foreach (var (szKey, dKw) in kw)
+            {
+                if (!ContractKeys.Contains(szKey))
+                    return (false, $"契約容量生效日 {szDate} 含未知的契約別：{szKey}");
+                if (double.IsNaN(dKw) || dKw < 0)
+                    return (false, $"契約容量生效日 {szDate} 的 kW 不可為負數");
+            }
+            if (!kw.Values.Any(v => v > 0))
+                return (false, $"契約容量生效日 {szDate} 至少須填一個契約別的 kW");
+        }
+        return (true, string.Empty);
     }
 
     /// <summary>

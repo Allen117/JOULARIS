@@ -12,6 +12,8 @@
     var DAY_TYPES = ['weekday', 'sat', 'sun_offday'];
     var SEASONS = ['summer', 'nonsummer'];
     var PERIOD_ORDER = { peak: 0, semipeak: 1, offpeak: 2 };
+    // 契約容量歷史可記錄的契約別（與後端 TariffSettingService.ContractKeys 一致）
+    var CONTRACT_KEYS = ['regular_kw', 'nonsummer_kw', 'semipeak_kw', 'sat_semipeak_kw', 'offpeak_kw'];
 
     // 全量重算單段天數上限（後端 MaxRecalculateDays = 366，留 1 天餘裕給含頭含尾）
     var SEGMENT_DAYS = 365;
@@ -45,6 +47,7 @@
         }
 
         if (!g_config.adoptions) g_config.adoptions = [];
+        if (!g_config.contracts) g_config.contracts = [];
         fillCategorySelect();
         loadCostSummary();
 
@@ -59,6 +62,7 @@
         }
         updateActiveCard();
         renderAdoptions();
+        renderContracts();
 
         document.getElementById('tsCategory').addEventListener('change', onCategoryChange);
         document.getElementById('tsPlan').addEventListener('change', onPlanChange);
@@ -860,6 +864,124 @@
         return null;
     }
 
+    // ── 契約容量歷史 ─────────────────────────────────────
+
+    function sortContracts() {
+        g_config.contracts.sort(function (a, b) {
+            return (a.szEffectiveDate || '').localeCompare(b.szEffectiveDate || '');
+        });
+    }
+
+    function renderContracts() {
+        var list = document.getElementById('tsContractList');
+        if (!list) return;
+        var contracts = g_config.contracts || [];
+        if (contracts.length === 0) {
+            list.innerHTML = '<div class="text-muted small py-2">' + escapeHtml(t('tariffsetting.contract.empty')) + '</div>';
+            return;
+        }
+
+        var rows = contracts.map(function (c, i) {
+            var kw = c.kw || {};
+            var cells = CONTRACT_KEYS.map(function (key) {
+                var v = kw[key];
+                return '<td><input type="number" min="0" step="1" class="form-control form-control-sm text-end ts-contract-kw" value="' +
+                    (v != null && v !== 0 ? escapeHtml(v) : '') + '" data-contract="' + i + '" data-field="' + key + '"></td>';
+            }).join('');
+            return '<tr>' +
+                '<td><input type="date" class="form-control form-control-sm ts-adopt-date" value="' +
+                escapeHtml(c.szEffectiveDate || '') + '" data-contract="' + i + '" data-field="date"></td>' +
+                cells +
+                '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" title="' +
+                escapeHtml(t('tariffsetting.contract.del')) + '" onclick="window._ts.removeContract(' + i + ')">' +
+                '<i class="fas fa-times"></i></button></td>' +
+                '</tr>';
+        }).join('');
+
+        var heads = CONTRACT_KEYS.map(function (key) {
+            return '<th class="text-end">' + escapeHtml(t('tariff.basefee.' + key)) + ' (kW)</th>';
+        }).join('');
+        list.innerHTML = '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0 ts-table ts-contract-table">' +
+            '<thead class="table-light"><tr>' +
+            '<th class="ts-col-date">' + escapeHtml(t('tariffsetting.contract.effective_date')) + '</th>' + heads +
+            '<th class="ts-col-actions">' + escapeHtml(t('tariffsetting.col.actions')) + '</th>' +
+            '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }
+
+    // DOM → g_config.contracts 回填（空白 kW 視為未訂，不送 key）
+    function collectContracts() {
+        document.querySelectorAll('#tsContractList [data-contract]').forEach(function (el) {
+            var c = g_config.contracts[parseInt(el.getAttribute('data-contract'), 10)];
+            if (!c) return;
+            var field = el.getAttribute('data-field');
+            if (field === 'date') { c.szEffectiveDate = el.value; return; }
+            if (!c.kw) c.kw = {};
+            var raw = String(el.value).trim();
+            if (raw === '') delete c.kw[field];
+            else c.kw[field] = Number(raw);
+        });
+    }
+
+    function addContract() {
+        collectContracts();
+        // 預設複製最後一筆的 kW（調整契約通常只改一兩個契約別）
+        var last = g_config.contracts.length ? g_config.contracts[g_config.contracts.length - 1] : null;
+        g_config.contracts.push({
+            szEffectiveDate: dateStr(new Date()),
+            kw: last ? JSON.parse(JSON.stringify(last.kw || {})) : {}
+        });
+        sortContracts();
+        renderContracts();
+    }
+
+    function removeContract(idx) {
+        collectContracts();
+        g_config.contracts.splice(idx, 1);
+        renderContracts();
+    }
+
+    // 前端驗證（與後端 ValidateContracts 同規則）
+    function validateContracts() {
+        var seen = {};
+        for (var i = 0; i < g_config.contracts.length; i++) {
+            var c = g_config.contracts[i];
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(c.szEffectiveDate || ''))
+                return t('tariffsetting.err.contract_date_format');
+            if (seen[c.szEffectiveDate])
+                return t('tariffsetting.err.contract_date_dup', { 0: c.szEffectiveDate });
+            seen[c.szEffectiveDate] = true;
+            var hasAny = false;
+            for (var key in (c.kw || {})) {
+                var v = c.kw[key];
+                if (typeof v !== 'number' || isNaN(v) || v < 0)
+                    return t('tariffsetting.err.contract_kw_invalid', { 0: c.szEffectiveDate });
+                if (v > 0) hasAny = true;
+            }
+            if (!hasAny) return t('tariffsetting.err.contract_kw_empty', { 0: c.szEffectiveDate });
+        }
+        return null;
+    }
+
+    async function saveContracts() {
+        collectContracts();
+        var err = validateContracts();
+        if (err) { alert(err); return; }
+        sortContracts();
+
+        try {
+            var res = await fetch('/TariffSetting/api/contracts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contracts: g_config.contracts })
+            });
+            if (!res.ok) throw new Error((await res.json().catch(function () { return {}; })).message || res.statusText);
+            renderContracts();
+            alert(t('tariffsetting.msg.saved'));
+        } catch (e) {
+            alert(t('tariffsetting.msg.save_fail', { 0: e.message }));
+        }
+    }
+
     // ── 動作 ─────────────────────────────────────────────
 
     async function savePlan() {
@@ -1106,6 +1228,9 @@
         addAdoption: addAdoption,
         removeAdoption: removeAdoption,
         saveAdoptions: saveAdoptions,
+        addContract: addContract,
+        removeContract: removeContract,
+        saveContracts: saveContracts,
         openRecalc: openRecalc,
         toggleFullRecalc: toggleFullRecalc,
         runRecalc: runRecalc

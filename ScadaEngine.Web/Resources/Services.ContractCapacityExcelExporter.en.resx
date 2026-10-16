@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="excel.sheet_name" xml:space="preserve"><value>Contract Backtest</value></data>
+  <data name="excel.title" xml:space="preserve"><value>Contract Capacity Optimization — Backtest Report</value></data>
+  <data name="excel.label.circuit" xml:space="preserve"><value>Billing Circuit</value></data>
+  <data name="excel.label.plan" xml:space="preserve"><value>Tariff Plan</value></data>
+  <data name="excel.label.multiple_plans" xml:space="preserve"><value>(plan changed during the backtest; each month uses the plan in effect)</value></data>
+  <data name="excel.label.range" xml:space="preserve"><value>Backtest Period</value></data>
+  <data name="excel.label.evaluable" xml:space="preserve"><value>Evaluable Months</value></data>
+  <data name="excel.label.threshold" xml:space="preserve"><value>Window Completeness Threshold</value></data>
+  <data name="excel.label.max_valid" xml:space="preserve"><value>Outlier Cap (kW)</value></data>
+  <data name="excel.label.round" xml:space="preserve"><value>Conservative Rounding</value></data>
+  <data name="excel.label.query_time" xml:space="preserve"><value>Query Time</value></data>
+  <data name="excel.label.operator" xml:space="preserve"><value>Operator</value></data>
+  <data name="excel.label.flat_range" xml:space="preserve"><value>Flat cost range {0}–{1} kW: annual cost within 1% of the minimum-cost point</value></data>
+  <data name="excel.label.no_contract" xml:space="preserve"><value>Contract capacity not set (Tariff Settings → Contract Capacity History)</value></data>
+  <data name="excel.col.scenario" xml:space="preserve"><value>Scenario</value></data>
+  <data name="excel.col.contract_kw" xml:space="preserve"><value>Regular Contract (kW)</value></data>
+  <data name="excel.col.total" xml:space="preserve"><value>Demand Charge (NTD)</value></data>
+  <data name="excel.col.regular_base" xml:space="preserve"><value>Regular Contract Base Charge (NTD)</value></data>
+  <data name="excel.col.other_base" xml:space="preserve"><value>Other Contracts Base Charge (NTD)</value></data>
+  <data name="excel.col.penalty" xml:space="preserve"><value>Excess Demand Surcharge (NTD)</value></data>
+  <data name="excel.col.over_months" xml:space="preserve"><value>Months Over Contract</value></data>
+  <data name="excel.col.saving" xml:space="preserve"><value>Savings vs Current (NTD)</value></data>
+  <data name="excel.col.saving_pct" xml:space="preserve"><value>Savings %</value></data>
+  <data name="excel.scenario.current" xml:space="preserve"><value>Current</value></data>
+  <data name="excel.scenario.safe" xml:space="preserve"><value>Conservative</value></data>
+  <data name="excel.scenario.optimum" xml:space="preserve"><value>Minimum-Cost Point</value></data>
+  <data name="excel.col.month" xml:space="preserve"><value>Billing Period</value></data>
+  <data name="excel.col.start" xml:space="preserve"><value>Start</value></data>
+  <data name="excel.col.end" xml:space="preserve"><value>End</value></data>
+  <data name="excel.col.price" xml:space="preserve"><value>Regular Contract Price (NTD/kW)</value></data>
+  <data name="excel.col.max_demand" xml:space="preserve"><value>Peak Max Demand (kW)</value></data>
+  <data name="excel.col.peak_at" xml:space="preserve"><value>Peak Window Start</value></data>
+  <data name="excel.col.completeness" xml:space="preserve"><value>Window Completeness</value></data>
+  <data name="excel.col.status" xml:space="preserve"><value>Status</value></data>
+  <data name="excel.col.current_kw" xml:space="preserve"><value>Current Regular Contract (kW)</value></data>
+  <data name="excel.col.cur_over" xml:space="preserve"><value>Current Over kW</value></data>
+  <data name="excel.col.cur_cost" xml:space="preserve"><value>Current Cost (NTD)</value></data>
+  <data name="excel.col.safe_over" xml:space="preserve"><value>Conservative Over kW</value></data>
+  <data name="excel.col.safe_cost" xml:space="preserve"><value>Conservative Cost (NTD)</value></data>
+  <data name="excel.col.opt_over" xml:space="preserve"><value>Min-Cost Over kW</value></data>
+  <data name="excel.col.opt_cost" xml:space="preserve"><value>Min-Cost Cost (NTD)</value></data>
+  <data name="excel.status.ok" xml:space="preserve"><value>Evaluable</value></data>
+  <data name="excel.status.no_plan" xml:space="preserve"><value>No tariff plan adopted</value></data>
+  <data name="excel.status.no_demand_tariff" xml:space="preserve"><value>Plan has no regular contract</value></data>
+  <data name="excel.status.low_completeness" xml:space="preserve"><value>Insufficient window completeness</value></data>
+  <data name="excel.status.no_data" xml:space="preserve"><value>No peak demand data</value></data>
+  <data name="excel.note.backtest" xml:space="preserve"><value>Savings are hindsight estimates assuming the contract had been in place during the backtest period, not a guarantee. Confirm adjustment rules and prices against the latest Taipower regulations before changing the contract.</value></data>
+  <data name="excel.note.scope" xml:space="preserve"><value>This version evaluates excess demand in peak hours only (regular contract); excess in semi-peak, Saturday semi-peak and off-peak hours is not included. Other contract types are billed at their current values.</value></data>
+  <data name="excel.note.season" xml:space="preserve"><value>Excess demand surcharge: the portion up to 10% over contract is billed at 2x, the portion beyond 10% at 3x the base charge (Taipower tariff, 2025-11-17 edition). Billing periods spanning summer and non-summer are weighted by days.</value></data>
+</root>

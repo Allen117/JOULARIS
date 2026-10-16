@@ -45,6 +45,7 @@ public class GlobalSearchService
         new("/EquipmentEfficiencySetting", "layout.menu.equipment_efficiency_setting", "fas fa-gauge-high",        "設備 效率 設定 冰機 空壓機 掃描 點位 綁定 equipment efficiency setting"),
         new("/EnergyReport",               "layout.menu.energy_report",              "fas fa-chart-bar",           "報表 用電 電力 度數 kwh power electricity usage report"),
         new("/ElectricityCostReport",      "layout.menu.electricity_cost_report",    "fas fa-file-invoice-dollar", "報表 電費 帳單 金額 bill cost report"),
+        new("/ContractCapacity",           "layout.menu.contract_capacity",          "fas fa-sliders-h",           "契約 契約容量 需量 超約 基本電費 最佳化 contract capacity demand optimization"),
         new("/RefrigerationTonReport",     "layout.menu.refrigeration_ton_report",   "fas fa-snowflake",           "報表 冷凍噸 冰水 空調 rt ton report"),
         new("/WaterUsageReport",           "layout.menu.water_usage_report",         "fas fa-water",               "報表 用水 水量 water usage report"),
         new("/WaterCostReport",            "layout.menu.water_cost_report",          "fas fa-hand-holding-usd",    "報表 水費 帳單 water cost bill report"),

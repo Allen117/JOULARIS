@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="contractcapacity.title" xml:space="preserve"><value>Contract Capacity Optimization</value></data>
+  <data name="contractcapacity.filter.title" xml:space="preserve"><value>Backtest Criteria</value></data>
+  <data name="contractcapacity.filter.circuit" xml:space="preserve"><value>Billing Circuit</value></data>
+  <data name="contractcapacity.filter.no_circuit" xml:space="preserve"><value>(no demand-enabled meter)</value></data>
+  <data name="contractcapacity.filter.from" xml:space="preserve"><value>From (billing period)</value></data>
+  <data name="contractcapacity.filter.to" xml:space="preserve"><value>To (inclusive)</value></data>
+  <data name="contractcapacity.filter.round" xml:space="preserve"><value>Conservative Rounding</value></data>
+  <data name="contractcapacity.filter.threshold" xml:space="preserve"><value>Window Completeness %</value></data>
+  <data name="contractcapacity.filter.threshold_hint" xml:space="preserve"><value>Months whose share of valid 15-minute windows falls below this value are excluded from recommendations</value></data>
+  <data name="contractcapacity.filter.max_valid" xml:space="preserve"><value>Outlier Cap kW</value></data>
+  <data name="contractcapacity.filter.max_valid_hint" xml:space="preserve"><value>Demand above this value is treated as a meter glitch and excluded (e.g. the transformer rating); leave blank to keep all</value></data>
+  <data name="contractcapacity.filter.max_valid_placeholder" xml:space="preserve"><value>None</value></data>
+  <data name="contractcapacity.filter.hint" xml:space="preserve"><value>Billing periods follow the electricity billing cycle (calendar months if not customized). Prices come from the adopted tariff plan and the current contract from Contract Capacity History in Tariff Settings.</value></data>
+  <data name="contractcapacity.filter.tariff_link" xml:space="preserve"><value>Open Tariff Settings</value></data>
+  <data name="contractcapacity.button.run" xml:space="preserve"><value>Run Backtest</value></data>
+  <data name="contractcapacity.button.export" xml:space="preserve"><value>Export Excel</value></data>
+  <data name="contractcapacity.info.current_contract" xml:space="preserve"><value>Current regular contract</value></data>
+  <data name="contractcapacity.kpi.current" xml:space="preserve"><value>Current Contract · Backtest Demand Charge</value></data>
+  <data name="contractcapacity.kpi.current_sub" xml:space="preserve"><value>Regular contract {0} kW · max demand {1} kW ({2} months)</value></data>
+  <data name="contractcapacity.kpi.idle" xml:space="preserve"><value>{0} kW unused</value></data>
+  <data name="contractcapacity.kpi.no_contract" xml:space="preserve"><value>Contract capacity not set — see Tariff Settings → Contract Capacity History</value></data>
+  <data name="contractcapacity.kpi.safe" xml:space="preserve"><value>Conservative · No Excess in Backtest</value></data>
+  <data name="contractcapacity.kpi.safe_sub" xml:space="preserve"><value>= max demand {0} kW rounded up to {1} kW</value></data>
+  <data name="contractcapacity.kpi.optimum" xml:space="preserve"><value>Minimum-Cost Point · Some Months May Exceed</value></data>
+  <data name="contractcapacity.kpi.saving" xml:space="preserve"><value>Save NT$ {0} ({1}%)</value></data>
+  <data name="contractcapacity.kpi.extra_cost" xml:space="preserve"><value>Costs NT$ {0} more ({1}%)</value></data>
+  <data name="contractcapacity.kpi.saving_na" xml:space="preserve"><value>No current contract set; savings unavailable</value></data>
+  <data name="contractcapacity.kpi.over_months" xml:space="preserve"><value>Exceeds in {0} months · NT$ {1} surcharge included</value></data>
+  <data name="contractcapacity.kpi.no_over" xml:space="preserve"><value>No excess demand in backtest</value></data>
+  <data name="contractcapacity.kpi.quality" xml:space="preserve"><value>Data Quality · Taipower Fixed 15-minute Windows</value></data>
+  <data name="contractcapacity.kpi.quality_sub" xml:space="preserve"><value>{0} / {1} months evaluable · lowest month {2}% ({3})</value></data>
+  <data name="contractcapacity.kpi.quality_threshold" xml:space="preserve"><value>Threshold {0}%; months below it are excluded from recommendations</value></data>
+  <data name="contractcapacity.chart.curve" xml:space="preserve"><value>Demand Charge vs Regular Contract (Cost Curve)</value></data>
+  <data name="contractcapacity.chart.flat_note" xml:space="preserve"><value>Within {0}–{1} kW the cost is within 1% of the minimum</value></data>
+  <data name="contractcapacity.chart.monthly" xml:space="preserve"><value>Monthly Peak Max Demand vs Contract Lines</value></data>
+  <data name="contractcapacity.chart.base_fee" xml:space="preserve"><value>Base Charge</value></data>
+  <data name="contractcapacity.chart.penalty" xml:space="preserve"><value>Excess Demand Surcharge</value></data>
+  <data name="contractcapacity.chart.x_contract" xml:space="preserve"><value>Regular Contract Capacity (kW)</value></data>
+  <data name="contractcapacity.chart.y_cost" xml:space="preserve"><value>Backtest Demand Charge (10k NTD)</value></data>
+  <data name="contractcapacity.chart.max_demand" xml:space="preserve"><value>Peak Max Demand</value></data>
+  <data name="contractcapacity.table.title" xml:space="preserve"><value>Monthly Detail (Demand Charge = Base Charge + Excess Demand Surcharge)</value></data>
+  <data name="contractcapacity.table.rule" xml:space="preserve"><value>Surcharge: up to 10% over contract at 2x the price, beyond 10% at 3x; periods spanning summer and non-summer are weighted by days</value></data>
+  <data name="contractcapacity.table.month" xml:space="preserve"><value>Billing Period</value></data>
+  <data name="contractcapacity.table.price" xml:space="preserve"><value>Regular Contract Price (NTD/kW)</value></data>
+  <data name="contractcapacity.table.max_demand" xml:space="preserve"><value>Peak Max Demand (kW)</value></data>
+  <data name="contractcapacity.table.peak_at" xml:space="preserve"><value>Peak Window</value></data>
+  <data name="contractcapacity.table.completeness" xml:space="preserve"><value>Window Completeness</value></data>
+  <data name="contractcapacity.table.over_kw" xml:space="preserve"><value>Over kW</value></data>
+  <data name="contractcapacity.table.cost" xml:space="preserve"><value>Cost (NTD)</value></data>
+  <data name="contractcapacity.table.summer" xml:space="preserve"><value>Summer</value></data>
+  <data name="contractcapacity.table.cross_season" xml:space="preserve"><value>Mixed</value></data>
+  <data name="contractcapacity.table.excluded" xml:space="preserve"><value>{0} excluded</value></data>
+  <data name="contractcapacity.table.incl_penalty" xml:space="preserve"><value>incl. surcharge {0}</value></data>
+  <data name="contractcapacity.table.n_months" xml:space="preserve"><value>{0} months</value></data>
+  <data name="contractcapacity.table.total" xml:space="preserve"><value>Total ({0} evaluable months)</value></data>
+  <data name="contractcapacity.table.saving" xml:space="preserve"><value>Savings vs Current</value></data>
+  <data name="contractcapacity.scenario.current" xml:space="preserve"><value>Current</value></data>
+  <data name="contractcapacity.scenario.safe" xml:space="preserve"><value>Conservative</value></data>
+  <data name="contractcapacity.scenario.optimum" xml:space="preserve"><value>Min-Cost</value></data>
+  <data name="contractcapacity.reason.no_plan" xml:space="preserve"><value>No tariff plan adopted</value></data>
+  <data name="contractcapacity.reason.no_demand_tariff" xml:space="preserve"><value>Plan has no regular contract</value></data>
+  <data name="contractcapacity.reason.low_completeness" xml:space="preserve"><value>Insufficient window completeness</value></data>
+  <data name="contractcapacity.reason.no_data" xml:space="preserve"><value>No peak demand data</value></data>
+  <data name="contractcapacity.note.backtest" xml:space="preserve"><value>Savings are hindsight estimates assuming the contract had been in place during the backtest period, not a guarantee. Confirm adjustment rules and prices against the latest Taipower regulations before changing the contract.</value></data>
+  <data name="contractcapacity.note.scope" xml:space="preserve"><value>This version evaluates excess demand in peak hours only (regular contract); excess in semi-peak, Saturday semi-peak and off-peak hours is not included, and other contract types are billed at their current values.</value></data>
+  <data name="contractcapacity.msg.no_circuit" xml:space="preserve"><value>No meter has demand calculation enabled. Enable it in Meter / Circuit Settings first.</value></data>
+  <data name="contractcapacity.msg.load_fail" xml:space="preserve"><value>Failed to load. Please refresh the page.</value></data>
+  <data name="contractcapacity.msg.no_evaluable" xml:space="preserve"><value>None of the {0} billing periods in the backtest are evaluable, so no recommendation can be made.</value></data>
+  <data name="contractcapacity.msg.no_contract" xml:space="preserve"><value>Contract Capacity History is not set — recommendations are still shown, but the current cost and savings cannot be calculated.</value></data>
+  <data name="contractcapacity.msg.multiple_plans" xml:space="preserve"><value>The tariff plan changed during the backtest; each month uses the prices of the plan in effect.</value></data>
+  <data name="contractcapacity.msg.contract_changed" xml:space="preserve"><value>The current contract changed during the backtest; the Current cost uses the contract in effect each month.</value></data>
+  <data name="contractcapacity.msg.no_plan_short" xml:space="preserve"><value>No tariff plan adopted</value></data>
+  <data name="contractcapacity.msg.export_fail" xml:space="preserve"><value>Export failed: {0}</value></data>
+  <data name="contractcapacity.err.invalid_range" xml:space="preserve"><value>Invalid backtest period</value></data>
+  <data name="contractcapacity.err.range_too_large" xml:space="preserve"><value>The backtest period is limited to 24 billing periods</value></data>
+  <data name="contractcapacity.err.circuit_not_found" xml:space="preserve"><value>Circuit not found or demand calculation not enabled</value></data>
+  <data name="contractcapacity.err.server_error" xml:space="preserve"><value>Server error. Please try again later.</value></data>
+</root>

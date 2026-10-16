@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="excel.sheet_name" xml:space="preserve"><value>契約容量回測</value></data>
+  <data name="excel.title" xml:space="preserve"><value>契約容量最佳化 — 回測報告</value></data>
+  <data name="excel.label.circuit" xml:space="preserve"><value>計費迴路</value></data>
+  <data name="excel.label.plan" xml:space="preserve"><value>電價方案</value></data>
+  <data name="excel.label.multiple_plans" xml:space="preserve"><value>（回測期間曾換方案，逐月依當時方案計算）</value></data>
+  <data name="excel.label.range" xml:space="preserve"><value>回測期間</value></data>
+  <data name="excel.label.evaluable" xml:space="preserve"><value>可評估月數</value></data>
+  <data name="excel.label.threshold" xml:space="preserve"><value>窗口完整率門檻</value></data>
+  <data name="excel.label.max_valid" xml:space="preserve"><value>異常值上限 (kW)</value></data>
+  <data name="excel.label.round" xml:space="preserve"><value>保守建議取整</value></data>
+  <data name="excel.label.query_time" xml:space="preserve"><value>查詢時間</value></data>
+  <data name="excel.label.operator" xml:space="preserve"><value>操作者</value></data>
+  <data name="excel.label.flat_range" xml:space="preserve"><value>成本曲線平底區間 {0}–{1} kW：年費用與最低成本點相差 ≤ 1%</value></data>
+  <data name="excel.label.no_contract" xml:space="preserve"><value>未設定契約容量（請至電費設定 → 契約容量歷史）</value></data>
+  <data name="excel.col.scenario" xml:space="preserve"><value>方案</value></data>
+  <data name="excel.col.contract_kw" xml:space="preserve"><value>經常契約 (kW)</value></data>
+  <data name="excel.col.total" xml:space="preserve"><value>需量費用 (元)</value></data>
+  <data name="excel.col.regular_base" xml:space="preserve"><value>經常契約基本費 (元)</value></data>
+  <data name="excel.col.other_base" xml:space="preserve"><value>其他契約別基本費 (元)</value></data>
+  <data name="excel.col.penalty" xml:space="preserve"><value>超約附加費 (元)</value></data>
+  <data name="excel.col.over_months" xml:space="preserve"><value>超約月數</value></data>
+  <data name="excel.col.saving" xml:space="preserve"><value>相較現行節省 (元)</value></data>
+  <data name="excel.col.saving_pct" xml:space="preserve"><value>節省比例</value></data>
+  <data name="excel.scenario.current" xml:space="preserve"><value>現行</value></data>
+  <data name="excel.scenario.safe" xml:space="preserve"><value>保守建議</value></data>
+  <data name="excel.scenario.optimum" xml:space="preserve"><value>最低成本點</value></data>
+  <data name="excel.col.month" xml:space="preserve"><value>計費月</value></data>
+  <data name="excel.col.start" xml:space="preserve"><value>起日</value></data>
+  <data name="excel.col.end" xml:space="preserve"><value>訖日</value></data>
+  <data name="excel.col.price" xml:space="preserve"><value>經常契約單價 (元/kW)</value></data>
+  <data name="excel.col.max_demand" xml:space="preserve"><value>尖峰最高需量 (kW)</value></data>
+  <data name="excel.col.peak_at" xml:space="preserve"><value>發生窗口起點</value></data>
+  <data name="excel.col.completeness" xml:space="preserve"><value>窗口完整率</value></data>
+  <data name="excel.col.status" xml:space="preserve"><value>狀態</value></data>
+  <data name="excel.col.current_kw" xml:space="preserve"><value>現行經常契約 (kW)</value></data>
+  <data name="excel.col.cur_over" xml:space="preserve"><value>現行 超約 kW</value></data>
+  <data name="excel.col.cur_cost" xml:space="preserve"><value>現行 費用 (元)</value></data>
+  <data name="excel.col.safe_over" xml:space="preserve"><value>保守 超約 kW</value></data>
+  <data name="excel.col.safe_cost" xml:space="preserve"><value>保守 費用 (元)</value></data>
+  <data name="excel.col.opt_over" xml:space="preserve"><value>最低成本 超約 kW</value></data>
+  <data name="excel.col.opt_cost" xml:space="preserve"><value>最低成本 費用 (元)</value></data>
+  <data name="excel.status.ok" xml:space="preserve"><value>可評估</value></data>
+  <data name="excel.status.no_plan" xml:space="preserve"><value>未採用電價方案</value></data>
+  <data name="excel.status.no_demand_tariff" xml:space="preserve"><value>方案無經常契約</value></data>
+  <data name="excel.status.low_completeness" xml:space="preserve"><value>窗口完整率不足</value></data>
+  <data name="excel.status.no_data" xml:space="preserve"><value>無尖峰需量資料</value></data>
+  <data name="excel.note.backtest" xml:space="preserve"><value>節省金額為「若回測期間即採用該契約容量」的回推值，非未來保證；調整契約前請依台電最新營業規章確認調整限制與單價。</value></data>
+  <data name="excel.note.scope" xml:space="preserve"><value>本版只評估尖峰時間超約（經常契約）；半尖峰、週六半尖峰、離峰時間的超約不計入。其他契約別依現行值固定計入基本費。</value></data>
+  <data name="excel.note.season" xml:space="preserve"><value>超約附加費：超出契約容量 10% 以下部分按 2 倍、超過 10% 部分按 3 倍計收基本電費（台電電價表 114/11/17 版）。跨夏月與非夏月的計費月依日數比例加權。</value></data>
+</root>

@@ -246,6 +246,8 @@ builder.Services.AddScoped<ScadaEngine.Web.Services.AirMeterCircuitService>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.AirMeterUsageReportService>();
 // 空壓機能源申報 — 用電迴路 kWh + 產氣量表 Nm³ 成對 → 年度 12 曆月比能耗 kWh/Nm³
 builder.Services.AddScoped<ScadaEngine.Web.Services.AirCompressorDeclarationService>();
+// 契約容量最佳化 — DemandData 固定 15 分鐘窗口每月最高需量 × 電費設定單價 / 契約歷史 → 回測保守建議與最低成本點
+builder.Services.AddScoped<ScadaEngine.Web.Services.ContractCapacityService>();
 // 氣象資料來源 — CWA API client（Singleton：測站清單快取）+ 設定表讀寫（Scoped）+ 背景抓取（寫 Weather DBLatestData）
 builder.Services.AddSingleton<ScadaEngine.Web.Services.WeatherCwaClient>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.WeatherSettingService>();
@@ -279,6 +281,7 @@ builder.Services.AddScoped<ScadaEngine.Web.Services.EnergyReportExcelExporter>()
 builder.Services.AddScoped<ScadaEngine.Web.Services.RefrigerationTonReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnergyDeclarationExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.AirCompressorDeclarationExcelExporter>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.ContractCapacityExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.ElectricityCostReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnPIReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.WaterUsageReportExcelExporter>();

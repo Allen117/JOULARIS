@@ -52,6 +52,7 @@
 | 空調水系統迴路設定 | Chilled Water Circuit Settings | `/ChilledWaterSystem` |
 | 月結週期設定 | Billing Cycle Settings | `/BillingPeriodSetting` |
 | 電費設定 | Tariff Settings | `/TariffSetting` |
+| 契約容量最佳化 | Contract Capacity Optimization | `/ContractCapacity`（EMS「報表查詢」） |
 | 國定假日設定 | National Holidays / National Holiday Settings | `/HolidaySetting`（選單用短形） |
 | 班別設定 | Shift Settings | `/ShiftSetting` |
 | 班別 | Shift | 報表粒度選項 + 班別設定；跨日班 = Overnight |
@@ -99,6 +100,16 @@
 | 基本電費 | Base Charge | 按戶或按契約容量（瓩）計收 |
 | 流動電費 | Energy Charge | 按度計收 |
 | 經常契約 | Regular Contract | 契約容量項目 |
+| 契約容量 | Contract Capacity | 需量契約（15 分鐘平均 kW）；台電用語「契約容量」 |
+| 契約容量歷史 | Contract Capacity History | 電費設定頁區塊（生效日 + 各契約別 kW） |
+| 最高需量 | Maximum Demand / Max Demand | 計費月內最大的 15 分鐘平均需量 |
+| 固定 15 分鐘窗口 | Fixed 15-minute Window | 台電需量計量窗口（:00/:15/:30/:45 起） |
+| 窗口完整率 | Window Completeness | 有效窗口數 ÷ 應有窗口數；低於門檻的月份不可評估 |
+| 超約附加費 | Excess Demand Surcharge | 超出契約 10% 以下 2 倍、超過 10% 部分 3 倍基本電費；與「超額加價」（月總度數）不同 |
+| 保守建議 | Conservative (recommendation) | 回測期零超約的經常契約 |
+| 最低成本點 | Minimum-Cost Point | 回測期需量費用最低的經常契約 |
+| 平底區間 | Flat Cost Range | 與最低成本差 ≤ 1% 的經常契約範圍 |
+| 回測 | Backtest | 以歷史需量推算「若當時這樣訂」的費用 |
 | 離峰日 | Off-Peak Day | 台電指定假日，計價視同週日 |
 | 國定假日 | National Holiday | Holidays 表標註日，TOU 計價落 sun_offday |
 | 電費狀態 | Electricity Cost | EMS 卡片標題 |

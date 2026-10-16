@@ -239,4 +239,15 @@
   <data name="tariff.note.batch" xml:space="preserve"><value>Applicable to production-purpose premises.</value></data>
   <data name="tariff.note.ev" xml:space="preserve"><value>Exclusively for EV charging/battery-swap equipment and auxiliary facilities.</value></data>
   <data name="tariff.note.hv_ev" xml:space="preserve"><value>Exclusively for EV charging/battery-swap equipment and auxiliary facilities; when supplied at high voltage, billed at 95% of the listed rates.</value></data>
+  <data name="tariffsetting.contract.title" xml:space="preserve"><value>Contract Capacity History</value></data>
+  <data name="tariffsetting.contract.hint" xml:space="preserve"><value>Enter the contracted kW of each contract type as shown on the Taipower bill (demand contract, 15-minute average). Contract Capacity Optimization uses the record in effect for each billing month; only contract types present in the adopted plan are billed.</value></data>
+  <data name="tariffsetting.contract.add" xml:space="preserve"><value>Add Record</value></data>
+  <data name="tariffsetting.contract.del" xml:space="preserve"><value>Delete this record</value></data>
+  <data name="tariffsetting.contract.save" xml:space="preserve"><value>Save Contract Capacity</value></data>
+  <data name="tariffsetting.contract.empty" xml:space="preserve"><value>No contract capacity set — Contract Capacity Optimization can still suggest values, but cannot compute the current cost or savings.</value></data>
+  <data name="tariffsetting.contract.effective_date" xml:space="preserve"><value>Effective Date (inclusive)</value></data>
+  <data name="tariffsetting.err.contract_date_format" xml:space="preserve"><value>Invalid contract effective date (expected yyyy-MM-dd)</value></data>
+  <data name="tariffsetting.err.contract_date_dup" xml:space="preserve"><value>Duplicate contract effective date: {0}</value></data>
+  <data name="tariffsetting.err.contract_kw_invalid" xml:space="preserve"><value>kW for contract effective {0} must be a number of 0 or more</value></data>
+  <data name="tariffsetting.err.contract_kw_empty" xml:space="preserve"><value>Contract effective {0} needs at least one contract type with kW</value></data>
 </root>

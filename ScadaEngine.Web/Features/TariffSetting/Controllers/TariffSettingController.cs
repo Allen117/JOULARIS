@@ -76,11 +76,7 @@ public class TariffSettingController : Controller
     {
         try
         {
-            await _service.SaveConfigAsync(new TariffConfig
-            {
-                adoptions = dto.adoptions,
-                plans = dto.plans,
-            });
+            await _service.SaveAdoptionsAndPlansAsync(dto.adoptions, dto.plans);
             return Ok(new { success = true });
         }
         catch (ArgumentException ex)
@@ -90,6 +86,26 @@ public class TariffSettingController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "電費設定整份儲存失敗");
+            return StatusCode(500, new { message = "儲存失敗" });
+        }
+    }
+
+    /// <summary>儲存契約容量歷史（整份覆蓋；契約容量最佳化回測依此逐月取有效契約）</summary>
+    [HttpPost("api/contracts")]
+    public async Task<IActionResult> SaveContracts([FromBody] SaveContractsRequest dto)
+    {
+        try
+        {
+            await _service.SaveContractsAsync(dto.contracts);
+            return Ok(new { success = true });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "電費設定契約容量儲存失敗");
             return StatusCode(500, new { message = "儲存失敗" });
         }
     }

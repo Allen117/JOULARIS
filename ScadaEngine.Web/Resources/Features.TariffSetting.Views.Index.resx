@@ -239,4 +239,15 @@
   <data name="tariff.note.batch" xml:space="preserve"><value>適用生產性質用電場所。</value></data>
   <data name="tariff.note.ev" xml:space="preserve"><value>專供電動車充換電及附屬設備之用電。</value></data>
   <data name="tariff.note.hv_ev" xml:space="preserve"><value>專供電動車充換電及附屬設備之用電；以高壓供電者，按本表單價 95% 計算。</value></data>
+  <data name="tariffsetting.contract.title" xml:space="preserve"><value>契約容量歷史</value></data>
+  <data name="tariffsetting.contract.hint" xml:space="preserve"><value>依台電電費單填寫各契約別 kW（需量契約，15 分鐘平均）。「契約容量最佳化」回測時，每個計費月取當時有效的紀錄；只有採用方案有的契約別才會計費。</value></data>
+  <data name="tariffsetting.contract.add" xml:space="preserve"><value>新增契約紀錄</value></data>
+  <data name="tariffsetting.contract.del" xml:space="preserve"><value>刪除此契約紀錄</value></data>
+  <data name="tariffsetting.contract.save" xml:space="preserve"><value>儲存契約容量</value></data>
+  <data name="tariffsetting.contract.empty" xml:space="preserve"><value>尚未設定契約容量 — 契約容量最佳化頁仍可算建議值，但無法計算現行費用與節省金額。</value></data>
+  <data name="tariffsetting.contract.effective_date" xml:space="preserve"><value>生效日（含當日）</value></data>
+  <data name="tariffsetting.err.contract_date_format" xml:space="preserve"><value>契約容量生效日格式不正確（應為 yyyy-MM-dd）</value></data>
+  <data name="tariffsetting.err.contract_date_dup" xml:space="preserve"><value>契約容量生效日重複：{0}</value></data>
+  <data name="tariffsetting.err.contract_kw_invalid" xml:space="preserve"><value>契約容量生效日 {0} 的 kW 須為 0 以上的數字</value></data>
+  <data name="tariffsetting.err.contract_kw_empty" xml:space="preserve"><value>契約容量生效日 {0} 至少須填一個契約別的 kW</value></data>
 </root>

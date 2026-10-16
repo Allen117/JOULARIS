@@ -163,4 +163,5 @@
   <data name="layout.alarm_sound.status.silenced" xml:space="preserve"><value>{count} unacknowledged alarm(s) (silenced)</value></data>
   <data name="layout.alarm_sound.status.snoozed" xml:space="preserve"><value>Snoozed, {min} min left</value></data>
   <data name="layout.alarm_sound.status.offline" xml:space="preserve"><value>Unable to fetch alarm data</value></data>
+  <data name="layout.menu.contract_capacity" xml:space="preserve"><value>Contract Capacity Optimization</value></data>
 </root>

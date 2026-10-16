@@ -126,6 +126,15 @@ body.ems-mode .ts-section-title {
     max-width: 11rem;
 }
 
+/* 契約容量歷史 */
+.ts-contract-table {
+    max-width: 72rem;
+}
+
+.ts-contract-kw {
+    min-width: 6.5rem;
+}
+
 /* 日別區塊 */
 .ts-daytype-block .ts-daytype-title {
     font-weight: 600;

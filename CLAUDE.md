@@ -136,6 +136,7 @@ ScadaEngine.sln
 - **通知系統**：Line / Email / 簡訊三通道推播（每群組/號碼可選 zh-TW / en，觸發 + 恢復皆通知；寄送結果寫 EventLog 摘要，EventType=3）。Engine 端訊息字典 `Resources/notification.{zh-TW,en}.json`，Web UI 在 `AlarmSetting` 第三 tab 管理 Email 群組與規則路由、第四 tab 管理簡訊號碼。SMTP 走 **MailKit**；簡訊走序列埠簡訊盒（**System.IO.Ports** + 標準 AT 指令、UCS2 70 字、COM 自動偵測，無網路可用；Web 測試發送/重掃經 MQTT `SCADA/Sys/Sms/Cmd|Status` 由 Engine 代執行）→ docs/功能說明書_簡訊通知.md。三檔設定（Email / Sms / Line）生產機在 `C:\JOULARIS\Shared\`，Engine 讀、Web 讀寫同一份；Web 存檔後發 `SCADA/Sys/Notify/Reload|Status` 熱重載，不重啟 Engine → docs/架構.md §共用設定檔解析順序
 - **用電報表**：On-demand 計算 + 葉子層 Hourly 預聚合 + Staleness Window
 - **電費計算**：Web 逐時計價（EnergyLeafHourly → ElectricityCostHourly，XX:05 觸發）+ EMS 電費狀態卡 + /HolidaySetting 假日（TOU 落 sun_offday）
+- **契約容量最佳化**：`/ContractCapacity` on-demand 讀 DemandData 整刻樣本（台電固定 15 分鐘窗口）× 電費設定單價與「契約容量歷史」（`electricity_tariff.contracts`）→ Common `ContractCapacityCalculator` 回測保守建議 / 最低成本點（超約 2/3 倍依台電電價表）→ docs/功能說明書_契約容量最佳化.md
 - **用水報表與水費**：累積式水表 `WaterMeter*` 體系（boundary 相減 + MaxVolume 溢位 + UnitScale 換算 m³）+ 台水流動水費分段累進 on-demand（無逐時表）；與冷凍噸 WaterCircuit 無關
 - **用氣報表與氣費**：累積式天然氣表 `GasMeter*` 體系（與水表平行複製、各自獨立；Engine XX:03 聚合）。兩處刻意差異：點位判定走**單位 + 點位名稱關鍵字雙條件**（單位納入「度」但靠名稱擋掉電表點位，水表僅看單位）；氣費期別多 `IsSkipped` 支援**兩月一期**
 - **產氣量表與空壓機能源申報**：累積式產氣量 `AirMeter*` 體系（與氣表平行複製、**互不相干** — 壓縮空氣不可借氣表樹否則被計氣費；Engine XX:04 聚合；點位判定單位 + 名稱關鍵字 + 排除天然氣字樣）→ `/AirCompressorDeclaration` 與冰水申報同構，kWh 同一支曆月方法，12 曆月比能耗 kWh/Nm³

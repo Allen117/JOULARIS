@@ -199,7 +199,7 @@
                                     </ul>
                                 </li>
                             }
-                            @if (canAccess("/EnergyReport") || canAccess("/ElectricityCostReport") || canAccess("/RefrigerationTonReport") || canAccess("/WaterUsageReport") || canAccess("/WaterCostReport") || canAccess("/GasUsageReport") || canAccess("/GasCostReport") || canAccess("/EnergyDeclaration") || canAccess("/AirCompressorDeclaration"))
+                            @if (canAccess("/EnergyReport") || canAccess("/ElectricityCostReport") || canAccess("/ContractCapacity") || canAccess("/RefrigerationTonReport") || canAccess("/WaterUsageReport") || canAccess("/WaterCostReport") || canAccess("/GasUsageReport") || canAccess("/GasCostReport") || canAccess("/EnergyDeclaration") || canAccess("/AirCompressorDeclaration"))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -214,6 +214,10 @@
                                         @if (canAccess("/ElectricityCostReport"))
                                         {
                                             <li><a class="dropdown-item" href="/ElectricityCostReport"><i class="fas fa-file-invoice-dollar me-2"></i>@Localizer["layout.menu.electricity_cost_report"]</a></li>
+                                        }
+                                        @if (canAccess("/ContractCapacity"))
+                                        {
+                                            <li><a class="dropdown-item" href="/ContractCapacity"><i class="fas fa-sliders-h me-2"></i>@Localizer["layout.menu.contract_capacity"]</a></li>
                                         }
                                         @if (canAccess("/RefrigerationTonReport"))
                                         {

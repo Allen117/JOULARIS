@@ -104,7 +104,7 @@ Registered as both `AddSingleton` and `AddHostedService` so it can be injected i
 
 僅以下頁面已導入 i18n，新增/修改其字串時：
 
-- **已 i18n 範圍**：ScadaPage、Realtime、EnergyReport、EnergyBaseline、History/Trend、EventLog、AccountSetting、ScheduleSetting、ConditionCtrl、LogicFlow、ModbusCoordinator、DbCoordinator、CalcPoint、WeatherSetting、EmsCardSetting、WaterMeterSetting、WaterUsageReport、WaterTariffSetting、WaterCostReport、WaterBillingPeriodSetting、GasMeterSetting、GasUsageReport、GasTariffSetting、GasCostReport、GasBillingPeriodSetting、AirMeterSetting、AirCompressorDeclaration、EquipmentEfficiencySetting、ChillerEfficiency、CompressorEfficiency（JS 字串共用 class-less `Resources/EquipmentEfficiency.resx`，兩診斷頁版面共用 `Views/Shared/_EquipmentDiagnosis.cshtml`）、共用 `_Layout`
+- **已 i18n 範圍**：ScadaPage、Realtime、EnergyReport、EnergyBaseline、History/Trend、EventLog、AccountSetting、ScheduleSetting、ConditionCtrl、LogicFlow、ModbusCoordinator、DbCoordinator、CalcPoint、WeatherSetting、EmsCardSetting、WaterMeterSetting、WaterUsageReport、WaterTariffSetting、WaterCostReport、WaterBillingPeriodSetting、GasMeterSetting、GasUsageReport、GasTariffSetting、GasCostReport、GasBillingPeriodSetting、AirMeterSetting、AirCompressorDeclaration、EquipmentEfficiencySetting、ContractCapacity、ChillerEfficiency、CompressorEfficiency（JS 字串共用 class-less `Resources/EquipmentEfficiency.resx`，兩診斷頁版面共用 `Views/Shared/_EquipmentDiagnosis.cshtml`）、共用 `_Layout`
 - **.cshtml 字串**：`@Localizer["key"]`（key 命名 `feature.section.purpose` 全小寫底線分）
 - **JS 字串**：`window.i18n.t('key', {args})`，IIFE 內可宣告 `function t(key, args) { return window.i18n.t(key, args); }` 簡化
 - **Controller / Service / Excel exporter**：建構子注入 `IStringLocalizer<T>`，走 `_l["key"].Value`。Singleton 服務若依賴此須改 Scoped

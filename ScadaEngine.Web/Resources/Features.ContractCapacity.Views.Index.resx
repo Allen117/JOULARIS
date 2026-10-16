@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="contractcapacity.title" xml:space="preserve"><value>契約容量最佳化</value></data>
+  <data name="contractcapacity.filter.title" xml:space="preserve"><value>回測條件</value></data>
+  <data name="contractcapacity.filter.circuit" xml:space="preserve"><value>計費迴路</value></data>
+  <data name="contractcapacity.filter.no_circuit" xml:space="preserve"><value>（無啟用需量的電表）</value></data>
+  <data name="contractcapacity.filter.from" xml:space="preserve"><value>回測起（計費月）</value></data>
+  <data name="contractcapacity.filter.to" xml:space="preserve"><value>回測訖（含）</value></data>
+  <data name="contractcapacity.filter.round" xml:space="preserve"><value>保守建議取整</value></data>
+  <data name="contractcapacity.filter.threshold" xml:space="preserve"><value>窗口完整率門檻 %</value></data>
+  <data name="contractcapacity.filter.threshold_hint" xml:space="preserve"><value>當月有效 15 分鐘窗口占比低於此值時，該月不列入建議</value></data>
+  <data name="contractcapacity.filter.max_valid" xml:space="preserve"><value>異常值上限 kW</value></data>
+  <data name="contractcapacity.filter.max_valid_hint" xml:space="preserve"><value>超過此值的需量視為電表跳動並排除（例如填變壓器容量）；留空 = 不排除</value></data>
+  <data name="contractcapacity.filter.max_valid_placeholder" xml:space="preserve"><value>不排除</value></data>
+  <data name="contractcapacity.filter.hint" xml:space="preserve"><value>計費月依電費月結週期（未自訂時為曆月）；單價取自電費設定的採用方案，現行契約取自電費設定的「契約容量歷史」。</value></data>
+  <data name="contractcapacity.filter.tariff_link" xml:space="preserve"><value>前往電費設定</value></data>
+  <data name="contractcapacity.button.run" xml:space="preserve"><value>回測</value></data>
+  <data name="contractcapacity.button.export" xml:space="preserve"><value>匯出 Excel</value></data>
+  <data name="contractcapacity.info.current_contract" xml:space="preserve"><value>現行經常契約</value></data>
+  <data name="contractcapacity.kpi.current" xml:space="preserve"><value>現行契約 · 回測期需量費用</value></data>
+  <data name="contractcapacity.kpi.current_sub" xml:space="preserve"><value>經常契約 {0} kW · 回測期最高需量 {1} kW（{2} 個月）</value></data>
+  <data name="contractcapacity.kpi.idle" xml:space="preserve"><value>閒置 {0} kW</value></data>
+  <data name="contractcapacity.kpi.no_contract" xml:space="preserve"><value>未設定契約容量 — 請至電費設定 → 契約容量歷史</value></data>
+  <data name="contractcapacity.kpi.safe" xml:space="preserve"><value>保守建議 · 回測期零超約</value></data>
+  <data name="contractcapacity.kpi.safe_sub" xml:space="preserve"><value>= 最高需量 {0} kW 進位至 {1} kW</value></data>
+  <data name="contractcapacity.kpi.optimum" xml:space="preserve"><value>最低成本點 · 容許部分月份超約</value></data>
+  <data name="contractcapacity.kpi.saving" xml:space="preserve"><value>省 NT$ {0}（{1}%）</value></data>
+  <data name="contractcapacity.kpi.extra_cost" xml:space="preserve"><value>多付 NT$ {0}（{1}%）</value></data>
+  <data name="contractcapacity.kpi.saving_na" xml:space="preserve"><value>未設定現行契約，無法計算節省金額</value></data>
+  <data name="contractcapacity.kpi.over_months" xml:space="preserve"><value>超約 {0} 個月 · 附加費 NT$ {1} 已計入</value></data>
+  <data name="contractcapacity.kpi.no_over" xml:space="preserve"><value>回測期無超約</value></data>
+  <data name="contractcapacity.kpi.quality" xml:space="preserve"><value>資料品質 · 台電固定 15 分鐘窗口</value></data>
+  <data name="contractcapacity.kpi.quality_sub" xml:space="preserve"><value>{0} / {1} 個月可評估 · 最低單月 {2}%（{3}）</value></data>
+  <data name="contractcapacity.kpi.quality_threshold" xml:space="preserve"><value>門檻 {0}%，低於門檻的月份不列入建議</value></data>
+  <data name="contractcapacity.chart.curve" xml:space="preserve"><value>需量費用 vs 經常契約容量（成本曲線）</value></data>
+  <data name="contractcapacity.chart.flat_note" xml:space="preserve"><value>平底區間 {0}–{1} kW 內，費用與最低點差距 ≤ 1%</value></data>
+  <data name="contractcapacity.chart.monthly" xml:space="preserve"><value>逐月尖峰最高需量 vs 契約線</value></data>
+  <data name="contractcapacity.chart.base_fee" xml:space="preserve"><value>基本電費</value></data>
+  <data name="contractcapacity.chart.penalty" xml:space="preserve"><value>超約附加費</value></data>
+  <data name="contractcapacity.chart.x_contract" xml:space="preserve"><value>經常契約容量 (kW)</value></data>
+  <data name="contractcapacity.chart.y_cost" xml:space="preserve"><value>回測期需量費用（萬元）</value></data>
+  <data name="contractcapacity.chart.max_demand" xml:space="preserve"><value>當月尖峰最高需量</value></data>
+  <data name="contractcapacity.table.title" xml:space="preserve"><value>逐月明細（需量費用 = 基本電費 + 超約附加費）</value></data>
+  <data name="contractcapacity.table.rule" xml:space="preserve"><value>超約附加費：超出 10% 以內按單價 2 倍、超出 10% 部分按 3 倍；跨夏月與非夏月的計費月依日數加權</value></data>
+  <data name="contractcapacity.table.month" xml:space="preserve"><value>計費月</value></data>
+  <data name="contractcapacity.table.price" xml:space="preserve"><value>經常契約單價 (元/kW)</value></data>
+  <data name="contractcapacity.table.max_demand" xml:space="preserve"><value>尖峰最高需量 (kW)</value></data>
+  <data name="contractcapacity.table.peak_at" xml:space="preserve"><value>發生窗口</value></data>
+  <data name="contractcapacity.table.completeness" xml:space="preserve"><value>窗口完整率</value></data>
+  <data name="contractcapacity.table.over_kw" xml:space="preserve"><value>超約 kW</value></data>
+  <data name="contractcapacity.table.cost" xml:space="preserve"><value>費用 (元)</value></data>
+  <data name="contractcapacity.table.summer" xml:space="preserve"><value>夏</value></data>
+  <data name="contractcapacity.table.cross_season" xml:space="preserve"><value>跨季</value></data>
+  <data name="contractcapacity.table.excluded" xml:space="preserve"><value>排除 {0} 筆</value></data>
+  <data name="contractcapacity.table.incl_penalty" xml:space="preserve"><value>含附加 {0}</value></data>
+  <data name="contractcapacity.table.n_months" xml:space="preserve"><value>{0} 個月</value></data>
+  <data name="contractcapacity.table.total" xml:space="preserve"><value>合計（{0} 個可評估月）</value></data>
+  <data name="contractcapacity.table.saving" xml:space="preserve"><value>相較現行節省</value></data>
+  <data name="contractcapacity.scenario.current" xml:space="preserve"><value>現行</value></data>
+  <data name="contractcapacity.scenario.safe" xml:space="preserve"><value>保守</value></data>
+  <data name="contractcapacity.scenario.optimum" xml:space="preserve"><value>最低成本</value></data>
+  <data name="contractcapacity.reason.no_plan" xml:space="preserve"><value>未採用電價方案</value></data>
+  <data name="contractcapacity.reason.no_demand_tariff" xml:space="preserve"><value>方案無經常契約</value></data>
+  <data name="contractcapacity.reason.low_completeness" xml:space="preserve"><value>窗口完整率不足</value></data>
+  <data name="contractcapacity.reason.no_data" xml:space="preserve"><value>無尖峰需量資料</value></data>
+  <data name="contractcapacity.note.backtest" xml:space="preserve"><value>節省金額為「若回測期間即採用該契約容量」的回推值，非未來保證；實際調整契約前請依台電最新營業規章確認調整限制與單價。</value></data>
+  <data name="contractcapacity.note.scope" xml:space="preserve"><value>本版只評估尖峰時間超約（經常契約）；半尖峰、週六半尖峰、離峰時間的超約不計入，其他契約別依現行值固定計入基本費。</value></data>
+  <data name="contractcapacity.msg.no_circuit" xml:space="preserve"><value>沒有啟用需量計算的電表。請先到「電表/迴路設定」勾選需量計算。</value></data>
+  <data name="contractcapacity.msg.load_fail" xml:space="preserve"><value>載入失敗，請重新整理頁面</value></data>
+  <data name="contractcapacity.msg.no_evaluable" xml:space="preserve"><value>回測期間 {0} 個計費月皆不可評估，無法給出建議。</value></data>
+  <data name="contractcapacity.msg.no_contract" xml:space="preserve"><value>尚未設定契約容量歷史 — 仍可參考建議值，但無法計算現行費用與節省金額。</value></data>
+  <data name="contractcapacity.msg.multiple_plans" xml:space="preserve"><value>回測期間曾更換電價方案，逐月依當時方案的單價計算。</value></data>
+  <data name="contractcapacity.msg.contract_changed" xml:space="preserve"><value>回測期間現行契約曾變更，「現行」費用逐月依當時有效的契約計算。</value></data>
+  <data name="contractcapacity.msg.no_plan_short" xml:space="preserve"><value>未採用電價方案</value></data>
+  <data name="contractcapacity.msg.export_fail" xml:space="preserve"><value>匯出失敗：{0}</value></data>
+  <data name="contractcapacity.err.invalid_range" xml:space="preserve"><value>回測期間不正確</value></data>
+  <data name="contractcapacity.err.range_too_large" xml:space="preserve"><value>回測期間最多 24 個計費月</value></data>
+  <data name="contractcapacity.err.circuit_not_found" xml:space="preserve"><value>找不到該迴路，或該迴路未啟用需量計算</value></data>
+  <data name="contractcapacity.err.server_error" xml:space="preserve"><value>伺服器錯誤，請稍後再試</value></data>
+</root>

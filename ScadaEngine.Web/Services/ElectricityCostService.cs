@@ -286,6 +286,23 @@ public class ElectricityCostService
         };
     }
 
+    /// <summary>
+    /// 指定時刻落在 tou 方案的哪個時段（peak / semipeak / offpeak）；非 tou 方案或查無時段回 null。
+    /// 季節 / 日別判定同計價（ResolveSeason / ResolveDayType）。契約容量回測用來挑尖峰時間的需量窗口。
+    /// </summary>
+    public static string? ResolvePeriodAt(TariffPlan plan, DateTime dt, HashSet<DateTime> holidays)
+    {
+        if (plan.szType != "tou") return null;
+        var dtDay = dt.Date;
+        var szSeason = ResolveSeason(plan, dtDay) ? "summer" : "nonsummer";
+        var nMinute = dt.Hour * 60 + dt.Minute;
+        foreach (var span in BuildDaySpans(plan, ResolveDayType(dtDay, holidays), szSeason))
+        {
+            if (nMinute >= span.nStartMin && nMinute < span.nEndMin) return span.szPeriod;
+        }
+        return null;
+    }
+
     private record DaySpan(int nStartMin, int nEndMin, string szPeriod, double dPrice);
 
     /// <summary>

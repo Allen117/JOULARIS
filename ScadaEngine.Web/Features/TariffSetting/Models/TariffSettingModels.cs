@@ -22,6 +22,25 @@ public class TariffConfig
 
     /// <summary>方案目錄（台電 seed + 使用者自建）</summary>
     public List<TariffPlan> plans { get; set; } = [];
+
+    /// <summary>
+    /// 契約容量歷史（生效日 + 各契約別 kW）— 契約容量最佳化回測依每個計費月取當時有效值。
+    /// 空清單 = 未設定（回測仍可給建議值，但無法算現行費用與節省金額）。
+    /// </summary>
+    public List<ContractCapacityRecord> contracts { get; set; } = [];
+}
+
+/// <summary>契約容量紀錄 — 「szEffectiveDate 起各契約別為 kw」（含當日）</summary>
+public class ContractCapacityRecord
+{
+    /// <summary>生效日（yyyy-MM-dd，含當日）</summary>
+    public string szEffectiveDate { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 各契約別 kW — key = 基本電費 szKey（regular_kw / nonsummer_kw / semipeak_kw / sat_semipeak_kw / offpeak_kw）；
+    /// 缺 key 視為 0。只有採用方案 baseFees 內有的 key 才會計費。
+    /// </summary>
+    public Dictionary<string, double> kw { get; set; } = [];
 }
 
 /// <summary>採用時間軸一列 — 「szEffectiveDate 起改用 szPlanId」（含當日）</summary>
@@ -165,6 +184,12 @@ public class SaveTariffConfigRequest
 {
     public List<TariffAdoption> adoptions { get; set; } = [];
     public List<TariffPlan> plans { get; set; } = [];
+}
+
+/// <summary>契約容量歷史存回（整份覆蓋 contracts，不動方案與時間軸）</summary>
+public class SaveContractsRequest
+{
+    public List<ContractCapacityRecord> contracts { get; set; } = [];
 }
 
 /// <summary>還原單一方案為台電預設</summary>

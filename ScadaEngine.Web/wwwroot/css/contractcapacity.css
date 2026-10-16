@@ -1,0 +1,74 @@
+/* 契約容量最佳化 */
+.cc-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.cc-filter-bar > div {
+    min-width: 150px;
+}
+
+.cc-filter-bar > div.cc-narrow {
+    min-width: 0;
+    width: 9rem;
+}
+
+.cc-filter-bar > div.cc-btn {
+    min-width: 0;
+}
+
+/* KPI 卡左側色條：灰 = 現行、綠 = 保守、橘 = 最低成本、青 = 資料品質（語意色，與 SCADA / EMS 主題無關） */
+.cc-kpi {
+    border-left: 4px solid var(--bs-gray-400);
+}
+
+.cc-kpi.cc-cur { border-left-color: var(--bs-secondary); }
+.cc-kpi.cc-safe { border-left-color: var(--bs-success); }
+.cc-kpi.cc-min { border-left-color: var(--bs-orange); }
+.cc-kpi.cc-dq { border-left-color: var(--bs-info); }
+
+.cc-kpi .cc-kpi-label {
+    font-size: .85rem;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.cc-kpi .cc-kpi-main {
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.cc-kpi .cc-kpi-sub {
+    font-size: .9rem;
+}
+
+.cc-save {
+    color: var(--bs-success);
+    font-weight: 600;
+}
+
+.cc-over {
+    color: var(--bs-danger);
+}
+
+.cc-chart-box {
+    position: relative;
+    height: 330px;
+}
+
+.cc-table td,
+.cc-table th {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.cc-table tfoot td {
+    font-weight: 700;
+    background: var(--bs-tertiary-bg, #f1f3f5);
+}
+
+.cc-table tr.cc-row-na td {
+    color: var(--bs-secondary-color, #6c757d);
+}
