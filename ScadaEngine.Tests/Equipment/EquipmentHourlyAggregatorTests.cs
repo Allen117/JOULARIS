@@ -110,6 +110,30 @@ public class EquipmentHourlyAggregatorTests
         Assert.Equal(90, m.dAvgLoadPct!.Value, 6);   // 450 / 額定 500
     }
 
+    [Fact]
+    public void 冰機_RT點負值_分鐘層當0再平均()
+    {
+        // 前 30 分鐘 400 RT、後 30 分鐘 −50 RT（停機溫差雜訊）
+        // 分鐘層 clamp → AVG = (400×30 + 0×30) / 60 = 200；若在平均層 clamp 會得 175，若不 clamp 會得 175 且被低報
+        var p = Chiller(R.KW, R.RT);
+        var rt = Const(400, 30).Concat(Const(-50, 30, 30)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        var s = Samples((R.KW, Const(300)), (R.RT, rt));
+        var m = EquipmentHourlyAggregator.ComputeFromSamples(p, Hour, s, null, MinSamples)!;
+        Assert.Equal(200, m.dOutputQty!.Value, 6);
+        Assert.Equal(60, m.nSampleCount);   // 負值分鐘仍算有效樣本（有量測到沒冷量，不是缺值）
+        Assert.Equal(1, m.nQuality);
+    }
+
+    [Fact]
+    public void 冰機_RT點整小時負值_產出0非負()
+    {
+        var p = Chiller(R.KW, R.RT);
+        var s = Samples((R.KW, Const(300)), (R.RT, Const(-20)));
+        var m = EquipmentHourlyAggregator.ComputeFromSamples(p, Hour, s, null, MinSamples)!;
+        Assert.Equal(0, m.dOutputQty!.Value, 6);
+        Assert.Equal(1, m.nQuality);
+    }
+
     // ── kWh 路徑 ───────────────────────────────────────────
 
     [Fact]

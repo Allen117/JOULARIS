@@ -101,7 +101,7 @@ public class EquipmentRealtimeService
             var dFlow = V(EquipmentRoles.FLOW);
             var dChws = V(EquipmentRoles.CHWS);
             var dChwr = V(EquipmentRoles.CHWR);
-            var dRtPoint = V(EquipmentRoles.RT);
+            var dRtPoint = Calc.ClampRtPoint(V(EquipmentRoles.RT));   // 負值當 0（與流量路徑對稱）
             var hasFlowPath = p.GetBinding(EquipmentRoles.FLOW) != null
                 && p.GetBinding(EquipmentRoles.CHWS) != null
                 && p.GetBinding(EquipmentRoles.CHWR) != null;

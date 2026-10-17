@@ -38,6 +38,23 @@ public class EquipmentMetricCalculatorTests
         Assert.Equal(0, Calc.CoolingRtFromFlow(flow, chws, chwr));
     }
 
+    [Theory]
+    [InlineData(-30, 0)]      // 負值 → 0
+    [InlineData(-0.001, 0)]
+    [InlineData(0, 0)]
+    [InlineData(450, 450)]    // 正值原樣
+    public void RT點_負值當0(double input, double expected)
+    {
+        Assert.Equal(expected, Calc.ClampRtPoint(input));
+    }
+
+    [Fact]
+    public void RT點_缺值與NaN_原樣回傳()
+    {
+        Assert.Null(Calc.ClampRtPoint(null));
+        Assert.True(double.IsNaN(Calc.ClampRtPoint(double.NaN)!.Value));
+    }
+
     [Fact]
     public void 任一輸入缺值_回null()
     {

@@ -160,7 +160,9 @@ public class EquipmentHourlyAggregator
             }
             else
             {
-                outMin = samples.Get(EquipmentRoles.RT);
+                // RT 點直接讀：負值當 0（與流量路徑 ΔT ≤ 0 → 0 對稱），在分鐘層 clamp 才不會被平均掩蓋
+                outMin = samples.Get(EquipmentRoles.RT)
+                    .ToDictionary(kv => kv.Key, kv => Calc.ClampRtPoint(kv.Value)!.Value);
             }
         }
         var nOutMinutes = outMin.Count;

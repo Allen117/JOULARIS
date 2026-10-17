@@ -52,6 +52,14 @@ public static class EquipmentMetricCalculator
         return dFlowLpm.Value / 60.0 * dDeltaT * dCp / EquipmentUnitScale.KwPerRt;
     }
 
+    /// <summary>
+    /// 直接讀取的 RT 點位 → 非負冷量。負值 → 0（蒸發器側不可能產生負冷量；負值 = 停機 / 泵停時的溫差雜訊或感測器偏差），
+    /// 與 <see cref="CoolingRtFromFlow"/> 的 ΔT ≤ 0 → 0 對稱。null / NaN 原樣回傳（缺值語意不變）。
+    /// 只套在「分鐘樣本」層，不套在小時平均或樹合併層（bucket 的 Sign 負值合法）。
+    /// </summary>
+    public static double? ClampRtPoint(double? dRt)
+        => dRt == null || double.IsNaN(dRt.Value) ? dRt : Math.Max(0, dRt.Value);
+
     /// <summary>a ÷ b；b ≤ 0、任一 null 或 NaN → null</summary>
     public static double? SafeDiv(double? a, double? b)
     {

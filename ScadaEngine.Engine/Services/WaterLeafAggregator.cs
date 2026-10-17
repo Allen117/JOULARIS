@@ -12,6 +12,7 @@ namespace ScadaEngine.Engine.Services;
 ///
 /// 演算法 (與 EnergyLeafAggregator 不同)：
 ///   - RT 是「瞬時冷凍噸」，HistoryData 已被分鐘級 dedup（每分鐘最多 1 筆）
+///   - 負 RT 樣本逐筆 clamp 為 0 再平均（冷量不可能為負；與設備效率的 RT 點 / ΔT ≤ 0 規則一致）
 ///   - 該小時冷量 RT·h = AVG(RT samples) × 1h（rectangle 積分）
 ///   - SampleCount &lt; MinSamples（預設 30）→ 視為資料不足，回 null 不寫
 ///     避免「缺資料時段被低報為 0」的物理錯誤
@@ -70,12 +71,17 @@ public class WaterLeafAggregator
         };
     }
 
-    /// <summary>取 sid 在 [t0, t1) 區間內所有 Quality=1 樣本的 AVG 與 COUNT。</summary>
+    /// <summary>
+    /// 取 sid 在 [t0, t1) 區間內所有 Quality=1 樣本的 AVG 與 COUNT。
+    /// 負 RT 樣本在逐筆層 clamp 為 0 再平均（冷量不可能為負；負值 = 停機 / 泵停溫差雜訊），
+    /// COUNT 仍計入該筆（它是「有量測到沒冷量」，不是缺值）。
+    /// </summary>
     private static async Task<(double? fAvg, int nCount)> GetHourAvgAndCountAsync(
         SqlConnection conn, string szSid, DateTime dtT0, DateTime dtT1)
     {
         const string szSql = @"
-            SELECT AVG(CAST(Value AS float)) AS Avg, COUNT_BIG(1) AS Cnt
+            SELECT AVG(CASE WHEN Value < 0 THEN 0.0 ELSE CAST(Value AS float) END) AS Avg,
+                   COUNT_BIG(1) AS Cnt
             FROM   HistoryData WITH (NOLOCK)
             WHERE  SID = @sid
                AND Timestamp >= @t0
