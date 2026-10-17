@@ -1,0 +1,33 @@
+/* 共用 UI 狀態樣式（搭配 js/common/ui-state.js）
+   原則：符號屬於元件、不屬於文案 — 警告色與圖示由容器 class 提供一次 */
+
+/* 區塊警告文字（卡片標頭 / 面板）：琥珀色，與表格內 stale 標記同色系但字級照容器 */
+.ui-warn-text {
+    color: #b8860b;
+}
+.ui-warn-text[hidden] {
+    display: none !important;
+}
+
+/* 語言標籤 chip（LogicFlow C# 演算法）：文字取代 ⚡，避免與全站 fa-bolt「電」撞號 */
+.ui-lang-tag {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: .6rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: .3px;
+    background: #e9ecef;
+    color: #495057;
+    vertical-align: middle;
+}
+
+/* AI 幫手氣泡判定色條：以左側色條取代 👍 / ⚠ */
+.sa-msg-bot.sa-msg-good {
+    border-left: 3px solid #198754;
+}
+.sa-msg-bot.sa-msg-warn {
+    border-left: 3px solid #ffc107;
+}

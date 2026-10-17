@@ -93,7 +93,7 @@
   <data name="costreport.label.total_kwh" xml:space="preserve"><value>Total Energy</value></data>
   <data name="costreport.unit.ntd" xml:space="preserve"><value>NT$</value></data>
   <data name="costreport.note.exclude_base" xml:space="preserve"><value>(excludes basic charges)</value></data>
-  <data name="costreport.note.estimated" xml:space="preserve"><value>⚠ Includes tier-allocated estimates (progressive plans allocated by kWh share)</value></data>
+  <data name="costreport.note.estimated" xml:space="preserve"><value>Includes tier-allocated estimates (progressive plans allocated by kWh share)</value></data>
 
   <data name="costreport.select.loading" xml:space="preserve"><value>-- Loading --</value></data>
   <data name="costreport.select.placeholder" xml:space="preserve"><value>-- Select a circuit --</value></data>
@@ -108,4 +108,5 @@
   <data name="costreport.alert.export_failed" xml:space="preserve"><value>Export failed: {0}</value></data>
 
   <data name="costreport.period.hint" xml:space="preserve"><value>Actual period range: {0} ~ {1} (per billing cycle settings)</value></data>
+  <data name="costreport.circuit.meter_tag" xml:space="preserve"><value> (meter)</value></data>
 </root>

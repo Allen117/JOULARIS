@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ui-state.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/refrigerationtonreport.css">
 
     <style>
@@ -272,7 +273,7 @@
                         <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-chart-bar me-1"></i>冷量分布</span>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted small" id="rtWarnText"></span>
+                                <span class="ui-warn-text small" id="rtWarnText" hidden></span>
                                 <button type="button" id="rtBtnToggleBreakdown" class="btn btn-sm btn-outline-secondary d-none" onclick="window._rt.toggleBreakdown()">
                                     <i class="fas fa-layer-group me-1"></i><span id="rtBtnToggleBreakdownText">顯示明細</span>
                                 </button>
@@ -355,7 +356,7 @@
             'refrigerationtonreport.alert.query_failed': '查詢失敗：{0}',
             'refrigerationtonreport.table.no_data': '無資料',
             'refrigerationtonreport.table.total': '合計',
-            'refrigerationtonreport.warning.data_incomplete': '⚠ 部分時段資料不足（樣本數 < 30/小時），該段視為缺資料',
+            'refrigerationtonreport.warning.data_incomplete': '部分時段資料不足（樣本數 < 30/小時），該段視為缺資料',
             'refrigerationtonreport.button.show_total': '顯示合計',
             'refrigerationtonreport.button.show_breakdown': '顯示明細',
             'refrigerationtonreport.chart.breakdown_total_label': '合計：{0} RT·h',
@@ -372,6 +373,7 @@
         ready: function (cb) { cb(); }
     };
     </script>
+    <script src="{{WWWROOT}}/js/common/ui-state.js"></script>
     <script src="{{WWWROOT}}/js/refrigerationtonreport.js"></script>
     <script>
         window._rtInit = { today: '2025-12-31' };

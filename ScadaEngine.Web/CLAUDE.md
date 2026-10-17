@@ -97,6 +97,8 @@ Registered as both `AddSingleton` and `AddHostedService` so it can be injected i
 
 **圖示優先、文字進 tooltip**：頂端列 / 工具列 / 表格列操作 / 卡片角落按鈕**只放圖示**，文字放 `title` + `aria-label`（缺一即未完成）；筆數 / 剩餘分鐘等狀態做成圖示旁的數字徽章，不寫句子。頁面內主要動作按鈕（儲存 / 刪除 / 確認）與下拉選單內項目**仍保留圖示 + 文字**。範例：_Layout 警報鈴鐺 🔔 + 紅色筆數 / 🔕 + 灰色剩餘分鐘 → [docs/設計規範.md](../docs/設計規範.md) §圖示慣例「圖示優先、文字進 tooltip」。
 
+**符號屬於元件、不屬於文案**：畫面禁用 emoji / 字元符號（⚠ ▲ ● ⚡ ✕ 🤖 等）；resx 字串純文字，警告三角 / 漲跌三角 / stale 標記由 `window.UiState`（`js/common/ui-state.js`，_Layout 全站載入）或容器 class 提供一次。`<option>` / `confirm()` / Excel 等純文字容器用文字替代；Line / Email 通知例外 → [docs/設計規範.md](../docs/設計規範.md) §圖示慣例「符號屬於元件、不屬於文案」。
+
 **SCADA / EMS 雙主題**（新頁面必讀）：全站依路由分兩套色系（SCADA 深藍 / EMS 淡綠）。新增頁面前先判斷歸屬 — **頁面內一律用 Bootstrap primary class（`btn-primary` / `text-primary` / `bg-primary`），不在 `.cshtml` inline 硬寫色號**，EMS 模式由 `ems.css` 自動轉綠。EMS 子頁掛載 4 步驟 SOP + 完整色票 → [docs/設計規範.md](../docs/設計規範.md) §色彩系統 §SCADA / EMS 雙主題。
 
 ## 前端改動驗收：mock-render 截圖（僅使用者要求時）

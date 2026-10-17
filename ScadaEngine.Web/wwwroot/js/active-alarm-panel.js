@@ -224,7 +224,7 @@
 
     function showConnWarn(msg) {
         if (!$connWarn) return;
-        $connWarn.textContent = '⚠ ' + msg;
+        UiState.setWarnText($connWarn, msg);
         $connWarn.style.display = 'block';
     }
 

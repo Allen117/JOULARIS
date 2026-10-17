@@ -98,7 +98,7 @@
   <data name="energyreport.table.querying" xml:space="preserve"><value>Querying…</value></data>
 
   <data name="energyreport.label.total" xml:space="preserve"><value>Total</value></data>
-  <data name="energyreport.warning.kwh_overflow" xml:space="preserve"><value>⚠ Some meters detected a counter rollback but no MaxKwh is set</value></data>
+  <data name="energyreport.warning.kwh_overflow" xml:space="preserve"><value>Some meters detected a counter rollback but no MaxKwh is set</value></data>
   <data name="energyreport.tooltip.stale" xml:space="preserve"><value>Meter data incomplete for this period (possible disconnection)</value></data>
 
   <data name="energyreport.select.loading" xml:space="preserve"><value>-- Loading --</value></data>
@@ -116,4 +116,5 @@
   <data name="energyreport.console.load_circuit_failed" xml:space="preserve"><value>[EnergyReport] Failed to load circuits</value></data>
 
   <data name="energyreport.period.hint" xml:space="preserve"><value>Actual period range: {0} ~ {1} (per billing cycle settings)</value></data>
+  <data name="energyreport.circuit.meter_tag" xml:space="preserve"><value> (meter)</value></data>
 </root>

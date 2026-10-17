@@ -333,16 +333,7 @@
 
         tbody.innerHTML = rows.map(function (r) {
             var diffTxt = (r.diffKwh > 0 ? '+' : '') + fmtKwh(r.diffKwh);
-            var pctHtml;
-            if (r.pctChange == null) {
-                pctHtml = '<span class="text-muted">--</span>';
-            } else if (r.pctChange > 0) {
-                pctHtml = '<span class="ems-yoy-up">▲ +' + r.pctChange.toFixed(1) + '%</span>';
-            } else if (r.pctChange < 0) {
-                pctHtml = '<span class="ems-yoy-down">▼ ' + r.pctChange.toFixed(1) + '%</span>';
-            } else {
-                pctHtml = '<span class="text-muted">0.0%</span>';
-            }
+            var pctHtml = UiState.pctHtml(r.pctChange, 'ems-yoy-up', 'ems-yoy-down');
             var nameHtml = r.isMainMeter
                 ? '<i class="fas fa-star ems-yoy-star me-1"></i><span class="fw-semibold">' + escHtml(r.name) + '</span>'
                 : escHtml(r.name);

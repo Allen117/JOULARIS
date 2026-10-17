@@ -130,7 +130,7 @@
   <data name="airmeter.msg.confirm_delete" xml:space="preserve"><value>Delete "{name}"?</value></data>
   <data name="airmeter.msg.confirm_delete_children" xml:space="preserve"><value>This circuit has child nodes; deleting will also remove all descendants. Continue?</value></data>
   <data name="airmeter.msg.confirm_move" xml:space="preserve"><value>Move "{name}" under "{parent}"?&#10;Parent circuit totals and declaration figures change immediately.</value></data>
-  <data name="airmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>⚠ Target is a physical air flow meter: once it has children it is summed together with itself.</value></data>
+  <data name="airmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>Note: Target is a physical air flow meter: once it has children it is summed together with itself.</value></data>
 
   <data name="airmeter.err.name_required" xml:space="preserve"><value>Name cannot be empty</value></data>
   <data name="airmeter.err.invalid_sign" xml:space="preserve"><value>Sign must be +1 or -1</value></data>

@@ -91,7 +91,7 @@
   <data name="refrigerationtonreport.table.querying" xml:space="preserve"><value>查詢中…</value></data>
 
   <data name="refrigerationtonreport.label.total" xml:space="preserve"><value>總計</value></data>
-  <data name="refrigerationtonreport.warning.data_incomplete" xml:space="preserve"><value>⚠ 部分時段資料不足（樣本數 &lt; 30/小時），該段視為缺資料</value></data>
+  <data name="refrigerationtonreport.warning.data_incomplete" xml:space="preserve"><value>部分時段資料不足（樣本數 &lt; 30/小時），該段視為缺資料</value></data>
 
   <data name="refrigerationtonreport.select.loading" xml:space="preserve"><value>-- 載入中 --</value></data>
   <data name="refrigerationtonreport.select.placeholder" xml:space="preserve"><value>-- 請選擇空調水系統迴路 --</value></data>
@@ -106,4 +106,5 @@
   <data name="refrigerationtonreport.alert.export_failed" xml:space="preserve"><value>匯出失敗：{0}</value></data>
 
   <data name="refrigerationtonreport.console.load_circuit_failed" xml:space="preserve"><value>[RefrigerationTonReport] 載入迴路失敗</value></data>
+  <data name="refrigerationtonreport.circuit.meter_tag" xml:space="preserve"><value>（點位）</value></data>
 </root>

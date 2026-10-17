@@ -94,8 +94,8 @@
   <data name="energydeclaration.label.total_rt" xml:space="preserve"><value>總冷凍噸數</value></data>
   <data name="energydeclaration.label.total_efficiency" xml:space="preserve"><value>整體效率</value></data>
 
-  <data name="energydeclaration.warning.kwh" xml:space="preserve"><value>⚠ 部分電表偵測到累積值倒退但未設 MaxKwh</value></data>
-  <data name="energydeclaration.warning.rt" xml:space="preserve"><value>⚠ 冷凍噸資料覆蓋率不足（每小時聚合尚未完成或缺資料）</value></data>
+  <data name="energydeclaration.warning.kwh" xml:space="preserve"><value>部分電表偵測到累積值倒退但未設 MaxKwh</value></data>
+  <data name="energydeclaration.warning.rt" xml:space="preserve"><value>冷凍噸資料覆蓋率不足（每小時聚合尚未完成或缺資料）</value></data>
   <data name="energydeclaration.tooltip.stale" xml:space="preserve"><value>此區間電表資料不完整（可能斷線）</value></data>
 
   <data name="energydeclaration.select.loading" xml:space="preserve"><value>-- 載入中 --</value></data>
@@ -123,4 +123,5 @@
   <data name="energydeclaration.alert.export_failed" xml:space="preserve"><value>匯出失敗：{0}</value></data>
 
   <data name="energydeclaration.console.load_failed" xml:space="preserve"><value>[EnergyDeclaration] 載入資料失敗</value></data>
+  <data name="energydeclaration.circuit.meter_tag" xml:space="preserve"><value>（表）</value></data>
 </root>

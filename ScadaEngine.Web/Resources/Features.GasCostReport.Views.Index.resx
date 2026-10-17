@@ -90,4 +90,5 @@
   <data name="gascostreport.alert.month_order" xml:space="preserve"><value>期別區間不正確（結束不可早於起始）</value></data>
   <data name="gascostreport.alert.query_failed" xml:space="preserve"><value>查詢失敗：{0}</value></data>
   <data name="gascostreport.alert.export_failed" xml:space="preserve"><value>匯出失敗：{0}</value></data>
+  <data name="gascostreport.circuit.meter_tag" xml:space="preserve"><value>（表）</value></data>
 </root>

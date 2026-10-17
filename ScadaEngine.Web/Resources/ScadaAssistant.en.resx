@@ -62,14 +62,14 @@
   <data name="assistant.btn_back_menu" xml:space="preserve"><value>Back to menu</value></data>
 
   <!-- Main menu -->
-  <data name="assistant.greeting" xml:space="preserve"><value>Hi! I'm your AI Assistant 🤖. I can help you quickly analyze energy efficiency. Please choose a function:</value></data>
+  <data name="assistant.greeting" xml:space="preserve"><value>Hi! I'm your AI Assistant. I can help you quickly analyze energy efficiency. Please choose a function:</value></data>
   <data name="assistant.menu.interval_efficiency" xml:space="preserve"><value>Interval Efficiency Analysis</value></data>
   <data name="assistant.menu.coming_soon" xml:space="preserve"><value>Coming soon</value></data>
   <data name="assistant.menu.placeholder_anomaly" xml:space="preserve"><value>Anomaly Detection</value></data>
   <data name="assistant.menu.placeholder_advice" xml:space="preserve"><value>Saving Suggestions</value></data>
 
   <!-- Interval efficiency flow -->
-  <data name="assistant.interval.intro" xml:space="preserve"><value>Sure, let me analyze interval energy efficiency for you 📊</value></data>
+  <data name="assistant.interval.intro" xml:space="preserve"><value>Sure, let me analyze interval energy efficiency for you</value></data>
   <data name="assistant.interval.pick_report" xml:space="preserve"><value>Please select a declaration item to analyze:</value></data>
   <data name="assistant.interval.loading_reports" xml:space="preserve"><value>Loading declaration items…</value></data>
   <data name="assistant.interval.no_reports" xml:space="preserve"><value>No energy declaration items configured yet. Please create paired energy / refrigeration-ton circuits on the Energy Declaration page first.</value></data>
@@ -85,13 +85,13 @@
   <data name="assistant.result.total_rth" xml:space="preserve"><value>Total cooling: {value} RT·h</value></data>
   <data name="assistant.result.efficiency" xml:space="preserve"><value>Average efficiency: {value} kWh/RT·h (lower is better)</value></data>
   <data name="assistant.result.efficiency_na" xml:space="preserve"><value>Average efficiency: cooling is 0, efficiency cannot be calculated.</value></data>
-  <data name="assistant.result.stale_warning" xml:space="preserve"><value>⚠ Note: some periods in this range have incomplete data; the figures above are for reference only.</value></data>
-  <data name="assistant.result.low_coverage" xml:space="preserve"><value>⚠ Cooling data coverage is only {percent}% (below the {threshold}% threshold); "{leaf}" is missing {hours} hours. The figures above are for reference only.</value></data>
+  <data name="assistant.result.stale_warning" xml:space="preserve"><value>Note: some periods in this range have incomplete data; the figures above are for reference only.</value></data>
+  <data name="assistant.result.low_coverage" xml:space="preserve"><value>Cooling data coverage is only {percent}% (below the {threshold}% threshold); "{leaf}" is missing {hours} hours. The figures above are for reference only.</value></data>
 
   <!-- Rule-based verdict -->
-  <data name="assistant.verdict.good" xml:space="preserve"><value>Excellent efficiency 👍 This circuit runs very efficiently — keep it up.</value></data>
+  <data name="assistant.verdict.good" xml:space="preserve"><value>Excellent efficiency. This circuit runs very efficiently — keep it up.</value></data>
   <data name="assistant.verdict.normal" xml:space="preserve"><value>Efficiency is within the normal range, with some room for optimization.</value></data>
-  <data name="assistant.verdict.poor" xml:space="preserve"><value>Efficiency is on the high side ⚠ Consider checking chiller operation or load allocation — there may be saving opportunities.</value></data>
+  <data name="assistant.verdict.poor" xml:space="preserve"><value>Efficiency is on the high side. Consider checking chiller operation or load allocation — there may be saving opportunities.</value></data>
   <data name="assistant.verdict.low_coverage" xml:space="preserve"><value>Cooling data coverage is below the {threshold}% threshold, so no efficiency assessment is given for this range. Please check the data upload status of that point first.</value></data>
   <data name="assistant.verdict.insufficient" xml:space="preserve"><value>Insufficient data for this range; no efficiency assessment available yet.</value></data>
 

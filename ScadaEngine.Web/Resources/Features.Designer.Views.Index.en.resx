@@ -372,11 +372,11 @@
   <data name="designer.prop.bound_cid" xml:space="preserve"><value>Bound CID</value></data>
   <data name="designer.prop.btn_label" xml:space="preserve"><value>Button Text</value></data>
   <data name="designer.prop.btn_icon" xml:space="preserve"><value>Button Icon</value></data>
-  <data name="designer.prop.btn_icon.finger" xml:space="preserve"><value>✉ Finger</value></data>
-  <data name="designer.prop.btn_icon.play" xml:space="preserve"><value>▶ Start</value></data>
-  <data name="designer.prop.btn_icon.power" xml:space="preserve"><value>⏻ Power</value></data>
-  <data name="designer.prop.btn_icon.send" xml:space="preserve"><value>✈ Send</value></data>
-  <data name="designer.prop.btn_icon.bolt" xml:space="preserve"><value>⚡ Bolt</value></data>
+  <data name="designer.prop.btn_icon.finger" xml:space="preserve"><value>Finger</value></data>
+  <data name="designer.prop.btn_icon.play" xml:space="preserve"><value>Start</value></data>
+  <data name="designer.prop.btn_icon.power" xml:space="preserve"><value>Power</value></data>
+  <data name="designer.prop.btn_icon.send" xml:space="preserve"><value>Send</value></data>
+  <data name="designer.prop.btn_icon.bolt" xml:space="preserve"><value>Bolt</value></data>
   <data name="designer.prop.ctrl_value" xml:space="preserve"><value>Control Value</value></data>
   <data name="designer.prop.btn_color" xml:space="preserve"><value>Button Color</value></data>
 

@@ -67,7 +67,7 @@
             const arr = byParent.get(parentKey) || [];
             arr.forEach(n => {
                 const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
-                const tag = n.sid ? ' [⚡]' : ' [📁]';
+                const tag = n.sid ? t('energydeclaration.circuit.meter_tag') : '';
                 out.push({ id: n.id, label: prefix + n.name + tag });
                 walk(String(n.id), depth + 1);
             });
@@ -255,10 +255,11 @@
             tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">${escapeHtml(t('energydeclaration.table.no_data'))}</td></tr>`;
         } else {
             const totalLabel = escapeHtml(t('energydeclaration.table.total'));
-            const staleTip = escapeHtml(t('energydeclaration.tooltip.stale'));
+            const staleTipRaw = t('energydeclaration.tooltip.stale');
+            const staleTip = escapeHtml(staleTipRaw);
             tbody.innerHTML = data.buckets.map(b => {
                 const mark = b.isKwhStale
-                    ? ` <span class="ed-stale-mark" title="${staleTip}">⚠</span>` : '';
+                    ? UiState.staleMarkHtml('ed-stale-mark', staleTipRaw) : '';
                 return `
                 <tr>
                     <td>${escapeHtml(b.szLabel)}</td>
@@ -281,7 +282,7 @@
         const warns = [];
         if (data.isHasKwhWarning) warns.push(t('energydeclaration.warning.kwh'));
         if (data.isHasRtWarning) warns.push(t('energydeclaration.warning.rt'));
-        document.getElementById('edWarnText').textContent = warns.join(' / ');
+        UiState.setWarnText('edWarnText', warns.join(' / '));
     }
 
     // 雙 Y 軸單位改水平顯示：Chart.js 的 y 軸 title 固定直立，

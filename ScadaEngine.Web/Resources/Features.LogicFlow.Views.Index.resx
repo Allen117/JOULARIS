@@ -165,8 +165,8 @@
   <data name="logicflow.ctx.timer" xml:space="preserve"><value>計時器</value></data>
 
   <!-- ============ 狀態徽章 ============ -->
-  <data name="logicflow.state.on" xml:space="preserve"><value>● ON</value></data>
-  <data name="logicflow.state.off" xml:space="preserve"><value>○ OFF</value></data>
+  <data name="logicflow.state.on" xml:space="preserve"><value>ON</value></data>
+  <data name="logicflow.state.off" xml:space="preserve"><value>OFF</value></data>
   <data name="logicflow.mode.manual" xml:space="preserve"><value>手動</value></data>
   <data name="logicflow.mode.auto" xml:space="preserve"><value>自動</value></data>
   <data name="logicflow.edge.out_of_range" xml:space="preserve"><value>超限</value></data>
@@ -259,7 +259,7 @@
   <data name="logicflow.pp.hist.minutes_before" xml:space="preserve"><value>分鐘前</value></data>
   <data name="logicflow.pp.hist.range_hint" xml:space="preserve"><value>（1–43200，最長 30 天）</value></data>
   <data name="logicflow.pp.hist.invalid" xml:space="preserve"><value>歷史值分鐘數須為 1–43200 之間的整數（最長 30 天）</value></data>
-  <data name="logicflow.hist.badge" xml:space="preserve"><value>⏱ -{n}分</value></data>
+  <data name="logicflow.hist.badge" xml:space="preserve"><value>-{n}分</value></data>
   <data name="logicflow.hist.badge_tip" xml:space="preserve"><value>讀取 {n} 分鐘前的歷史值；查無資料時視為 Bad</value></data>
   <data name="logicflow.pp.demand_points" xml:space="preserve"><value>需量點位</value></data>
   <data name="logicflow.pp.option.demand_point" xml:space="preserve"><value>需量點位</value></data>

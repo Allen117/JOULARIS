@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<!-- LogicFlow 流程圖控制 mock recipe：空調最佳化演算法 + 排程 + 溫度/用電點位 → 頻率輸出 -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>流程圖控制（C# chip / 歷史 badge / ON pill 驗收） - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ui-state.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/logicflow.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        /* headless 下 CSS transition 凍結對策 */
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：2026-09-09（週三）15:42 → 排程 08:00-18:00 平日 = ON ──
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API ─────────────────────────────────────────────
+    (function () {
+        // 畫布：5 入(3溫度+2用電) → 空調最佳化演算法(雙輸出) → 排程A接點×2 → 冰水泵/冷卻水頻率輸出
+        function diagramNodes() {
+            return [
+                { id: 1, type: 'input', x: 40, y: 60, sid: 'SID-T1', pointName: 'AHU-1 室內溫度', unit: '℃', histEnabled: true, histOffsetMinutes: 15 },
+                { id: 2, type: 'input', x: 40, y: 160, sid: 'SID-T2', pointName: 'AHU-2 室內溫度', unit: '℃' },
+                { id: 3, type: 'input', x: 40, y: 260, sid: 'SID-TOUT', pointName: '室外溫度', unit: '℃' },
+                { id: 4, type: 'input', x: 40, y: 360, sid: 'SID-P1', pointName: '冰水主機用電', unit: 'kW' },
+                { id: 5, type: 'input', x: 40, y: 460, sid: 'SID-P2', pointName: '空調系統總用電', unit: 'kW' },
+                { id: 6, type: 'algorithm', x: 420, y: 160, operator: 'hvac_optimize',
+                  algoInputs: ['t1', 't2', 'tout', 'p1', 'p2'], height: 210 },
+                { id: 7, type: 'contact_no', x: 700, y: 120, scheduleId: 1, scheduleName: '空調運轉時段' },
+                { id: 8, type: 'output', x: 1000, y: 120, sid: 'SID-FREQ', pointName: '冰水泵變頻頻率', unit: 'Hz', fMin: 0, fMax: 60 },
+                { id: 9, type: 'contact_no', x: 700, y: 360, scheduleId: 1, scheduleName: '空調運轉時段' },
+                { id: 10, type: 'output', x: 1000, y: 360, sid: 'SID-FREQ2', pointName: '冷卻水變頻頻率', unit: 'Hz', fMin: 0, fMax: 60 }
+            ];
+        }
+        function diagramEdges() {
+            return [
+                { id: 1, source: 1, sourcePort: 'out', target: 6, targetPort: 't1' },
+                { id: 2, source: 2, sourcePort: 'out', target: 6, targetPort: 't2' },
+                { id: 3, source: 3, sourcePort: 'out', target: 6, targetPort: 'tout' },
+                { id: 4, source: 4, sourcePort: 'out', target: 6, targetPort: 'p1' },
+                { id: 5, source: 5, sourcePort: 'out', target: 6, targetPort: 'p2' },
+                { id: 6, source: 6, sourcePort: 'freq1', target: 7, targetPort: 'in' },
+                { id: 7, source: 7, sourcePort: 'out', target: 8, targetPort: 'in' },
+                { id: 8, source: 6, sourcePort: 'freq2', target: 9, targetPort: 'in' },
+                { id: 9, source: 9, sourcePort: 'out', target: 10, targetPort: 'in' }
+            ];
+        }
+
+        var MOCK = {
+            '/LogicFlow/api/tree': function () {
+                return [
+                    { id: 1, parentId: null, name: '空調系統', nodeType: 'folder', isEnabled: true, sortOrder: 0 },
+                    { id: 2, parentId: 1, name: '空調最佳化控制', nodeType: 'logic', isEnabled: true, sortOrder: 0 },
+                    { id: 3, parentId: 1, name: '冰水主機台數控制', nodeType: 'logic', isEnabled: true, sortOrder: 1 },
+                    { id: 4, parentId: null, name: '照明控制', nodeType: 'folder', isEnabled: true, sortOrder: 1 },
+                    { id: 5, parentId: 4, name: '夜間照明排程', nodeType: 'logic', isEnabled: false, sortOrder: 0 }
+                ];
+            },
+            '/LogicFlow/api/diagram/2': function () {
+                return { version: 7, diagramJson: JSON.stringify({ nodes: diagramNodes(), edges: diagramEdges() }) };
+            },
+            '/LogicFlow/api/timer-state/2': function () { return {}; },
+            '/LogicFlow/api/algorithms': function () {
+                return [
+                    {
+                        name: 'hvac_optimize', label: '空調最佳化', group: '空調',
+                        inputs: [
+                            { key: 't1', label: '室內溫度1' },
+                            { key: 't2', label: '室內溫度2' },
+                            { key: 'tout', label: '室外溫度' },
+                            { key: 'p1', label: '主機用電' },
+                            { key: 'p2', label: '系統總用電' }
+                        ],
+                        outputs: [{ key: 'freq1', label: '冰水頻率' }, { key: 'freq2', label: '冷卻水頻率' }],
+                        description: '依室內外溫度與用電量最佳化冰水泵/冷卻水泵頻率',
+                        language: 'csharp', variadic: false,
+                        inputsRepeat: [], inputsFixed: [], outputsRepeat: [], outputsFixed: []
+                    },
+                    {
+                        name: 'cop_calc', label: 'COP 計算', group: '空調',
+                        inputs: [{ key: 'q', label: '冷凍能力' }, { key: 'p', label: '耗電' }],
+                        outputs: [{ key: 'out', label: 'COP' }],
+                        description: '', language: 'python', variadic: false,
+                        inputsRepeat: [], inputsFixed: [], outputsRepeat: [], outputsFixed: []
+                    }
+                ];
+            },
+            '/LogicFlow/api/algo-eval/hvac_optimize': function () {
+                return {
+                    result: { freq1: 46.5, freq2: 42 },
+                    statusCodeId: 0, statusCodeName: 'OK', severity: 'Info', quality: 'Good',
+                    perOutput: {
+                        freq1: { statusCodeId: 0, statusCodeName: 'OK', severity: 'Info' },
+                        freq2: { statusCodeId: 0, statusCodeName: 'OK', severity: 'Info' }
+                    }
+                };
+            },
+            '/api/realtime/by-sids': function () {
+                return {
+                    success: true,
+                    data: [
+                        { sid: 'SID-T1', value: 24.6, quality: 'Good' },
+                        { sid: 'SID-T2', value: 25.3, quality: 'Good' },
+                        { sid: 'SID-TOUT', value: 32.1, quality: 'Good' },
+                        { sid: 'SID-P1', value: 86.4, quality: 'Good' },
+                        { sid: 'SID-P2', value: 143.2, quality: 'Good' },
+                        { sid: 'SID-FREQ', value: 46.5, quality: 'Good' },
+                        { sid: 'SID-FREQ2', value: 42, quality: 'Good' }
+                    ]
+                };
+            },
+            '/api/control/manual-values': function () {
+                return { 'SID-FREQ': { isAuto: true }, 'SID-FREQ2': { isAuto: true } };
+            },
+            '/api/schedules': function () {
+                return [
+                    { nId: 1, szName: '空調運轉時段', isEnabled: true, nRecurrenceType: 0,
+                      szDaysOfWeek: '1,2,3,4,5', szStartTime: '08:00', szEndTime: '18:00' }
+                ];
+            }
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-hard-hat me-1"></i>工程師模式</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-search me-1"></i><span class="d-none d-lg-inline">搜尋</span>
+                            <span class="gs-nav-kbd d-none d-xl-inline ms-1"><kbd>Ctrl</kbd> <kbd>K</kbd></span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：LogicFlow Index.cshtml（Localizer 已代入 zh-TW） ═══════════ -->
+        <div class="container-fluid mt-2">
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="mb-0">
+                    <i class="fas fa-project-diagram text-primary me-2"></i>流程圖控制
+                </h2>
+                <span class="text-muted small">
+                    <i class="fas fa-sitemap me-1"></i>LogicFlow 管理
+                </span>
+            </div>
+
+            <div class="row g-3">
+                <!-- 左側樹狀選單 -->
+                <div class="col-md-3">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                            <span><i class="fas fa-folder-tree me-1"></i>邏輯清單</span>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-light dropdown-toggle py-0" data-bs-toggle="dropdown">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="window._lf.addRoot('folder')"><i class="fas fa-folder-plus me-2 text-warning"></i>新增資料夾</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="window._lf.addRoot('logic')"><i class="fas fa-file-code me-2 text-info"></i>新增邏輯</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body p-2" style="height: calc(100vh - 250px); overflow-y: auto;">
+                            <div id="treeContainer">
+                                <div class="text-center mt-5"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側內容區 -->
+                <div class="col-md-9">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                            <span id="contentTitle"><i class="fas fa-hand-pointer me-1"></i>請從左側選取邏輯項目</span>
+
+                            <div id="alignToolGroup" class="lf-align-tool-group" style="display:none;">
+                                <button type="button" class="lf-align-tool-btn" onclick="window._lf.alignLeft()" title="靠左對齊（多選 ≥ 2）" aria-label="靠左對齊">
+                                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <line x1="1" y1="1" x2="1" y2="15" stroke="currentColor" stroke-width="1.4" />
+                                        <rect x="2" y="3" width="11" height="3" />
+                                        <rect x="2" y="9" width="7" height="3" />
+                                    </svg>
+                                </button>
+                                <button type="button" class="lf-align-tool-btn" onclick="window._lf.alignCenterH()" title="水平置中（X 中心對齊）" aria-label="水平置中">
+                                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <line x1="8" y1="1" x2="8" y2="15" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1" />
+                                        <rect x="2" y="3" width="12" height="3" />
+                                        <rect x="4" y="9" width="8" height="3" />
+                                    </svg>
+                                </button>
+                                <button type="button" class="lf-align-tool-btn" onclick="window._lf.alignRight()" title="靠右對齊（多選 ≥ 2）" aria-label="靠右對齊">
+                                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <line x1="15" y1="1" x2="15" y2="15" stroke="currentColor" stroke-width="1.4" />
+                                        <rect x="3" y="3" width="11" height="3" />
+                                        <rect x="7" y="9" width="7" height="3" />
+                                    </svg>
+                                </button>
+                                <div class="lf-align-tool-divider"></div>
+                                <button type="button" class="lf-align-tool-btn" onclick="window._lf.alignTop()" title="靠上對齊（多選 ≥ 2）" aria-label="靠上對齊">
+                                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <line x1="1" y1="1" x2="15" y2="1" stroke="currentColor" stroke-width="1.4" />
+                                        <rect x="3" y="2" width="3" height="11" />
+                                        <rect x="9" y="2" width="3" height="7" />
+                                    </svg>
+                                </button>
+                                <button type="button" class="lf-align-tool-btn" onclick="window._lf.alignCenterV()" title="垂直置中（Y 中心對齊）" aria-label="垂直置中">
+                                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1" />
+                                        <rect x="3" y="2" width="3" height="12" />
+                                        <rect x="9" y="4" width="3" height="8" />
+                                    </svg>
+                                </button>
+                                <button type="button" class="lf-align-tool-btn" onclick="window._lf.alignBottom()" title="靠下對齊（多選 ≥ 2）" aria-label="靠下對齊">
+                                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <line x1="1" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="1.4" />
+                                        <rect x="3" y="3" width="3" height="11" />
+                                        <rect x="9" y="7" width="3" height="7" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div id="distToolGroup" class="lf-dist-tool-group" style="display:none;">
+                                <div class="lf-align-tool-divider"></div>
+                                <button type="button" class="lf-align-tool-btn" onclick="window._lf.distributeHorizontally()" title="水平等距分布（多選 ≥ 3，首尾不動）" aria-label="水平等距分布">
+                                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="1" y="3" width="2.5" height="10" />
+                                        <rect x="6.75" y="3" width="2.5" height="10" />
+                                        <rect x="12.5" y="3" width="2.5" height="10" />
+                                    </svg>
+                                </button>
+                                <button type="button" class="lf-align-tool-btn" onclick="window._lf.distributeVertically()" title="垂直等距分布（多選 ≥ 3，首尾不動）" aria-label="垂直等距分布">
+                                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="1" width="10" height="2.5" />
+                                        <rect x="3" y="6.75" width="10" height="2.5" />
+                                        <rect x="3" y="12.5" width="10" height="2.5" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <button id="btnSaveDiagram" class="btn btn-sm btn-success ms-auto" style="display:none;" onclick="window._lf.saveDiagram()">
+                                <i class="fas fa-save me-1"></i>儲存
+                            </button>
+                        </div>
+                        <div class="card-body p-0" style="height: calc(100vh - 250px); overflow: hidden;" id="contentArea">
+                            <div class="text-center text-muted mt-5">
+                                <i class="fas fa-project-diagram fa-4x mb-3 d-block" style="opacity:.3"></i>
+                                <p>選取左側的邏輯項目後，即可在此編輯流程圖</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 重新命名 Modal -->
+        <div class="modal fade" id="renameModal" tabindex="-1">
+            <div class="modal-dialog modal-sm modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title"><i class="fas fa-edit me-1"></i>重新命名</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" class="form-control form-control-sm" id="renameInput" placeholder="輸入新名稱"
+                               onkeydown="if(event.key==='Enter'){window._lf.confirmRename()}">
+                    </div>
+                    <div class="modal-footer py-1">
+                        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button class="btn btn-sm btn-primary" onclick="window._lf.confirmRename()">確認</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 畫布右鍵選單 -->
+        <div id="ctxMenu" class="ctx-menu" style="display:none;">
+            <div class="ctx-menu-header">新增節點</div>
+            <div class="ctx-menu-item" data-type="input"><i class="fas fa-sign-in-alt text-primary me-2"></i>讀取點位</div>
+            <div class="ctx-menu-item" data-type="output"><i class="fas fa-sign-out-alt text-success me-2"></i>寫入點位</div>
+            <div class="ctx-menu-item" data-type="contact_no"><i class="fas fa-toggle-on text-orange me-2"></i>A接點</div>
+            <div class="ctx-menu-item" data-type="contact_nc"><i class="fas fa-toggle-off text-purple me-2"></i>B接點</div>
+            <div class="ctx-menu-divider"></div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-not-equal text-warning me-2"></i>比較 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu">
+                    <div class="ctx-menu-item" data-type="compare" data-operator="lt"><span class="ctx-op-symbol">&lt;</span>小於</div>
+                    <div class="ctx-menu-item" data-type="compare" data-operator="gt"><span class="ctx-op-symbol">&gt;</span>大於</div>
+                    <div class="ctx-menu-item" data-type="compare" data-operator="lte"><span class="ctx-op-symbol">&le;</span>小於等於</div>
+                    <div class="ctx-menu-item" data-type="compare" data-operator="gte"><span class="ctx-op-symbol">&ge;</span>大於等於</div>
+                    <div class="ctx-menu-item" data-type="compare" data-operator="eq"><span class="ctx-op-symbol">=</span>等於</div>
+                    <div class="ctx-menu-item" data-type="compare" data-operator="neq"><span class="ctx-op-symbol">&ne;</span>不等於</div>
+                </div>
+            </div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-calculator text-info me-2"></i>數學運算 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu">
+                    <div class="ctx-menu-item" data-type="math" data-operator="add"><span class="ctx-op-symbol" style="color:#0dcaf0;">+</span>加法</div>
+                    <div class="ctx-menu-item" data-type="math" data-operator="sub"><span class="ctx-op-symbol" style="color:#0dcaf0;">&minus;</span>減法</div>
+                    <div class="ctx-menu-item" data-type="math" data-operator="mul"><span class="ctx-op-symbol" style="color:#0dcaf0;">&times;</span>乘法</div>
+                    <div class="ctx-menu-item" data-type="math" data-operator="div"><span class="ctx-op-symbol" style="color:#0dcaf0;">&divide;</span>除法</div>
+                    <div class="ctx-menu-item" data-type="math" data-operator="mod"><span class="ctx-op-symbol" style="color:#0dcaf0;">%</span>取餘數</div>
+                    <div class="ctx-menu-item" data-type="math" data-operator="pow"><span class="ctx-op-symbol" style="color:#0dcaf0;">^</span>次方</div>
+                    <div class="ctx-menu-divider"></div>
+                    <div class="ctx-menu-item" data-type="math" data-operator="abs"><span class="ctx-op-symbol" style="color:#0dcaf0;">|x|</span>絕對值</div>
+                    <div class="ctx-menu-item" data-type="math" data-operator="sqrt"><span class="ctx-op-symbol" style="color:#0dcaf0;">&radic;</span>平方根</div>
+                    <div class="ctx-menu-item" data-type="math" data-operator="round"><span class="ctx-op-symbol" style="color:#0dcaf0;">&asymp;</span>四捨五入</div>
+                </div>
+            </div>
+            <div class="ctx-menu-item" data-type="constant"><i class="fas fa-hashtag text-dark me-2"></i>常數</div>
+            <div class="ctx-menu-divider"></div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-microchip text-danger me-2"></i>邏輯閘 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu">
+                    <div class="ctx-menu-item" data-type="and"><i class="fas fa-grip-lines text-danger me-2"></i>AND</div>
+                    <div class="ctx-menu-item" data-type="or"><i class="fas fa-grip-lines-vertical text-danger me-2"></i>OR</div>
+                    <div class="ctx-menu-item" data-type="not"><i class="fas fa-exclamation text-danger me-2"></i>NOT</div>
+                    <div class="ctx-menu-item" data-type="xor"><i class="fas fa-random text-danger me-2"></i>XOR</div>
+                </div>
+            </div>
+            <div class="ctx-menu-divider"></div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-clock text-secondary me-2"></i>計時器 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu">
+                    <div class="ctx-menu-item" data-type="timer" data-operator="tp"><span class="ctx-op-symbol ctx-op-wide" style="color:#6c757d;">TP</span>脈衝</div>
+                    <div class="ctx-menu-item" data-type="timer" data-operator="ton"><span class="ctx-op-symbol ctx-op-wide" style="color:#6c757d;">TON</span>延時開啟</div>
+                    <div class="ctx-menu-item" data-type="timer" data-operator="tpr"><span class="ctx-op-symbol ctx-op-wide" style="color:#6c757d;">TPR</span>重複脈衝</div>
+                </div>
+            </div>
+            <div class="ctx-menu-item" data-type="counter"><i class="fas fa-sort-numeric-up text-teal me-2"></i>計數器 (CTU)</div>
+            <div class="ctx-menu-divider"></div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-brain text-purple me-2"></i>演算法 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu" id="ctxAlgoSub">
+                    <div class="ctx-menu-item text-muted" style="font-size:.75rem;">載入中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 節點右鍵選單 -->
+        <div id="nodeCtxMenu" class="ctx-menu" style="display:none;">
+            <div class="ctx-menu-header">變更類型</div>
+            <div class="ctx-menu-item node-change-type" data-type="input"><i class="fas fa-sign-in-alt text-primary me-2"></i>讀取點位</div>
+            <div class="ctx-menu-item node-change-type" data-type="output"><i class="fas fa-sign-out-alt text-success me-2"></i>寫入點位</div>
+            <div class="ctx-menu-item node-change-type" data-type="contact_no"><i class="fas fa-toggle-on text-orange me-2"></i>A接點</div>
+            <div class="ctx-menu-item node-change-type" data-type="contact_nc"><i class="fas fa-toggle-off text-purple me-2"></i>B接點</div>
+            <div class="ctx-menu-divider"></div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-not-equal text-warning me-2"></i>比較 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu">
+                    <div class="ctx-menu-item node-change-type" data-type="compare" data-operator="lt"><span class="ctx-op-symbol">&lt;</span>小於</div>
+                    <div class="ctx-menu-item node-change-type" data-type="compare" data-operator="gt"><span class="ctx-op-symbol">&gt;</span>大於</div>
+                    <div class="ctx-menu-item node-change-type" data-type="compare" data-operator="lte"><span class="ctx-op-symbol">&le;</span>小於等於</div>
+                    <div class="ctx-menu-item node-change-type" data-type="compare" data-operator="gte"><span class="ctx-op-symbol">&ge;</span>大於等於</div>
+                    <div class="ctx-menu-item node-change-type" data-type="compare" data-operator="eq"><span class="ctx-op-symbol">=</span>等於</div>
+                    <div class="ctx-menu-item node-change-type" data-type="compare" data-operator="neq"><span class="ctx-op-symbol">&ne;</span>不等於</div>
+                </div>
+            </div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-calculator text-info me-2"></i>數學運算 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu">
+                    <div class="ctx-menu-item node-change-type" data-type="math" data-operator="add"><span class="ctx-op-symbol" style="color:#0dcaf0;">+</span>加法</div>
+                    <div class="ctx-menu-item node-change-type" data-type="math" data-operator="sub"><span class="ctx-op-symbol" style="color:#0dcaf0;">&minus;</span>減法</div>
+                    <div class="ctx-menu-item node-change-type" data-type="math" data-operator="mul"><span class="ctx-op-symbol" style="color:#0dcaf0;">&times;</span>乘法</div>
+                    <div class="ctx-menu-item node-change-type" data-type="math" data-operator="div"><span class="ctx-op-symbol" style="color:#0dcaf0;">&divide;</span>除法</div>
+                    <div class="ctx-menu-item node-change-type" data-type="math" data-operator="mod"><span class="ctx-op-symbol" style="color:#0dcaf0;">%</span>取餘數</div>
+                    <div class="ctx-menu-item node-change-type" data-type="math" data-operator="pow"><span class="ctx-op-symbol" style="color:#0dcaf0;">^</span>次方</div>
+                    <div class="ctx-menu-divider"></div>
+                    <div class="ctx-menu-item node-change-type" data-type="math" data-operator="abs"><span class="ctx-op-symbol" style="color:#0dcaf0;">|x|</span>絕對值</div>
+                    <div class="ctx-menu-item node-change-type" data-type="math" data-operator="sqrt"><span class="ctx-op-symbol" style="color:#0dcaf0;">&radic;</span>平方根</div>
+                    <div class="ctx-menu-item node-change-type" data-type="math" data-operator="round"><span class="ctx-op-symbol" style="color:#0dcaf0;">&asymp;</span>四捨五入</div>
+                </div>
+            </div>
+            <div class="ctx-menu-item node-change-type" data-type="constant"><i class="fas fa-hashtag text-dark me-2"></i>常數</div>
+            <div class="ctx-menu-divider"></div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-microchip text-danger me-2"></i>邏輯閘 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu">
+                    <div class="ctx-menu-item node-change-type" data-type="and"><i class="fas fa-grip-lines text-danger me-2"></i>AND</div>
+                    <div class="ctx-menu-item node-change-type" data-type="or"><i class="fas fa-grip-lines-vertical text-danger me-2"></i>OR</div>
+                    <div class="ctx-menu-item node-change-type" data-type="not"><i class="fas fa-exclamation text-danger me-2"></i>NOT</div>
+                    <div class="ctx-menu-item node-change-type" data-type="xor"><i class="fas fa-random text-danger me-2"></i>XOR</div>
+                </div>
+            </div>
+            <div class="ctx-menu-divider"></div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-clock text-secondary me-2"></i>計時器 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu">
+                    <div class="ctx-menu-item node-change-type" data-type="timer" data-operator="tp"><span class="ctx-op-symbol ctx-op-wide" style="color:#6c757d;">TP</span>脈衝</div>
+                    <div class="ctx-menu-item node-change-type" data-type="timer" data-operator="ton"><span class="ctx-op-symbol ctx-op-wide" style="color:#6c757d;">TON</span>延時開啟</div>
+                    <div class="ctx-menu-item node-change-type" data-type="timer" data-operator="tpr"><span class="ctx-op-symbol ctx-op-wide" style="color:#6c757d;">TPR</span>重複脈衝</div>
+                </div>
+            </div>
+            <div class="ctx-menu-item node-change-type" data-type="counter"><i class="fas fa-sort-numeric-up text-teal me-2"></i>計數器 (CTU)</div>
+            <div class="ctx-menu-divider"></div>
+            <div class="ctx-menu-item ctx-has-sub"><i class="fas fa-brain text-purple me-2"></i>演算法 <i class="fas fa-caret-right ms-auto"></i>
+                <div class="ctx-submenu" id="nodeCtxAlgoSub">
+                    <div class="ctx-menu-item text-muted" style="font-size:.75rem;">載入中...</div>
+                </div>
+            </div>
+            <div class="ctx-menu-divider"></div>
+            <div class="ctx-menu-item node-clear-binding" style="display:none;"><i class="fas fa-unlink me-2"></i>清除綁定</div>
+            <div class="ctx-menu-item node-delete-item" style="color:#dc3545;"><i class="fas fa-trash-alt me-2"></i>刪除節點</div>
+        </div>
+
+        <!-- 點位選擇 Modal（兩步驟：設備 → 點位） -->
+        <div class="modal fade" id="pointPickerModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:460px;">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title" style="font-size:13px;display:flex;align-items:center;gap:4px;">
+                            <i class="fas fa-tachometer-alt text-primary"></i>
+                            <span id="ppModalTitle">選擇設備</span>
+                        </h6>
+                        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" style="padding:12px 16px;">
+                        <div id="ppSourceToggle" class="d-none" style="margin-bottom:8px;">
+                            <div class="btn-group btn-group-sm w-100">
+                                <button class="btn btn-outline-primary active" id="ppBtnPoint" onclick="window._lf.ppSwitchSource('point')">
+                                    <i class="fas fa-server me-1"></i>設備點位</button>
+                                <button class="btn btn-outline-primary" id="ppBtnSchedule" onclick="window._lf.ppSwitchSource('schedule')">
+                                    <i class="fas fa-calendar-alt me-1"></i>排程</button>
+                            </div>
+                        </div>
+                        <div id="ppStep0">
+                            <div style="display:flex;flex-direction:column;gap:8px;">
+                                <div class="pp-list-item" onclick="window._lf.ppShowDeviceStep()" style="cursor:pointer;padding:14px 16px;">
+                                    <i class="fas fa-server text-primary" style="font-size:18px;"></i>
+                                    <div style="flex:1;">
+                                        <div class="pp-point-name" style="font-size:14px;">設備點位</div>
+                                        <div class="pp-point-sid">從 Modbus 設備選擇原始點位</div>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-muted" style="font-size:12px;"></i>
+                                </div>
+                                <div id="ppStep0Calc" class="pp-list-item" onclick="window._lf.ppShowCalcStep()" style="cursor:pointer;padding:14px 16px;">
+                                    <i class="fas fa-calculator text-warning" style="font-size:18px;"></i>
+                                    <div style="flex:1;">
+                                        <div class="pp-point-name" style="font-size:14px;">計算點位</div>
+                                        <div class="pp-point-sid">從公式衍生的計算點位</div>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-muted" style="font-size:12px;"></i>
+                                </div>
+                                <div id="ppStep0Db" class="pp-list-item" onclick="window._lf.ppShowDbStep()" style="cursor:pointer;padding:14px 16px;">
+                                    <i class="fas fa-database text-info" style="font-size:18px;"></i>
+                                    <div style="flex:1;">
+                                        <div class="pp-point-name" style="font-size:14px;">DB 點位</div>
+                                        <div class="pp-point-sid">從 DB 來源裝置選擇點位</div>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-muted" style="font-size:12px;"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="ppStep1" style="display:none;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                <button id="ppStep1Back" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="window._lf.ppBackToStep0()" title="返回來源選擇">
+                                    <i class="fas fa-arrow-left me-1"></i>返回
+                                </button>
+                                <span class="text-primary fw-bold small"><i class="fas fa-server me-1"></i>設備清單</span>
+                            </div>
+                            <div id="deviceListContainer" style="max-height:290px;overflow-y:auto;"></div>
+                        </div>
+                        <div id="ppStep2" style="display:none;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="window._lf.ppGoBack()" title="返回">
+                                    <i class="fas fa-arrow-left me-1"></i>返回
+                                </button>
+                                <span class="text-primary fw-bold small"><i class="fas fa-server me-1" id="ppDeviceIcon"></i><span id="ppDeviceName"></span></span>
+                            </div>
+                            <input type="text" id="ppPointSearch" class="form-control form-control-sm mb-2" placeholder="搜尋點位名稱…" oninput="window._lf.ppFilter(this.value)">
+                            <div id="pointListContainer" style="max-height:270px;overflow-y:auto;"></div>
+                        </div>
+                        <div id="ppStep3" style="display:none;">
+                            <div id="scheduleListContainer" style="max-height:320px;overflow-y:auto;"></div>
+                        </div>
+                        <div id="ppHistSection" class="pp-hist-section" style="display:none;">
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="checkbox" id="ppHistEnabled" onchange="window._lf.ppHistToggle(this.checked)">
+                                <label class="form-check-label" for="ppHistEnabled">讀取歷史值</label>
+                            </div>
+                            <div id="ppHistOffsetWrap" class="pp-hist-offset-wrap" style="display:none;">
+                                <input type="number" id="ppHistOffset" class="form-control form-control-sm" min="1" max="43200" value="60">
+                                <span class="pp-hist-suffix">分鐘前</span>
+                                <span class="pp-hist-hint text-muted">（1–43200，最長 30 天）</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-1">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnConfirmPoint" onclick="window._lf.ppConfirm()" disabled>確認</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳 -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 2.2.3
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- ═══════════ PAGE_SCRIPTS ═══════════ -->
+    <script>
+    // i18n stub（shell 不載 i18n.js；只填本頁 JS 會用到的 zh-TW 字典）
+    (function () {
+        var DICT = {
+            'logicflow.title': '流程圖控制',
+            'logicflow.tree.empty': '尚無邏輯項目，請點擊上方加號新增',
+            'logicflow.tree.folder': '資料夾',
+            'logicflow.tree.folder_disabled': '資料夾（已停用）',
+            'logicflow.tree.logic_enabled': '邏輯（已啟用）',
+            'logicflow.tree.logic_disabled': '邏輯（已停用）',
+            'logicflow.default.new_folder': '新資料夾',
+            'logicflow.default.new_logic': '新邏輯',
+            'logicflow.hint.select_logic': '請從左側選取邏輯項目',
+            'logicflow.hint.select_to_edit': '選取左側的邏輯項目後，即可在此編輯流程圖',
+            'logicflow.btn.save': '儲存',
+            'logicflow.btn.saving': '儲存中…',
+            'logicflow.status.enabled': '已啟用',
+            'logicflow.status.disabled': '已停用',
+            'logicflow.folder.contains_items': '包含 {count} 個項目',
+            'logicflow.folder.disabled_warning': '此資料夾已停用，底下所有項目皆不執行',
+            'logicflow.folder.label': '資料夾「{name}」',
+            'logicflow.action.add_folder': '新增資料夾',
+            'logicflow.action.add_logic': '新增邏輯',
+            'logicflow.action.enable': '啟用',
+            'logicflow.action.disable': '停用',
+            'logicflow.action.rename': '重新命名',
+            'logicflow.action.delete': '刪除',
+            'logicflow.node.input': '讀取點位',
+            'logicflow.node.output': '寫入點位',
+            'logicflow.node.compare': '比較',
+            'logicflow.node.math': '數學運算',
+            'logicflow.node.constant': '常數',
+            'logicflow.node.and_gate': 'AND 閘',
+            'logicflow.node.or_gate': 'OR 閘',
+            'logicflow.node.not_gate': 'NOT 閘',
+            'logicflow.node.xor_gate': 'XOR 閘',
+            'logicflow.node.timer': '計時器',
+            'logicflow.node.counter': '計數器',
+            'logicflow.node.algorithm': '演算法',
+            'logicflow.node.contact_no': 'A接點',
+            'logicflow.node.contact_nc': 'B接點',
+            'logicflow.node.schedule': '排程',
+            'logicflow.node.logic_control': '邏輯控制',
+            'logicflow.counter.ctu': '計數器 (CTU)',
+            'logicflow.counter.port.cu': '計數脈衝 (cu)',
+            'logicflow.counter.port.reset': '重置 (reset)',
+            'logicflow.counter.port.preset': '目標值 (preset)',
+            'logicflow.counter.port.q': '達標輸出 (q)',
+            'logicflow.counter.port.cv': '目前計數 (cv)',
+            'logicflow.counter.interval_label': '間隔',
+            'logicflow.counter.preset_tip': '達到這個數字後 q=1',
+            'logicflow.counter.interval_tip': 'cu 邊緣最小間隔（秒）',
+            'logicflow.algorithm.loading': '載入中...',
+            'logicflow.algorithm.no_algorithm': '尚無演算法',
+            'logicflow.algorithm.quantity': '數量',
+            'logicflow.algorithm.group_index': '組 {index}',
+            'logicflow.timer.tp': '脈衝',
+            'logicflow.timer.ton': '延時開啟',
+            'logicflow.timer.tpr': '重複脈衝',
+            'logicflow.timer.delay_label': '延',
+            'logicflow.timer.hold_label': '持',
+            'logicflow.timer.second': '秒',
+            'logicflow.mode.manual': '手動',
+            'logicflow.mode.auto': '自動',
+            'logicflow.edge.out_of_range': '超限',
+            'logicflow.port.control': '控制',
+            'logicflow.port.bound_no_ctrl': '已綁定點位/排程，不可使用',
+            'logicflow.port.resize_tip': '拖動調整高度',
+            'logicflow.hist.badge': '-{n}分',
+            'logicflow.state.on': 'ON',
+            'logicflow.state.off': 'OFF',
+            'logicflow.hist.badge_tip': '讀取 {n} 分鐘前的歷史值；查無資料時視為 Bad',
+            'logicflow.error.load_failed': '載入失敗：{msg}',
+            'logicflow.error.schedule_load_failed': '無法載入排程清單'
+        };
+        window.i18n = {
+            t: function (key, args) {
+                var s = DICT[key] || key;
+                if (args) Object.keys(args).forEach(function (k) { s = s.replace('{' + k + '}', args[k]); });
+                return s;
+            },
+            ready: function (cb) { cb(); }
+        };
+    })();
+    </script>
+    <script src="{{WWWROOT}}/js/common/ui-state.js"></script>
+    <script src="{{WWWROOT}}/js/common/schedule-eval.js"></script>
+    <script src="{{WWWROOT}}/js/logicflow/state.js"></script>
+    <script src="{{WWWROOT}}/js/logicflow/algo.js"></script>
+    <script src="{{WWWROOT}}/js/logicflow/eval.js"></script>
+    <script src="{{WWWROOT}}/js/logicflow/render.js"></script>
+    <script src="{{WWWROOT}}/js/logicflow/canvas.js"></script>
+    <script src="{{WWWROOT}}/js/logicflow/align.js"></script>
+    <script src="{{WWWROOT}}/js/logicflow/tree.js"></script>
+    <script src="{{WWWROOT}}/js/logicflow/picker.js"></script>
+    <script src="{{WWWROOT}}/js/logicflow/index.js"></script>
+    <script>
+    // 自動展開資料夾並選取「空調最佳化控制」(id=2)
+    (function autoSelect() {
+        var S = window.__lfNS;
+        if (!S || !S.treeData || S.treeData.length === 0) { setTimeout(autoSelect, 50); return; }
+        S.expandedSet.add(1); S.expandedSet.add(4);
+        var f1 = S.findNode(1, S.treeData); if (f1) f1.expanded = true;
+        var f4 = S.findNode(4, S.treeData); if (f4) f4.expanded = true;
+        window._lf.select(2);
+    })();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

@@ -155,5 +155,5 @@
   <data name="gasmeter.err.sort_missing_node" xml:space="preserve"><value>節點不存在，請重新整理頁面</value></data>
   <data name="gasmeter.err.sort_missing_parent" xml:space="preserve"><value>目標迴路不存在，請重新整理頁面</value></data>
   <data name="gasmeter.msg.confirm_move" xml:space="preserve"><value>確定把「{name}」搬到「{parent}」底下？&#10;搬動後上層迴路的加總與報表會立即改變。</value></data>
-  <data name="gasmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>⚠ 目標是實體氣表：掛子迴路後，該氣表會連自身一起加總。</value></data>
+  <data name="gasmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>注意：目標是實體氣表：掛子迴路後，該氣表會連自身一起加總。</value></data>
 </root>

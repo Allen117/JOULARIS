@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ui-state.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/energyreport.css">
 
     <style>
@@ -212,6 +213,7 @@
                             <select id="erCircuit" class="form-select form-select-sm">
                                 <option value="">-- 載入中 --</option>
                             </select>
+                            <input type="hidden" id="erShiftStart"><input type="hidden" id="erShiftEnd">
                         </div>
                         <div class="er-narrow-unit">
                             <label class="form-label fw-semibold"><i class="fas fa-clock me-1"></i>單位</label>
@@ -299,7 +301,7 @@
                         <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-chart-bar me-1"></i>用電量分布</span>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted small" id="erWarnText"></span>
+                                <span class="ui-warn-text small" id="erWarnText" hidden></span>
                                 <button type="button" id="btnToggleBreakdown" class="btn btn-sm btn-outline-secondary d-none" onclick="window._er.toggleBreakdown()">
                                     <i class="fas fa-layer-group me-1"></i><span id="btnToggleBreakdownText">顯示明細</span>
                                 </button>
@@ -391,7 +393,8 @@
             'energyreport.table.col_diff': '差異 (kWh)',
             'energyreport.table.col_pct': '增減%',
             'energyreport.tooltip.stale': '此區間電表資料不完整（可能斷線）',
-            'energyreport.warning.kwh_overflow': '⚠ 部分電表偵測到累積值倒退但未設 MaxKwh',
+            'energyreport.circuit.meter_tag': '（表）',
+            'energyreport.warning.kwh_overflow': '部分電表偵測到累積值倒退但未設 MaxKwh',
             'energyreport.chart.dataset_label': '{0} (kWh)',
             'energyreport.chart.lastyear_label': '去年同期 (kWh)',
             'energyreport.chart.dataset_total_label': '{0} 合計 (kWh)',
@@ -409,6 +412,7 @@
         ready: function (cb) { cb(); }
     };
     </script>
+    <script src="{{WWWROOT}}/js/common/ui-state.js"></script>
     <script src="{{WWWROOT}}/js/energyreport.js"></script>
     <script>
         window._erInit = { today: '2026-09-09' };

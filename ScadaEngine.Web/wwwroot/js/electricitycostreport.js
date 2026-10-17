@@ -123,7 +123,7 @@
             const arr = byParent.get(parentKey) || [];
             arr.forEach(n => {
                 const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
-                const tag = n.sid ? ' [⚡]' : ' [📁]';
+                const tag = n.sid ? t('costreport.circuit.meter_tag') : '';
                 out.push({ id: n.id, label: prefix + n.name + tag });
                 walk(String(n.id), depth + 1);
             });
@@ -214,7 +214,7 @@
             tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-3">${escapeHtml(t('costreport.table.no_data'))}</td></tr>`;
             document.getElementById('ecrTotalCost').textContent = '--';
             document.getElementById('ecrTotalKwh').textContent = '--';
-            document.getElementById('ecrEstimateText').textContent = '';
+            UiState.setWarnText('ecrEstimateText', '');
             return;
         }
         const totalLabel = escapeHtml(t('costreport.table.total'));
@@ -227,8 +227,8 @@
             `<tr class="er-total"><td>${totalLabel}</td><td class="text-end">${fmtKwh(data.totalKwh)}</td><td class="text-end">${fmtCost(data.totalCost)}</td></tr>`;
         document.getElementById('ecrTotalCost').textContent = fmtCost(data.totalCost);
         document.getElementById('ecrTotalKwh').textContent = fmtKwh(data.totalKwh);
-        document.getElementById('ecrEstimateText').textContent = data.isEstimated
-            ? t('costreport.note.estimated') : '';
+        UiState.setWarnText('ecrEstimateText', data.isEstimated
+            ? t('costreport.note.estimated') : '');
     }
 
     function renderChart(data) {

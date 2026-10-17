@@ -90,7 +90,7 @@
   <data name="gasusagereport.table.querying" xml:space="preserve"><value>查詢中…</value></data>
 
   <data name="gasusagereport.label.total" xml:space="preserve"><value>總計</value></data>
-  <data name="gasusagereport.warning.stale_data" xml:space="preserve"><value>⚠ 部分時段氣表資料不完整（可能斷線）</value></data>
+  <data name="gasusagereport.warning.stale_data" xml:space="preserve"><value>部分時段氣表資料不完整（可能斷線）</value></data>
   <data name="gasusagereport.tooltip.stale" xml:space="preserve"><value>此區間氣表資料不完整（可能斷線）</value></data>
 
   <data name="gasusagereport.select.loading" xml:space="preserve"><value>-- 載入中 --</value></data>

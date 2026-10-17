@@ -91,7 +91,7 @@
   <data name="refrigerationtonreport.table.querying" xml:space="preserve"><value>Querying…</value></data>
 
   <data name="refrigerationtonreport.label.total" xml:space="preserve"><value>Total</value></data>
-  <data name="refrigerationtonreport.warning.data_incomplete" xml:space="preserve"><value>⚠ Some hours have insufficient samples (&lt; 30/hour); those segments are treated as missing</value></data>
+  <data name="refrigerationtonreport.warning.data_incomplete" xml:space="preserve"><value>Some hours have insufficient samples (&lt; 30/hour); those segments are treated as missing</value></data>
 
   <data name="refrigerationtonreport.select.loading" xml:space="preserve"><value>-- Loading --</value></data>
   <data name="refrigerationtonreport.select.placeholder" xml:space="preserve"><value>-- Select Chilled Water Circuit --</value></data>
@@ -106,4 +106,5 @@
   <data name="refrigerationtonreport.alert.export_failed" xml:space="preserve"><value>Export failed: {0}</value></data>
 
   <data name="refrigerationtonreport.console.load_circuit_failed" xml:space="preserve"><value>[RefrigerationTonReport] Failed to load circuits</value></data>
+  <data name="refrigerationtonreport.circuit.meter_tag" xml:space="preserve"><value> (point)</value></data>
 </root>

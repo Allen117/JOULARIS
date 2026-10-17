@@ -130,7 +130,7 @@
   <data name="airmeter.msg.confirm_delete" xml:space="preserve"><value>確定要刪除「{name}」嗎？</value></data>
   <data name="airmeter.msg.confirm_delete_children" xml:space="preserve"><value>此迴路含有子節點，刪除會一併移除所有子孫，確定繼續？</value></data>
   <data name="airmeter.msg.confirm_move" xml:space="preserve"><value>確定把「{name}」搬到「{parent}」底下？&#10;搬動後上層迴路的加總與申報數字會立即改變。</value></data>
-  <data name="airmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>⚠ 目標是實體產氣量表：掛子迴路後，該表會連自身一起加總。</value></data>
+  <data name="airmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>注意：目標是實體產氣量表：掛子迴路後，該表會連自身一起加總。</value></data>
 
   <data name="airmeter.err.name_required" xml:space="preserve"><value>名稱不可為空</value></data>
   <data name="airmeter.err.invalid_sign" xml:space="preserve"><value>貢獻方向只能為 +1 或 -1</value></data>

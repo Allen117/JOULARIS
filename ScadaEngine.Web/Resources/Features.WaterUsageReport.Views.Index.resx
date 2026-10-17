@@ -93,7 +93,7 @@
   <data name="waterusagereport.table.querying" xml:space="preserve"><value>查詢中…</value></data>
 
   <data name="waterusagereport.label.total" xml:space="preserve"><value>總計</value></data>
-  <data name="waterusagereport.warning.stale_data" xml:space="preserve"><value>⚠ 部分時段水表資料不完整（可能斷線）</value></data>
+  <data name="waterusagereport.warning.stale_data" xml:space="preserve"><value>部分時段水表資料不完整（可能斷線）</value></data>
   <data name="waterusagereport.tooltip.stale" xml:space="preserve"><value>此區間水表資料不完整（可能斷線）</value></data>
 
   <data name="waterusagereport.select.loading" xml:space="preserve"><value>-- 載入中 --</value></data>
@@ -111,4 +111,5 @@
   <data name="waterusagereport.console.load_circuit_failed" xml:space="preserve"><value>[WaterUsageReport] 載入迴路失敗</value></data>
 
   <data name="waterusagereport.period.hint" xml:space="preserve"><value>期別實際區間：{0} ～ {1}（依月結週期設定）</value></data>
+  <data name="waterusagereport.circuit.meter_tag" xml:space="preserve"><value>（表）</value></data>
 </root>

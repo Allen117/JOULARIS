@@ -41,6 +41,9 @@
     <!-- 全站警報音鈴鐺 -->
     <link rel="stylesheet" href="~/css/alarm-sound.css" asp-append-version="true">
 
+    <!-- 共用 UI 狀態樣式（警告 / 語言 chip / 幫手氣泡色條），搭配 js/common/ui-state.js -->
+    <link rel="stylesheet" href="~/css/ui-state.css" asp-append-version="true">
+
     @* 右下角智慧助理（AI智慧幫手）— 需登入且有能源申報權限 *@
     @if (User.Identity?.IsAuthenticated == true && canAccess("/EnergyDeclaration"))
     {
@@ -755,6 +758,9 @@
 
     <!-- i18n helper（要在頁面其他 JS 之前載入）-->
     <script src="~/js/i18n.js"></script>
+
+    <!-- 共用 UI 狀態 helper（警告 / stale 標記 / 年增減），要在各頁 JS 之前載入 -->
+    <script src="~/js/common/ui-state.js" asp-append-version="true"></script>
 
     @if (User.Identity?.IsAuthenticated == true)
     {

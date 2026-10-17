@@ -59,7 +59,7 @@
   <data name="excel.label.query_time" xml:space="preserve"><value>Query Time</value></data>
   <data name="excel.label.operator" xml:space="preserve"><value>Operator</value></data>
   <data name="excel.label.total_kwh" xml:space="preserve"><value>Total Energy (kWh)</value></data>
-  <data name="excel.label.warning" xml:space="preserve"><value>⚠ Some meters detected a counter rollback but no MaxKwh is set; that segment is treated as 0</value></data>
+  <data name="excel.label.warning" xml:space="preserve"><value>Some meters detected a counter rollback but no MaxKwh is set; that segment is treated as 0</value></data>
   <data name="excel.col.period" xml:space="preserve"><value>Period</value></data>
   <data name="excel.col.kwh" xml:space="preserve"><value>Energy (kWh)</value></data>
   <data name="excel.col.with_circuit_kwh" xml:space="preserve"><value>{0} (kWh)</value></data>

@@ -59,8 +59,8 @@
   <data name="excel.label.year" xml:space="preserve"><value>申報年度</value></data>
   <data name="excel.label.query_time" xml:space="preserve"><value>查詢時間</value></data>
   <data name="excel.label.operator" xml:space="preserve"><value>操作者</value></data>
-  <data name="excel.label.kwh_warning" xml:space="preserve"><value>⚠ 部分電表資料不完整或累積值倒退但未設 MaxKwh，該段視為 0</value></data>
-  <data name="excel.label.nm3_warning" xml:space="preserve"><value>⚠ 部分產氣量表資料不完整（可能斷線）</value></data>
+  <data name="excel.label.kwh_warning" xml:space="preserve"><value>部分電表資料不完整或累積值倒退但未設 MaxKwh，該段視為 0</value></data>
+  <data name="excel.label.nm3_warning" xml:space="preserve"><value>部分產氣量表資料不完整（可能斷線）</value></data>
   <data name="excel.col.period" xml:space="preserve"><value>月份</value></data>
   <data name="excel.col.kwh" xml:space="preserve"><value>用電量 (kWh)</value></data>
   <data name="excel.col.nm3" xml:space="preserve"><value>產氣量 (Nm³)</value></data>

@@ -152,8 +152,8 @@
   <data name="logicflow.ctx.gate" xml:space="preserve"><value>Logic Gate</value></data>
   <data name="logicflow.ctx.timer" xml:space="preserve"><value>Timer</value></data>
 
-  <data name="logicflow.state.on" xml:space="preserve"><value>● ON</value></data>
-  <data name="logicflow.state.off" xml:space="preserve"><value>○ OFF</value></data>
+  <data name="logicflow.state.on" xml:space="preserve"><value>ON</value></data>
+  <data name="logicflow.state.off" xml:space="preserve"><value>OFF</value></data>
   <data name="logicflow.mode.manual" xml:space="preserve"><value>Manual</value></data>
   <data name="logicflow.mode.auto" xml:space="preserve"><value>Auto</value></data>
   <data name="logicflow.edge.out_of_range" xml:space="preserve"><value>Out of range</value></data>
@@ -243,7 +243,7 @@ Automatically connect a constant 0 to return pressure (p_ret)?</value></data>
   <data name="logicflow.pp.hist.minutes_before" xml:space="preserve"><value>minutes ago</value></data>
   <data name="logicflow.pp.hist.range_hint" xml:space="preserve"><value>(1–43200, up to 30 days)</value></data>
   <data name="logicflow.pp.hist.invalid" xml:space="preserve"><value>Offset must be an integer between 1 and 43200 minutes (up to 30 days)</value></data>
-  <data name="logicflow.hist.badge" xml:space="preserve"><value>⏱ -{n}m</value></data>
+  <data name="logicflow.hist.badge" xml:space="preserve"><value>-{n}m</value></data>
   <data name="logicflow.hist.badge_tip" xml:space="preserve"><value>Reads the historical value from {n} minutes ago; treated as Bad if no data is found</value></data>
   <data name="logicflow.pp.demand_points" xml:space="preserve"><value>Demand Points</value></data>
   <data name="logicflow.pp.option.demand_point" xml:space="preserve"><value>Demand Points</value></data>

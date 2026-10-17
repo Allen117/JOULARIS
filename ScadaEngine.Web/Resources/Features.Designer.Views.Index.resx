@@ -371,11 +371,11 @@
   <data name="designer.prop.bound_cid" xml:space="preserve"><value>綁定 CID</value></data>
   <data name="designer.prop.btn_label" xml:space="preserve"><value>按鈕文字</value></data>
   <data name="designer.prop.btn_icon" xml:space="preserve"><value>按鈕圖示</value></data>
-  <data name="designer.prop.btn_icon.finger" xml:space="preserve"><value>✉ 手指</value></data>
-  <data name="designer.prop.btn_icon.play" xml:space="preserve"><value>▶ 啟動</value></data>
-  <data name="designer.prop.btn_icon.power" xml:space="preserve"><value>⏻ 電源</value></data>
-  <data name="designer.prop.btn_icon.send" xml:space="preserve"><value>✈ 發送</value></data>
-  <data name="designer.prop.btn_icon.bolt" xml:space="preserve"><value>⚡ 閃電</value></data>
+  <data name="designer.prop.btn_icon.finger" xml:space="preserve"><value>手指</value></data>
+  <data name="designer.prop.btn_icon.play" xml:space="preserve"><value>啟動</value></data>
+  <data name="designer.prop.btn_icon.power" xml:space="preserve"><value>電源</value></data>
+  <data name="designer.prop.btn_icon.send" xml:space="preserve"><value>發送</value></data>
+  <data name="designer.prop.btn_icon.bolt" xml:space="preserve"><value>閃電</value></data>
   <data name="designer.prop.ctrl_value" xml:space="preserve"><value>控制值</value></data>
   <data name="designer.prop.btn_color" xml:space="preserve"><value>按鈕顏色</value></data>
 

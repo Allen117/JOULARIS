@@ -81,7 +81,7 @@
             const arr = byParent.get(parentKey) || [];
             arr.forEach(n => {
                 const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
-                const tag = n.sid ? ' [💧]' : ' [📁]';   // 💧 / 📁
+                const tag = n.sid ? t('watercostreport.circuit.meter_tag') : '';
                 out.push({ id: n.id, label: prefix + n.name + tag });
                 walk(String(n.id), depth + 1);
             });

@@ -455,7 +455,7 @@ function renderTextWidget(el) {
             font-style:${szFontStyle};
             background:${szBg};
         ">${escHtml(props.szText)}</div>
-        <button class="text-del-btn" onclick="deleteWidget('${el.id}')" title="${escHtml(t('designer.widget.delete_text_tooltip'))}">✕</button>
+        <button class="text-del-btn" onclick="deleteWidget('${el.id}')" title="${escHtml(t('designer.widget.delete_text_tooltip'))}"><i class="fas fa-times" aria-hidden="true"></i></button>
         <div class="resize-knob" title="${escHtml(t('designer.widget.resize_tooltip'))}"></div>
     `;
 

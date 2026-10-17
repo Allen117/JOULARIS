@@ -370,7 +370,12 @@
                     resultSpan.textContent = '→ ' + result.result.toFixed(2) + (unit ? ' ' + unit : '');
                     resultSpan.className = 'fw-semibold text-success';
                 } else {
-                    resultSpan.textContent = '✖ ' + result.message;
+                    resultSpan.textContent = '';
+                    var failIcon = document.createElement('i');
+                    failIcon.className = 'fas fa-times-circle me-1';
+                    failIcon.setAttribute('aria-hidden', 'true');
+                    resultSpan.appendChild(failIcon);
+                    resultSpan.appendChild(document.createTextNode(result.message));
                     resultSpan.className = 'fw-semibold text-danger';
                 }
             })

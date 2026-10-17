@@ -90,4 +90,5 @@
   <data name="gascostreport.alert.month_order" xml:space="preserve"><value>Invalid period range (end must not be earlier than start)</value></data>
   <data name="gascostreport.alert.query_failed" xml:space="preserve"><value>Query failed: {0}</value></data>
   <data name="gascostreport.alert.export_failed" xml:space="preserve"><value>Export failed: {0}</value></data>
+  <data name="gascostreport.circuit.meter_tag" xml:space="preserve"><value> (meter)</value></data>
 </root>

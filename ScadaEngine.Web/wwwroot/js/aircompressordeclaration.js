@@ -57,8 +57,8 @@
             g_airCircuits = await airRes.json();
             renderConfigTable();
             renderReportSelect();
-            fillCircuitSelect('acdModalEnergyCircuit', g_energyCircuits, '[⚡]');
-            fillCircuitSelect('acdModalAirCircuit', g_airCircuits, '[💨]');
+            fillCircuitSelect('acdModalEnergyCircuit', g_energyCircuits, t('airdeclaration.circuit.meter_tag'));
+            fillCircuitSelect('acdModalAirCircuit', g_airCircuits, t('airdeclaration.circuit.air_meter_tag'));
         } catch (err) {
             console.error(t('airdeclaration.console.load_failed'), err);
         }
@@ -69,7 +69,7 @@
         return c ? c.name : null;
     }
 
-    // 扁平清單 → 縮排下拉項目；實體表（有 SID）標 meterTag、虛擬節點標資料夾
+    // 扁平清單 → 縮排下拉項目；實體表（有 SID）加 meterTag 字尾、群組無字尾靠縮排辨識
     function buildIndentedList(nodes, meterTag) {
         const out = [];
         const byParent = new Map();
@@ -83,7 +83,7 @@
             const arr = byParent.get(parentKey) || [];
             arr.forEach(n => {
                 const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
-                const tag = n.sid ? ' ' + meterTag : ' [📁]';
+                const tag = n.sid ? meterTag : '';
                 out.push({ id: n.id, label: prefix + n.name + tag });
                 walk(String(n.id), depth + 1);
             });
@@ -264,8 +264,8 @@
         return (v == null) ? '--' : Number(v).toFixed(3);
     }
 
-    function staleMark(isStale, tip) {
-        return isStale ? ` <span class="acd-stale-mark" title="${tip}">⚠</span>` : '';
+    function staleMark(isStale, tipRaw) {
+        return isStale ? UiState.staleMarkHtml('acd-stale-mark', tipRaw) : '';
     }
 
     function renderTable(data) {
@@ -274,13 +274,15 @@
             tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">${escapeHtml(t('airdeclaration.table.no_data'))}</td></tr>`;
         } else {
             const totalLabel = escapeHtml(t('airdeclaration.table.total'));
-            const kwhTip = escapeHtml(t('airdeclaration.tooltip.kwh_stale'));
-            const nm3Tip = escapeHtml(t('airdeclaration.tooltip.nm3_stale'));
+            const kwhTipRaw = t('airdeclaration.tooltip.kwh_stale');
+            const nm3TipRaw = t('airdeclaration.tooltip.nm3_stale');
+            const kwhTip = escapeHtml(kwhTipRaw);
+            const nm3Tip = escapeHtml(nm3TipRaw);
             tbody.innerHTML = data.buckets.map(b => `
                 <tr>
                     <td>${escapeHtml(b.szLabel)}</td>
-                    <td class="text-end"${b.isKwhStale ? ` title="${kwhTip}"` : ''}>${fmt1(b.dKwh)}${staleMark(b.isKwhStale, kwhTip)}</td>
-                    <td class="text-end"${b.isNm3Stale ? ` title="${nm3Tip}"` : ''}>${fmt1(b.dNm3)}${staleMark(b.isNm3Stale, nm3Tip)}</td>
+                    <td class="text-end"${b.isKwhStale ? ` title="${kwhTip}"` : ''}>${fmt1(b.dKwh)}${staleMark(b.isKwhStale, kwhTipRaw)}</td>
+                    <td class="text-end"${b.isNm3Stale ? ` title="${nm3Tip}"` : ''}>${fmt1(b.dNm3)}${staleMark(b.isNm3Stale, nm3TipRaw)}</td>
                     <td class="text-end">${fmtEff(b.dKwhPerNm3)}</td>
                 </tr>`).join('') +
                 `<tr class="acd-total">
@@ -297,7 +299,7 @@
         const warns = [];
         if (data.isHasKwhWarning) warns.push(t('airdeclaration.warning.kwh'));
         if (data.isHasNm3Warning) warns.push(t('airdeclaration.warning.nm3'));
-        document.getElementById('acdWarnText').textContent = warns.join(' / ');
+        UiState.setWarnText('acdWarnText', warns.join(' / '));
     }
 
     // 雙 Y 軸單位水平畫在左右軸正上方（Chart.js 的 y 軸 title 固定直立）

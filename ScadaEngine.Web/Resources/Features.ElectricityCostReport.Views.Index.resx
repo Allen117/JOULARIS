@@ -93,7 +93,7 @@
   <data name="costreport.label.total_kwh" xml:space="preserve"><value>總用電量</value></data>
   <data name="costreport.unit.ntd" xml:space="preserve"><value>元</value></data>
   <data name="costreport.note.exclude_base" xml:space="preserve"><value>（不含基本電費）</value></data>
-  <data name="costreport.note.estimated" xml:space="preserve"><value>⚠ 含級距分攤估算金額（累進方案按 kWh 占比分攤）</value></data>
+  <data name="costreport.note.estimated" xml:space="preserve"><value>含級距分攤估算金額（累進方案按 kWh 占比分攤）</value></data>
 
   <data name="costreport.select.loading" xml:space="preserve"><value>-- 載入中 --</value></data>
   <data name="costreport.select.placeholder" xml:space="preserve"><value>-- 請選擇迴路 --</value></data>
@@ -108,4 +108,5 @@
   <data name="costreport.alert.export_failed" xml:space="preserve"><value>匯出失敗：{0}</value></data>
 
   <data name="costreport.period.hint" xml:space="preserve"><value>期別實際區間：{0} ～ {1}（依月結週期設定）</value></data>
+  <data name="costreport.circuit.meter_tag" xml:space="preserve"><value>（表）</value></data>
 </root>

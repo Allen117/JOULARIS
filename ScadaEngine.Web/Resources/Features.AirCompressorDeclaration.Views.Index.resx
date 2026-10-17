@@ -94,8 +94,8 @@
   <data name="airdeclaration.label.total_nm3" xml:space="preserve"><value>總產氣量</value></data>
   <data name="airdeclaration.label.total_specific_energy" xml:space="preserve"><value>整體比能耗</value></data>
 
-  <data name="airdeclaration.warning.kwh" xml:space="preserve"><value>⚠ 部分電表資料不完整或累積值倒退但未設 MaxKwh</value></data>
-  <data name="airdeclaration.warning.nm3" xml:space="preserve"><value>⚠ 部分產氣量表資料不完整（可能斷線）</value></data>
+  <data name="airdeclaration.warning.kwh" xml:space="preserve"><value>部分電表資料不完整或累積值倒退但未設 MaxKwh</value></data>
+  <data name="airdeclaration.warning.nm3" xml:space="preserve"><value>部分產氣量表資料不完整（可能斷線）</value></data>
   <data name="airdeclaration.tooltip.kwh_stale" xml:space="preserve"><value>此月電表資料不完整（可能斷線）</value></data>
   <data name="airdeclaration.tooltip.nm3_stale" xml:space="preserve"><value>此月產氣量表資料不完整（可能斷線）</value></data>
 
@@ -137,4 +137,6 @@
   <data name="airdeclaration.err.unknown" xml:space="preserve"><value>未知錯誤</value></data>
 
   <data name="airdeclaration.console.load_failed" xml:space="preserve"><value>[AirCompressorDeclaration] 載入資料失敗</value></data>
+  <data name="airdeclaration.circuit.meter_tag" xml:space="preserve"><value>（表）</value></data>
+  <data name="airdeclaration.circuit.air_meter_tag" xml:space="preserve"><value>（表）</value></data>
 </root>

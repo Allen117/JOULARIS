@@ -81,8 +81,7 @@
             const arr = byParent.get(parentKey) || [];
             arr.forEach(n => {
                 const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
-                // ❄ = ❄ snowflake；\u{1F4C1} 不在 BMP 故改用 fallback 文字標
-                const tag = n.sid ? ' [❄]' : ' [/]';
+                const tag = n.sid ? t('refrigerationtonreport.circuit.meter_tag') : '';
                 out.push({ id: n.id, label: prefix + n.name + tag });
                 walk(String(n.id), depth + 1);
             });
@@ -175,8 +174,8 @@
                 `<tr class="rt-total"><td>${totalLabel}</td><td class="text-end">${data.dTotalRtHour.toFixed(1)}</td></tr>`;
         }
         document.getElementById('rtTotal').textContent = data.dTotalRtHour.toFixed(1);
-        document.getElementById('rtWarnText').textContent = data.isHasWarning
-            ? t('refrigerationtonreport.warning.data_incomplete') : '';
+        UiState.setWarnText('rtWarnText', data.isHasWarning
+            ? t('refrigerationtonreport.warning.data_incomplete') : '');
     }
 
     function pickColor(i, alpha) {

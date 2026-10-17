@@ -200,7 +200,7 @@
             let msg = parent
                 ? `確定把「${drag.name}」搬到「${parent.name}」底下？\n搬動後上層迴路的加總與報表會立即改變。`
                 : `確定把「${drag.name}」搬到最上層？\n搬動後上層迴路的加總與報表會立即改變，且其貢獻方向會重設為正向。`;
-            if (parent && parent.sid) msg += '\n⚠ 目標是實體電表：掛子迴路後，該電表會連自身一起加總。';
+            if (parent && parent.sid) msg += '\n注意：目標是實體電表：掛子迴路後，該電表會連自身一起加總。';
             if (!confirm(msg)) return;
         }
         try {
@@ -286,9 +286,9 @@
         if (!node) return;
         const isMeter = !!node.sid;
         const sidOpt = isMeter ? g_sidOptions.find(o => o.sid === node.sid) : null;
-        const sidLabel = sidOpt
-            ? [sidOpt.coordName, sidOpt.deviceName, sidOpt.name].filter(s => s).join(' - ')
-            : (isMeter ? '⚠ 找不到對應的點位' : '');
+        const sidLabelHtml = sidOpt
+            ? escapeHtml([sidOpt.coordName, sidOpt.deviceName, sidOpt.name].filter(s => s).join(' - '))
+            : (isMeter ? UiState.warnHtml('找不到對應的點位') : '');
 
         document.getElementById('detailTitle').innerHTML =
             `<i class="fas ${isMeter ? 'fa-bolt text-warning' : 'fa-folder text-secondary'} me-1"></i>${escapeHtml(node.name)}`;
@@ -318,7 +318,7 @@
             ${isMeter ? `
             <div class="em-detail-row">
                 <div class="em-detail-label">點位名稱</div>
-                <div class="em-detail-value">${escapeHtml(sidLabel)}</div>
+                <div class="em-detail-value">${sidLabelHtml}</div>
             </div>
             <div class="em-detail-row">
                 <div class="em-detail-label">MaxKwh</div>
@@ -369,7 +369,7 @@
             const opt = pointBySid(szSid);
             const szVal = szSid
                 ? (opt ? `${escapeHtml(pointLabelOf(opt))}${opt.unit ? ' <span class="text-muted small">(' + escapeHtml(opt.unit) + ')</span>' : ''}`
-                       : '⚠ 找不到對應的點位（' + escapeHtml(szSid) + '）')
+                       : UiState.warnHtml('找不到對應的點位（' + szSid + '）'))
                 : '<span class="text-muted">未設定</span>';
             return `<div class="em-detail-row">
                 <div class="em-detail-label">${r.label}點位</div>
@@ -644,7 +644,7 @@
             const szVal = szSid
                 ? (opt ? `<span class="mi-point-name">${escapeHtml(pointLabelOf(opt))}</span>` +
                          (opt.unit ? ` <span class="mi-point-unit">${escapeHtml(opt.unit)}</span>` : '')
-                       : `<span class="text-warning">⚠ ${escapeHtml(szSid)}（點位不存在）</span>`)
+                       : `<span class="ui-warn-text">${UiState.warnHtml(szSid + '（點位不存在）')}</span>`)
                 : '<span class="text-muted">未設定</span>';
             return `<div class="mi-binding-row">
                 <div class="mi-binding-label">${r.label}</div>

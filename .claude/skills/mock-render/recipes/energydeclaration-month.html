@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ui-state.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/energydeclaration.css">
 
     <style>
@@ -269,7 +270,7 @@
                     <div class="card shadow-sm">
                         <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-chart-bar me-1"></i>用電量與冷凍噸分布</span>
-                            <span class="text-muted small" id="edWarnText"></span>
+                            <span class="ui-warn-text small" id="edWarnText" hidden></span>
                         </div>
                         <div class="card-body">
                             <div style="height:360px;">
@@ -401,8 +402,8 @@
             'energydeclaration.table.no_data': '無資料',
             'energydeclaration.table.total': '合計',
             'energydeclaration.tooltip.stale': '此區間電表資料不完整（可能斷線）',
-            'energydeclaration.warning.kwh': '⚠ 部分電表偵測到累積值倒退但未設 MaxKwh',
-            'energydeclaration.warning.rt': '⚠ 冷凍噸資料覆蓋率不足（每小時聚合尚未完成或缺資料）',
+            'energydeclaration.warning.kwh': '部分電表偵測到累積值倒退但未設 MaxKwh',
+            'energydeclaration.warning.rt': '冷凍噸資料覆蓋率不足（每小時聚合尚未完成或缺資料）',
             'energydeclaration.chart.kwh_label': '用電量 (kWh)',
             'energydeclaration.chart.rt_label': '冷凍噸數 (RT·h)',
             'energydeclaration.chart.efficiency_label': '效率：{0} kWh/RTh',
@@ -417,6 +418,7 @@
         ready: function (cb) { cb(); }
     };
     </script>
+    <script src="{{WWWROOT}}/js/common/ui-state.js"></script>
     <script src="{{WWWROOT}}/js/energydeclaration.js"></script>
     <script>
         window._edInit = { today: '2025-12-31' };

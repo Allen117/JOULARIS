@@ -130,7 +130,7 @@
             const arr = byParent.get(parentKey) || [];
             arr.forEach(n => {
                 const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
-                const tag = n.sid ? ' [💧]' : ' [📁]';
+                const tag = n.sid ? t('waterusagereport.circuit.meter_tag') : '';
                 out.push({ id: n.id, label: prefix + n.name + tag });
                 walk(String(n.id), depth + 1);
             });
@@ -223,10 +223,11 @@
             tbody.innerHTML = `<tr><td colspan="2" class="text-center text-muted py-3">${escapeHtml(t('waterusagereport.table.no_data'))}</td></tr>`;
         } else {
             const totalLabel = escapeHtml(t('waterusagereport.table.total'));
-            const staleTip = escapeHtml(t('waterusagereport.tooltip.stale'));
+            const staleTipRaw = t('waterusagereport.tooltip.stale');
+            const staleTip = escapeHtml(staleTipRaw);
             tbody.innerHTML = data.buckets.map(b => {
                 const mark = b.isStale
-                    ? ` <span class="wur-stale-mark" title="${staleTip}">⚠</span>` : '';
+                    ? UiState.staleMarkHtml('wur-stale-mark', staleTipRaw) : '';
                 const rowAttr = b.isStale ? ` title="${staleTip}"` : '';
                 return `
                 <tr${rowAttr}>
@@ -237,8 +238,8 @@
                 `<tr class="wur-total"><td>${totalLabel}</td><td class="text-end">${data.dTotalM3.toFixed(3)}</td></tr>`;
         }
         document.getElementById('wurTotal').textContent = data.dTotalM3.toFixed(3);
-        document.getElementById('wurWarnText').textContent = data.isHasWarning
-            ? t('waterusagereport.warning.stale_data') : '';
+        UiState.setWarnText('wurWarnText', data.isHasWarning
+            ? t('waterusagereport.warning.stale_data') : '');
     }
 
     // HSL 等距 12 色循環調色盤；超出時取模重用

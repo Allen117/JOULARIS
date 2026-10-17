@@ -84,7 +84,7 @@
   <data name="gasusagereport.table.no_data" xml:space="preserve"><value>No data</value></data>
   <data name="gasusagereport.table.querying" xml:space="preserve"><value>Querying…</value></data>
   <data name="gasusagereport.label.total" xml:space="preserve"><value>Total</value></data>
-  <data name="gasusagereport.warning.stale_data" xml:space="preserve"><value>⚠ Gas meter data incomplete for some periods (possible disconnection)</value></data>
+  <data name="gasusagereport.warning.stale_data" xml:space="preserve"><value>Gas meter data incomplete for some periods (possible disconnection)</value></data>
   <data name="gasusagereport.tooltip.stale" xml:space="preserve"><value>Gas meter data incomplete for this period (possible disconnection)</value></data>
   <data name="gasusagereport.select.loading" xml:space="preserve"><value>-- Loading --</value></data>
   <data name="gasusagereport.select.placeholder" xml:space="preserve"><value>-- Select Circuit --</value></data>

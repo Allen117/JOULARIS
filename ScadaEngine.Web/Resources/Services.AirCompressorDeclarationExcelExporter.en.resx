@@ -59,8 +59,8 @@
   <data name="excel.label.year" xml:space="preserve"><value>Declaration Year</value></data>
   <data name="excel.label.query_time" xml:space="preserve"><value>Query Time</value></data>
   <data name="excel.label.operator" xml:space="preserve"><value>Operator</value></data>
-  <data name="excel.label.kwh_warning" xml:space="preserve"><value>⚠ Some meter data incomplete, or rollback detected without MaxKwh configured; those segments are treated as 0</value></data>
-  <data name="excel.label.nm3_warning" xml:space="preserve"><value>⚠ Some air flow meter data incomplete (possible disconnection)</value></data>
+  <data name="excel.label.kwh_warning" xml:space="preserve"><value>Some meter data incomplete, or rollback detected without MaxKwh configured; those segments are treated as 0</value></data>
+  <data name="excel.label.nm3_warning" xml:space="preserve"><value>Some air flow meter data incomplete (possible disconnection)</value></data>
   <data name="excel.col.period" xml:space="preserve"><value>Month</value></data>
   <data name="excel.col.kwh" xml:space="preserve"><value>Energy (kWh)</value></data>
   <data name="excel.col.nm3" xml:space="preserve"><value>Air Volume (Nm³)</value></data>

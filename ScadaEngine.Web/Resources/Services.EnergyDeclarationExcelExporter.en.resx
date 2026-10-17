@@ -59,8 +59,8 @@
   <data name="excel.label.year" xml:space="preserve"><value>Declaration Year</value></data>
   <data name="excel.label.query_time" xml:space="preserve"><value>Query Time</value></data>
   <data name="excel.label.operator" xml:space="preserve"><value>Operator</value></data>
-  <data name="excel.label.kwh_warning" xml:space="preserve"><value>⚠ Some meters detected value rollback without MaxKwh configured; those segments are treated as 0</value></data>
-  <data name="excel.label.rt_warning" xml:space="preserve"><value>⚠ Refrigeration data coverage insufficient (hourly aggregation pending or data missing)</value></data>
+  <data name="excel.label.kwh_warning" xml:space="preserve"><value>Some meters detected value rollback without MaxKwh configured; those segments are treated as 0</value></data>
+  <data name="excel.label.rt_warning" xml:space="preserve"><value>Refrigeration data coverage insufficient (hourly aggregation pending or data missing)</value></data>
   <data name="excel.col.period" xml:space="preserve"><value>Month</value></data>
   <data name="excel.col.kwh" xml:space="preserve"><value>Energy (kWh)</value></data>
   <data name="excel.col.rt_hour" xml:space="preserve"><value>Refrigeration (RT·h)</value></data>

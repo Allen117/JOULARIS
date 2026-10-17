@@ -130,7 +130,7 @@
             const arr = byParent.get(parentKey) || [];
             arr.forEach(n => {
                 const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
-                const tag = n.sid ? ' [\u{1F525}]' : ' [\u{1F4C1}]';
+                const tag = n.sid ? t('gasusagereport.circuit.meter_tag') : '';
                 out.push({ id: n.id, label: prefix + n.name + tag });
                 walk(String(n.id), depth + 1);
             });
@@ -223,10 +223,11 @@
             tbody.innerHTML = `<tr><td colspan="2" class="text-center text-muted py-3">${escapeHtml(t('gasusagereport.table.no_data'))}</td></tr>`;
         } else {
             const totalLabel = escapeHtml(t('gasusagereport.table.total'));
-            const staleTip = escapeHtml(t('gasusagereport.tooltip.stale'));
+            const staleTipRaw = t('gasusagereport.tooltip.stale');
+            const staleTip = escapeHtml(staleTipRaw);
             tbody.innerHTML = data.buckets.map(b => {
                 const mark = b.isStale
-                    ? ` <span class="gur-stale-mark" title="${staleTip}">⚠</span>` : '';
+                    ? UiState.staleMarkHtml('gur-stale-mark', staleTipRaw) : '';
                 const rowAttr = b.isStale ? ` title="${staleTip}"` : '';
                 return `
                 <tr${rowAttr}>
@@ -237,8 +238,8 @@
                 `<tr class="gur-total"><td>${totalLabel}</td><td class="text-end">${data.dTotalM3.toFixed(3)}</td></tr>`;
         }
         document.getElementById('gurTotal').textContent = data.dTotalM3.toFixed(3);
-        document.getElementById('gurWarnText').textContent = data.isHasWarning
-            ? t('gasusagereport.warning.stale_data') : '';
+        UiState.setWarnText('gurWarnText', data.isHasWarning
+            ? t('gasusagereport.warning.stale_data') : '');
     }
 
     // HSL 等距 12 色循環調色盤；超出時取模重用

@@ -62,14 +62,14 @@
   <data name="assistant.btn_back_menu" xml:space="preserve"><value>回主選單</value></data>
 
   <!-- 主選單 -->
-  <data name="assistant.greeting" xml:space="preserve"><value>您好！我是 AI 智慧幫手 🤖，可以協助您快速分析能耗效率。請選擇功能：</value></data>
+  <data name="assistant.greeting" xml:space="preserve"><value>您好！我是 AI 智慧幫手，可以協助您快速分析能耗效率。請選擇功能：</value></data>
   <data name="assistant.menu.interval_efficiency" xml:space="preserve"><value>區間效率分析</value></data>
   <data name="assistant.menu.coming_soon" xml:space="preserve"><value>敬請期待</value></data>
   <data name="assistant.menu.placeholder_anomaly" xml:space="preserve"><value>能耗異常偵測</value></data>
   <data name="assistant.menu.placeholder_advice" xml:space="preserve"><value>節能建議</value></data>
 
   <!-- 區間效率分析流程 -->
-  <data name="assistant.interval.intro" xml:space="preserve"><value>好的，我來幫您分析區間能耗效率 📊</value></data>
+  <data name="assistant.interval.intro" xml:space="preserve"><value>好的，我來幫您分析區間能耗效率</value></data>
   <data name="assistant.interval.pick_report" xml:space="preserve"><value>請選擇要分析的申報項目：</value></data>
   <data name="assistant.interval.loading_reports" xml:space="preserve"><value>正在讀取申報項目清單…</value></data>
   <data name="assistant.interval.no_reports" xml:space="preserve"><value>目前尚未設定任何能源申報項目，請先到「能源申報」頁面建立成對的用電 / 冷凍噸迴路。</value></data>
@@ -85,13 +85,13 @@
   <data name="assistant.result.total_rth" xml:space="preserve"><value>總冷凍噸數：{value} RT·h</value></data>
   <data name="assistant.result.efficiency" xml:space="preserve"><value>平均效率：{value} kWh/RT·h（值越低越省電）</value></data>
   <data name="assistant.result.efficiency_na" xml:space="preserve"><value>平均效率：冷凍噸數為 0，無法計算效率。</value></data>
-  <data name="assistant.result.stale_warning" xml:space="preserve"><value>⚠ 提醒：此區間部分時段資料覆蓋率不足，以上數字僅供參考。</value></data>
-  <data name="assistant.result.low_coverage" xml:space="preserve"><value>⚠ 冷凍噸資料覆蓋率僅 {percent}%（低於 {threshold}% 門檻），「{leaf}」共缺 {hours} 小時，以上數字僅供參考。</value></data>
+  <data name="assistant.result.stale_warning" xml:space="preserve"><value>提醒：此區間部分時段資料覆蓋率不足，以上數字僅供參考。</value></data>
+  <data name="assistant.result.low_coverage" xml:space="preserve"><value>冷凍噸資料覆蓋率僅 {percent}%（低於 {threshold}% 門檻），「{leaf}」共缺 {hours} 小時，以上數字僅供參考。</value></data>
 
   <!-- 規則式評語 -->
-  <data name="assistant.verdict.good" xml:space="preserve"><value>效率表現優異 👍 這條迴路運轉相當節能，請保持。</value></data>
+  <data name="assistant.verdict.good" xml:space="preserve"><value>效率表現優異，這條迴路運轉相當節能，請保持。</value></data>
   <data name="assistant.verdict.normal" xml:space="preserve"><value>效率屬正常範圍，仍有一些優化空間可以留意。</value></data>
-  <data name="assistant.verdict.poor" xml:space="preserve"><value>效率偏高 ⚠ 建議檢查冰機運轉狀況或負載配置，可能有節能機會。</value></data>
+  <data name="assistant.verdict.poor" xml:space="preserve"><value>效率偏高，建議檢查冰機運轉狀況或負載配置，可能有節能機會。</value></data>
   <data name="assistant.verdict.low_coverage" xml:space="preserve"><value>因冷凍噸資料覆蓋率低於 {threshold}% 門檻，此區間暫不給出效率評語，建議先確認該點位的資料上傳狀況。</value></data>
   <data name="assistant.verdict.insufficient" xml:space="preserve"><value>此區間資料不足，暫時無法給出效率評語。</value></data>
 

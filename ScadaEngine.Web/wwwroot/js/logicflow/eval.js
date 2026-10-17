@@ -153,7 +153,7 @@
                     if (stateEl) {
                         const pv = lv.value != null ? parseFloat(lv.value) : NaN;
                         const isOn = !isNaN(pv) && (nd.type === 'contact_no' ? pv === 1 : pv === 0);
-                        stateEl.textContent = isOn ? '● ON' : '○ OFF';
+                        stateEl.textContent = isOn ? S.t('logicflow.state.on') : S.t('logicflow.state.off');
                         stateEl.classList.toggle('contact-on', isOn);
                         stateEl.classList.toggle('contact-off', !isOn);
                     }
@@ -180,7 +180,7 @@
                 const stateEl = nodeEl.querySelector('.contact-state');
                 if (!stateEl) continue;
                 const isOn = evalScheduleNow(nd.scheduleId, nd.type);
-                stateEl.textContent = isOn != null ? (isOn ? '● ON' : '○ OFF') : '--';
+                stateEl.textContent = isOn != null ? (isOn ? S.t('logicflow.state.on') : S.t('logicflow.state.off')) : '--';
                 stateEl.classList.toggle('contact-on', !!isOn);
                 stateEl.classList.toggle('contact-off', isOn != null && !isOn);
             }
@@ -198,7 +198,7 @@
                 if (!stateEl) continue;
                 var isOn = nd._contactOn !== undefined ? nd._contactOn : (nd._contactResult != null && nd._contactResult !== 0);
                 var evaluated = nd._contactOn !== undefined || nd._contactResult != null;
-                stateEl.textContent = evaluated ? (isOn ? '● ON' : '○ OFF') : '--';
+                stateEl.textContent = evaluated ? (isOn ? S.t('logicflow.state.on') : S.t('logicflow.state.off')) : '--';
                 stateEl.classList.toggle('contact-on', isOn);
                 stateEl.classList.toggle('contact-off', evaluated && !isOn);
             }

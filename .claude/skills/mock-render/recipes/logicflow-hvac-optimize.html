@@ -9,6 +9,7 @@
     <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ui-state.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/logicflow.css">
 
     <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
@@ -670,7 +671,9 @@
             'logicflow.port.control': '控制',
             'logicflow.port.bound_no_ctrl': '已綁定點位/排程，不可使用',
             'logicflow.port.resize_tip': '拖動調整高度',
-            'logicflow.hist.badge': '⏱ -{n}分',
+            'logicflow.hist.badge': '-{n}分',
+            'logicflow.state.on': 'ON',
+            'logicflow.state.off': 'OFF',
             'logicflow.hist.badge_tip': '讀取 {n} 分鐘前的歷史值；查無資料時視為 Bad',
             'logicflow.error.load_failed': '載入失敗：{msg}',
             'logicflow.error.schedule_load_failed': '無法載入排程清單'
@@ -685,6 +688,7 @@
         };
     })();
     </script>
+    <script src="{{WWWROOT}}/js/common/ui-state.js"></script>
     <script src="{{WWWROOT}}/js/common/schedule-eval.js"></script>
     <script src="{{WWWROOT}}/js/logicflow/state.js"></script>
     <script src="{{WWWROOT}}/js/logicflow/algo.js"></script>

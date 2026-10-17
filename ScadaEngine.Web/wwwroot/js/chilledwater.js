@@ -180,9 +180,9 @@
         if (!node) return;
         const isPoint = !!node.sid;
         const sidOpt = isPoint ? g_sidOptions.find(o => o.sid === node.sid) : null;
-        const sidLabel = sidOpt
-            ? (sidOpt.deviceName ? `${sidOpt.deviceName} - ${sidOpt.name}` : sidOpt.name)
-            : (isPoint ? t('chilledwater.detail.sid_missing') : '');
+        const sidLabelHtml = sidOpt
+            ? escapeHtml(sidOpt.deviceName ? `${sidOpt.deviceName} - ${sidOpt.name}` : sidOpt.name)
+            : (isPoint ? UiState.warnHtml(t('chilledwater.detail.sid_missing')) : '');
 
         document.getElementById('detailTitle').innerHTML =
             `<i class="fas ${isPoint ? 'fa-snowflake text-info' : 'fa-folder text-secondary'} me-1"></i>${escapeHtml(node.name)}`;
@@ -203,7 +203,7 @@
             ${isPoint ? `
             <div class="cw-detail-row">
                 <div class="cw-detail-label">${escapeHtml(t('chilledwater.detail.point'))}</div>
-                <div class="cw-detail-value">${escapeHtml(sidLabel)}</div>
+                <div class="cw-detail-value">${sidLabelHtml}</div>
             </div>
             <div class="cw-detail-row">
                 <div class="cw-detail-label">${escapeHtml(t('chilledwater.detail.unit'))}</div>

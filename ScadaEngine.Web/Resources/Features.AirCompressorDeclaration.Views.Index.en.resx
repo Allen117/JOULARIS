@@ -94,8 +94,8 @@
   <data name="airdeclaration.label.total_nm3" xml:space="preserve"><value>Total Air Volume</value></data>
   <data name="airdeclaration.label.total_specific_energy" xml:space="preserve"><value>Overall Specific Energy</value></data>
 
-  <data name="airdeclaration.warning.kwh" xml:space="preserve"><value>⚠ Some meter data incomplete, or rollback detected without MaxKwh configured</value></data>
-  <data name="airdeclaration.warning.nm3" xml:space="preserve"><value>⚠ Some air flow meter data incomplete (possible disconnection)</value></data>
+  <data name="airdeclaration.warning.kwh" xml:space="preserve"><value>Some meter data incomplete, or rollback detected without MaxKwh configured</value></data>
+  <data name="airdeclaration.warning.nm3" xml:space="preserve"><value>Some air flow meter data incomplete (possible disconnection)</value></data>
   <data name="airdeclaration.tooltip.kwh_stale" xml:space="preserve"><value>Meter data incomplete for this month (possible disconnection)</value></data>
   <data name="airdeclaration.tooltip.nm3_stale" xml:space="preserve"><value>Air flow meter data incomplete for this month (possible disconnection)</value></data>
 
@@ -137,4 +137,6 @@
   <data name="airdeclaration.err.unknown" xml:space="preserve"><value>Unknown error</value></data>
 
   <data name="airdeclaration.console.load_failed" xml:space="preserve"><value>[AirCompressorDeclaration] Failed to load data</value></data>
+  <data name="airdeclaration.circuit.meter_tag" xml:space="preserve"><value> (meter)</value></data>
+  <data name="airdeclaration.circuit.air_meter_tag" xml:space="preserve"><value> (meter)</value></data>
 </root>

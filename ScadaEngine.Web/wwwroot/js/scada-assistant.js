@@ -107,8 +107,8 @@
         _body.scrollTop = _body.scrollHeight;
     }
 
-    /** 附加一則 bot 氣泡（含小頭像） */
-    function appendBot(szText) {
+    /** 附加一則 bot 氣泡（含小頭像）；kind = 'good' | 'warn' 時氣泡左側加色條（取代文案內的 emoji 判定符號） */
+    function appendBot(szText, szKind) {
         var row = document.createElement('div');
         row.className = 'sa-row sa-row-bot';
         var avatar = document.createElement('div');
@@ -116,6 +116,7 @@
         avatar.innerHTML = '<i class="fas fa-robot"></i>';
         var msg = document.createElement('div');
         msg.className = 'sa-msg sa-msg-bot';
+        if (szKind === 'good' || szKind === 'warn') msg.classList.add('sa-msg-' + szKind);
         msg.textContent = szText;
         row.appendChild(avatar);
         row.appendChild(msg);
@@ -158,6 +159,7 @@
 
     /**
      * 逐句吐出多則 bot 訊息：每句先顯示打字指示器（依長度延遲）→ 換成氣泡 → 間隔 → 下一句。
+     * 每則可為字串或 { text, kind }（kind 見 appendBot）。
      * 全程 _busy=true，結束呼叫 onDone。
      */
     function botSay(aMessages, onDone) {
@@ -169,11 +171,13 @@
                 if (onDone) onDone();
                 return;
             }
-            var szMsg = aMessages[i++];
+            var item = aMessages[i++];
+            var szMsg = (item && typeof item === 'object') ? item.text : item;
+            var szKind = (item && typeof item === 'object') ? item.kind : null;
             showTyping();
             setTimeout(function () {
                 hideTyping();
-                appendBot(szMsg);
+                appendBot(szMsg, szKind);
                 setTimeout(next, GAP_MS);
             }, typingDelay(szMsg));
         }
@@ -398,18 +402,21 @@
         // 覆蓋率低於門檻時給帶數字的提示（幾 % / 低於幾 % / 缺幾小時），
         // 泛泛的 stale_warning 只留給其他資料警告（例如電表累積值倒退）
         if (data.isLowCoverage) {
-            aLines.push(t('assistant.result.low_coverage', {
+            aLines.push({ kind: 'warn', text: t('assistant.result.low_coverage', {
                 percent: fmtNum(data.dCoveragePercent, 1),
                 threshold: data.nCoverageThresholdPercent,
                 leaf: data.szCoverageWorstLeafName,
                 hours: data.nCoverageMissingHours
-            }));
+            }) });
         } else if (data.isStaleWarning) {
-            aLines.push(t('assistant.result.stale_warning'));
+            aLines.push({ kind: 'warn', text: t('assistant.result.stale_warning') });
         }
-        aLines.push(t('assistant.verdict.' + (data.szVerdictCode || 'insufficient'), {
+        // 判定句依 verdict code 帶氣泡色條：good → 綠、poor / low_coverage → 琥珀，其餘無色條
+        var szVerdict = data.szVerdictCode || 'insufficient';
+        var szVerdictKind = szVerdict === 'good' ? 'good' : ((szVerdict === 'poor' || szVerdict === 'low_coverage') ? 'warn' : null);
+        aLines.push({ kind: szVerdictKind, text: t('assistant.verdict.' + szVerdict, {
             threshold: data.nCoverageThresholdPercent
-        }));
+        }) });
 
         botSay(aLines, function () {
             botSay([t('assistant.restart_prompt')], showRestartActions);

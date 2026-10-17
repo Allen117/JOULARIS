@@ -91,4 +91,5 @@
   <data name="watercostreport.alert.month_order" xml:space="preserve"><value>Invalid period range (end must not be earlier than start)</value></data>
   <data name="watercostreport.alert.query_failed" xml:space="preserve"><value>Query failed: {0}</value></data>
   <data name="watercostreport.alert.export_failed" xml:space="preserve"><value>Export failed: {0}</value></data>
+  <data name="watercostreport.circuit.meter_tag" xml:space="preserve"><value> (meter)</value></data>
 </root>

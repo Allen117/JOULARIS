@@ -130,7 +130,7 @@ function renderWidget(el) {
         <div class="widget-header">
             <i class="${def.szIcon} me-1" style="opacity:.7;font-size:10px;"></i>
             <span class="wh-title">${props.szTitle}</span>
-            <button class="widget-del" onclick="deleteWidget('${el.id}')" title="${escHtml(t('designer.widget.delete_widget_tooltip'))}">✕</button>
+            <button class="widget-del" onclick="deleteWidget('${el.id}')" title="${escHtml(t('designer.widget.delete_widget_tooltip'))}"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
         <div class="widget-body">${szContent}</div>
         <div class="resize-knob" title="${escHtml(t('designer.widget.resize_tooltip'))}"></div>

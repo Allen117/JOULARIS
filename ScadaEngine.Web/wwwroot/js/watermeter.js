@@ -211,9 +211,9 @@
         if (!node) return;
         const isMeter = !!node.sid;
         const sidOpt = isMeter ? pointBySid(node.sid) : null;
-        const sidLabel = sidOpt
-            ? pointLabelOf(sidOpt)
-            : (isMeter ? '⚠ ' + t('watermeter.detail.point_missing') : '');
+        const sidLabelHtml = sidOpt
+            ? escapeHtml(pointLabelOf(sidOpt))
+            : (isMeter ? UiState.warnHtml(t('watermeter.detail.point_missing')) : '');
 
         document.getElementById('detailTitle').innerHTML =
             `<i class="fas ${isMeter ? 'fa-tint text-primary' : 'fa-folder text-secondary'} me-1"></i>${escapeHtml(node.name)}`;
@@ -247,7 +247,7 @@
             ${isMeter ? `
             <div class="wm-detail-row">
                 <div class="wm-detail-label">${escapeHtml(t('watermeter.detail.point'))}</div>
-                <div class="wm-detail-value">${escapeHtml(sidLabel)}</div>
+                <div class="wm-detail-value">${sidLabelHtml}</div>
             </div>
             <div class="wm-detail-row">
                 <div class="wm-detail-label">${escapeHtml(t('watermeter.detail.unit_scale'))}</div>
@@ -343,13 +343,15 @@
         }
         disp.classList.remove('text-muted');
         if (opt) {
+            disp.classList.remove('ui-warn-text');
             disp.textContent = pointLabelOf(opt) + (opt.unit ? ' (' + opt.unit + ')' : '');
             info.style.display = '';
             info.textContent = t('watermeter.form.unit_scale_display', {
                 unit: opt.unit, scale: formatScale(opt.unitScale)
             });
         } else {
-            disp.textContent = '⚠ ' + t('watermeter.detail.point_missing') + ' (' + szSid + ')';
+            disp.classList.add('ui-warn-text');
+            UiState.setWarnText(disp, t('watermeter.detail.point_missing') + ' (' + szSid + ')');
             info.style.display = 'none';
         }
     }

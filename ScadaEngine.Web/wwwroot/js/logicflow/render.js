@@ -2,10 +2,10 @@
 (function () {
     const S = window.__lfNS;
 
-    // 歷史值讀取標記：「⏱ -N分」badge（僅啟用歷史讀取的 input / contact 節點）
+    // 歷史值讀取標記：「-N分」badge（fa-history 圖示由元件提供，resx 只放文字）（僅啟用歷史讀取的 input / contact 節點）
     function histBadgeHtml(n) {
         if (!n.histEnabled || n.histOffsetMinutes == null) return '';
-        return `<span class="hist-badge" title="${S.escHtml(S.t('logicflow.hist.badge_tip', { n: n.histOffsetMinutes }))}">${S.escHtml(S.t('logicflow.hist.badge', { n: n.histOffsetMinutes }))}</span>`;
+        return `<span class="hist-badge" title="${S.escHtml(S.t('logicflow.hist.badge_tip', { n: n.histOffsetMinutes }))}"><i class="fas fa-history me-1" aria-hidden="true"></i>${S.escHtml(S.t('logicflow.hist.badge', { n: n.histOffsetMinutes }))}</span>`;
     }
 
     // 未綁定標記：「⃠ 未綁定」badge。樹層級複製出的邏輯點位全空，
@@ -120,9 +120,9 @@
                     + `<div class="node-live-value counter-live" data-node-id="${n.id}">cv:${cvText} / q:${qText}</div>`;
             } else if (n.type === 'algorithm' && n.operator && S.ALGO_OPS[n.operator]) {
                 const aop = S.ALGO_OPS[n.operator];
-                const langIcon = aop.language === 'csharp' ? ' ⚡' : '';
+                const langTag = aop.language === 'csharp' ? '<span class="ui-lang-tag">C#</span>' : '';
                 let aHtml = `<span class="algo-op-badge" title="${S.escHtml(aop.label)}"><i class="fas fa-microchip"></i></span>`
-                    + `<span style="font-size:.75rem">${S.escHtml(aop.label)}${langIcon}</span>`;
+                    + `<span style="font-size:.75rem">${S.escHtml(aop.label)}${langTag}</span>`;
                 if (aop.variadic) {
                     const nVal = n.inputCount || 1;
                     aHtml += `<input type="number" class="algo-n-input" min="1" value="${nVal}" data-node-id="${n.id}" title="${S.escHtml(S.t('logicflow.algorithm.quantity'))}">`;
@@ -148,7 +148,7 @@
             } else if ((n.type === 'contact_no' || n.type === 'contact_nc') && n.scheduleId != null) {
                 // 排程綁定的接點
                 const isOn = S.evalScheduleNow(n.scheduleId, n.type);
-                const contactState = isOn != null ? (isOn ? '● ON' : '○ OFF') : '--';
+                const contactState = isOn != null ? (isOn ? S.t('logicflow.state.on') : S.t('logicflow.state.off')) : '--';
                 const stateClass = isOn != null ? (isOn ? 'contact-on' : 'contact-off') : '';
                 el.innerHTML = `<i class="${meta.icon}"></i><span>${S.escHtml(n.scheduleName || S.t('logicflow.node.schedule'))}</span>`
                     + `<span class="contact-state ${stateClass}">${contactState}</span>`
@@ -160,7 +160,7 @@
                 const unitText = n.unit ? ` ${n.unit}` : '';
                 const badClass = (lv && lv.quality === 'Bad') ? ' quality-bad' : '';
                 const isOn = hasVal && (n.type === 'contact_no' ? parseFloat(lv.value) === 1 : parseFloat(lv.value) === 0);
-                const contactState = hasVal ? (isOn ? '● ON' : '○ OFF') : '--';
+                const contactState = hasVal ? (isOn ? S.t('logicflow.state.on') : S.t('logicflow.state.off')) : '--';
                 const stateClass = hasVal ? (isOn ? 'contact-on' : 'contact-off') : '';
                 el.innerHTML = `<i class="${meta.icon}"></i><span>${S.escHtml(label)}</span>` + histBadgeHtml(n)
                     + `<span class="contact-state ${stateClass}">${contactState}</span>`

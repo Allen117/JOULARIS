@@ -85,7 +85,7 @@
   <data name="chilledwater.detail.unit" xml:space="preserve"><value>單位</value></data>
   <data name="chilledwater.detail.desc" xml:space="preserve"><value>說明</value></data>
   <data name="chilledwater.detail.none" xml:space="preserve"><value>無</value></data>
-  <data name="chilledwater.detail.sid_missing" xml:space="preserve"><value>⚠ 找不到對應的點位</value></data>
+  <data name="chilledwater.detail.sid_missing" xml:space="preserve"><value>找不到對應的點位</value></data>
 
   <data name="chilledwater.option.unassigned" xml:space="preserve"><value>未指定</value></data>
 
@@ -103,6 +103,6 @@
   <data name="chilledwater.err.sort_failed" xml:space="preserve"><value>排序更新失敗</value></data>
   <data name="chilledwater.msg.confirm_move" xml:space="preserve"><value>確定把「{name}」搬到「{parent}」底下？&#10;搬動後上層迴路的冷凍噸加總與報表會立即改變。</value></data>
   <data name="chilledwater.msg.confirm_move_root" xml:space="preserve"><value>確定把「{name}」搬到最上層？&#10;搬動後上層迴路的冷凍噸加總與報表會立即改變。</value></data>
-  <data name="chilledwater.msg.confirm_move_into_point" xml:space="preserve"><value>⚠ 目標已綁定點位：掛子節點後，該節點會連自身一起加總。</value></data>
+  <data name="chilledwater.msg.confirm_move_into_point" xml:space="preserve"><value>注意：目標已綁定點位：掛子節點後，該節點會連自身一起加總。</value></data>
   <data name="chilledwater.msg.sort_failed" xml:space="preserve"><value>搬移失敗：{msg}</value></data>
 </root>

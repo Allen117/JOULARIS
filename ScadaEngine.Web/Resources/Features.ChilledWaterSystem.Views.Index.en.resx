@@ -85,7 +85,7 @@
   <data name="chilledwater.detail.unit" xml:space="preserve"><value>Unit</value></data>
   <data name="chilledwater.detail.desc" xml:space="preserve"><value>Description</value></data>
   <data name="chilledwater.detail.none" xml:space="preserve"><value>None</value></data>
-  <data name="chilledwater.detail.sid_missing" xml:space="preserve"><value>⚠ Point not found</value></data>
+  <data name="chilledwater.detail.sid_missing" xml:space="preserve"><value>Point not found</value></data>
 
   <data name="chilledwater.option.unassigned" xml:space="preserve"><value>Unassigned</value></data>
 
@@ -103,6 +103,6 @@
   <data name="chilledwater.err.sort_failed" xml:space="preserve"><value>Sort update failed</value></data>
   <data name="chilledwater.msg.confirm_move" xml:space="preserve"><value>Move "{name}" under "{parent}"?&#10;Parent circuit RT totals and reports change immediately.</value></data>
   <data name="chilledwater.msg.confirm_move_root" xml:space="preserve"><value>Move "{name}" to the top level?&#10;Parent circuit RT totals and reports change immediately.</value></data>
-  <data name="chilledwater.msg.confirm_move_into_point" xml:space="preserve"><value>⚠ Target is bound to a point: once it has children it is summed together with itself.</value></data>
+  <data name="chilledwater.msg.confirm_move_into_point" xml:space="preserve"><value>Note: Target is bound to a point: once it has children it is summed together with itself.</value></data>
   <data name="chilledwater.msg.sort_failed" xml:space="preserve"><value>Move failed: {msg}</value></data>
 </root>

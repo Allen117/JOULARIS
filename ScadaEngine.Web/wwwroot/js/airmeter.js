@@ -213,9 +213,9 @@
         if (!node) return;
         const isMeter = !!node.sid;
         const sidOpt = isMeter ? pointBySid(node.sid) : null;
-        const sidLabel = sidOpt
-            ? pointLabelOf(sidOpt)
-            : (isMeter ? '⚠ ' + t('airmeter.detail.point_missing') : '');
+        const sidLabelHtml = sidOpt
+            ? escapeHtml(pointLabelOf(sidOpt))
+            : (isMeter ? UiState.warnHtml(t('airmeter.detail.point_missing')) : '');
 
         document.getElementById('detailTitle').innerHTML =
             `<i class="fas ${isMeter ? 'fa-wind text-primary' : 'fa-folder text-secondary'} me-1"></i>${escapeHtml(node.name)}`;
@@ -249,7 +249,7 @@
             ${isMeter ? `
             <div class="am-detail-row">
                 <div class="am-detail-label">${escapeHtml(t('airmeter.detail.point'))}</div>
-                <div class="am-detail-value">${escapeHtml(sidLabel)}</div>
+                <div class="am-detail-value">${sidLabelHtml}</div>
             </div>
             <div class="am-detail-row">
                 <div class="am-detail-label">${escapeHtml(t('airmeter.detail.unit_scale'))}</div>
@@ -345,13 +345,15 @@
         }
         disp.classList.remove('text-muted');
         if (opt) {
+            disp.classList.remove('ui-warn-text');
             disp.textContent = pointLabelOf(opt) + (opt.unit ? ' (' + opt.unit + ')' : '');
             info.style.display = '';
             info.textContent = t('airmeter.form.unit_scale_display', {
                 unit: opt.unit, scale: formatScale(opt.unitScale)
             });
         } else {
-            disp.textContent = '⚠ ' + t('airmeter.detail.point_missing') + ' (' + szSid + ')';
+            disp.classList.add('ui-warn-text');
+            UiState.setWarnText(disp, t('airmeter.detail.point_missing') + ' (' + szSid + ')');
             info.style.display = 'none';
         }
     }

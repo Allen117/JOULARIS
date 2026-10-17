@@ -59,7 +59,7 @@
   <data name="excel.label.query_time" xml:space="preserve"><value>Query Time</value></data>
   <data name="excel.label.operator" xml:space="preserve"><value>Operator</value></data>
   <data name="excel.label.total_rt_hour" xml:space="preserve"><value>Total Cooling Energy (RT·h)</value></data>
-  <data name="excel.label.warning" xml:space="preserve"><value>⚠ Some hours have insufficient samples (&lt; 30/hour); those segments are treated as missing</value></data>
+  <data name="excel.label.warning" xml:space="preserve"><value>Some hours have insufficient samples (&lt; 30/hour); those segments are treated as missing</value></data>
   <data name="excel.col.period" xml:space="preserve"><value>Period</value></data>
   <data name="excel.col.rt_hour" xml:space="preserve"><value>Cooling Energy (RT·h)</value></data>
   <data name="excel.col.with_circuit_rt_hour" xml:space="preserve"><value>{0} (RT·h)</value></data>

@@ -93,7 +93,7 @@
   <data name="waterusagereport.table.querying" xml:space="preserve"><value>Querying…</value></data>
 
   <data name="waterusagereport.label.total" xml:space="preserve"><value>Total</value></data>
-  <data name="waterusagereport.warning.stale_data" xml:space="preserve"><value>⚠ Water meter data incomplete for some periods (possible disconnection)</value></data>
+  <data name="waterusagereport.warning.stale_data" xml:space="preserve"><value>Water meter data incomplete for some periods (possible disconnection)</value></data>
   <data name="waterusagereport.tooltip.stale" xml:space="preserve"><value>Water meter data incomplete for this period (possible disconnection)</value></data>
 
   <data name="waterusagereport.select.loading" xml:space="preserve"><value>-- Loading --</value></data>
@@ -111,4 +111,5 @@
   <data name="waterusagereport.console.load_circuit_failed" xml:space="preserve"><value>[WaterUsageReport] Failed to load circuits</value></data>
 
   <data name="waterusagereport.period.hint" xml:space="preserve"><value>Actual period range: {0} ~ {1} (per billing cycle settings)</value></data>
+  <data name="waterusagereport.circuit.meter_tag" xml:space="preserve"><value> (meter)</value></data>
 </root>

@@ -130,7 +130,7 @@
             const arr = byParent.get(parentKey) || [];
             arr.forEach(n => {
                 const prefix = '  '.repeat(depth) + (depth > 0 ? '└ ' : '');
-                const tag = n.sid ? ' [⚡]' : ' [📁]';
+                const tag = n.sid ? t('energyreport.circuit.meter_tag') : '';
                 out.push({ id: n.id, label: prefix + n.name + tag });
                 walk(String(n.id), depth + 1);
             });
@@ -235,12 +235,9 @@
         return (v > 0 ? '+' : '') + fmtKwh(v);
     }
 
-    // 增減%：漲紅（▲）跌綠（▼），null → --
+    // 增減%：漲紅（caret-up）跌綠（caret-down），null → --；三角圖示由 UiState 提供
     function pctCellHtml(p) {
-        if (p == null) return '<span class="text-muted">--</span>';
-        if (p > 0) return `<span class="er-yoy-up">▲ +${p.toFixed(1)}%</span>`;
-        if (p < 0) return `<span class="er-yoy-down">▼ ${p.toFixed(1)}%</span>`;
-        return '<span class="text-muted">0.0%</span>';
+        return UiState.pctHtml(p, 'er-yoy-up', 'er-yoy-down');
     }
 
     // 依 YOY 與否重建表頭；回傳欄數（供空狀態 colspan 用）
@@ -261,13 +258,14 @@
         const nCols = applyTableHead(isYoy);
         const tbody = document.getElementById('erTableBody');
         const totalLabel = escapeHtml(t('energyreport.table.total'));
-        const staleTip = escapeHtml(t('energyreport.tooltip.stale'));
+        const staleTipRaw = t('energyreport.tooltip.stale');
+        const staleTip = escapeHtml(staleTipRaw);
 
         if (!data.buckets || data.buckets.length === 0) {
             tbody.innerHTML = `<tr><td colspan="${nCols}" class="text-center text-muted py-3">${escapeHtml(t('energyreport.table.no_data'))}</td></tr>`;
         } else if (!isYoy) {
             tbody.innerHTML = data.buckets.map(b => {
-                const mark = b.isStale ? ` <span class="er-stale-mark" title="${staleTip}">⚠</span>` : '';
+                const mark = b.isStale ? UiState.staleMarkHtml('er-stale-mark', staleTipRaw) : '';
                 const rowAttr = b.isStale ? ` title="${staleTip}"` : '';
                 return `
                 <tr${rowAttr}>
@@ -279,7 +277,7 @@
         } else {
             // YOY：期別 / 本期 / 去年同期 / 差異 / 增減%
             const rows = data.buckets.map(b => {
-                const mark = b.isStale ? ` <span class="er-stale-mark" title="${staleTip}">⚠</span>` : '';
+                const mark = b.isStale ? UiState.staleMarkHtml('er-stale-mark', staleTipRaw) : '';
                 const rowAttr = b.isStale ? ` title="${staleTip}"` : '';
                 return `
                 <tr${rowAttr}>
@@ -311,8 +309,8 @@
                 </tr>`;
         }
         document.getElementById('erTotal').textContent = fmtKwh(data.dTotalKwh);
-        document.getElementById('erWarnText').textContent = data.isHasWarning
-            ? t('energyreport.warning.kwh_overflow') : '';
+        UiState.setWarnText('erWarnText', data.isHasWarning
+            ? t('energyreport.warning.kwh_overflow') : '');
     }
 
     // HSL 等距 12 色循環調色盤；超出時取模重用

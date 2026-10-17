@@ -58,7 +58,7 @@
   <data name="excel.label.query_time" xml:space="preserve"><value>Query Time</value></data>
   <data name="excel.label.operator" xml:space="preserve"><value>Operator</value></data>
   <data name="excel.label.total_m3" xml:space="preserve"><value>Total Gas Usage (m³)</value></data>
-  <data name="excel.label.warning" xml:space="preserve"><value>⚠ Gas meter data incomplete for some periods (possible disconnection); values may be understated</value></data>
+  <data name="excel.label.warning" xml:space="preserve"><value>Gas meter data incomplete for some periods (possible disconnection); values may be understated</value></data>
   <data name="excel.col.period" xml:space="preserve"><value>Period</value></data>
   <data name="excel.col.m3" xml:space="preserve"><value>Gas Usage (m³)</value></data>
   <data name="excel.col.with_circuit_m3" xml:space="preserve"><value>{0} (m³)</value></data>

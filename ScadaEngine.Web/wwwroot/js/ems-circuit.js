@@ -172,7 +172,7 @@
 
             var icon = document.createElement('span');
             icon.className = n.children.length > 0 ? 'ems-tree-expand' : 'ems-tree-expand-placeholder';
-            if (n.children.length > 0) icon.textContent = '▼';
+            if (n.children.length > 0) icon.innerHTML = '<i class="fas fa-chevron-down" aria-hidden="true"></i>';
             li.appendChild(icon);
 
             var label = document.createElement('span');
