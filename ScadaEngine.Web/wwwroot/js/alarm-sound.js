@@ -293,19 +293,19 @@
         var isSnooze = isSnoozed();
         var isSounding = audible.length > 0;
 
+        // 已消音：有未確認警報但全在消音名單內（不發聲）→ 與暫時靜音同樣切 🔕（紅色不淡化，仍提醒有警報）
+        var isSilenced = nPending > 0 && !isSounding && !isSnooze;
+
         $nav.classList.toggle('as-alerting', isSounding);
         $nav.classList.toggle('as-has-pending', nPending > 0);
         $nav.classList.toggle('as-muted', isSnooze);
 
-        $icon.className = isSnooze ? 'fas fa-bell-slash' : 'fas fa-bell';
+        $icon.className = (isSnooze || isSilenced) ? 'fas fa-bell-slash' : 'fas fa-bell';
         $count.textContent = nPending;
         $count.classList.toggle('d-none', nPending === 0);
 
-        var szSnooze = '';
-        if (isSnooze) {
-            szSnooze = Math.ceil((state.snoozeUntil - Date.now()) / 60000) + "'";
-        }
-        $snoozeLabel.textContent = szSnooze;
+        // 暫時靜音：只掛剩餘分鐘數字徽章，不帶文字
+        $snoozeLabel.textContent = isSnooze ? Math.ceil((state.snoozeUntil - Date.now()) / 60000) : '';
         $snoozeLabel.classList.toggle('d-none', !isSnooze);
 
         // 狀態文字

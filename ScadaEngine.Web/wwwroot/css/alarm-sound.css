@@ -20,13 +20,23 @@
     text-align: center;
 }
 
+/* 暫時靜音剩餘分鐘：灰底數字徽章（與紅色筆數徽章並列，不帶文字） */
 #alarmSoundNav .as-snooze {
-    font-size: 0.75rem;
+    display: inline-block;
+    vertical-align: top;
     margin-left: 2px;
-    opacity: 0.85;
+    min-width: 18px;
+    padding: 2px 5px;
+    border-radius: 9px;
+    background: #6c757d;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
 }
 
-/* 有未確認警報（已消音）：鈴鐺紅色靜止 */
+/* 有未確認警報（已消音）：🔕 紅色靜止 */
 #alarmSoundNav.as-has-pending #alarmSoundIcon {
     color: #dc3545;
 }
@@ -59,7 +69,7 @@
     75%      { transform: rotate(15deg); }
 }
 
-/* 暫時靜音：淡化 */
+/* 暫時靜音：🔕 淡化 */
 #alarmSoundNav.as-muted #alarmSoundIcon {
     opacity: 0.6;
 }
