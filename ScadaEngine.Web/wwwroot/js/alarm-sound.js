@@ -4,7 +4,8 @@
  * 觸發：/Realtime/ActiveAlarms 中「未確認 && severity <= 2（Critical/High/Medium）」的警報
  *   Critical → 急促三連嗶循環；High → 慢速雙嗶循環；Medium → 每筆新警報響一次叮咚；Low 不響
  * 靜音：
- *   消音     — 記下當下未確認警報 key（SID:type），出現不在名單內的新警報會再響
+ *   消音     — 記下當下未確認警報 key（SID:type）並進入「已消音」狀態（🔕，即使當下沒有警報也切），
+ *              出現不在名單內的新警報會再響並自動解除已消音；取消靜音亦解除
  *   暫時靜音 — N 分鐘內一律不響，到期自動恢復
  *   ACK      — 該筆 isAcknowledged=true 後自然不再列入
  * 狀態存 localStorage（per 工作站），storage 事件同步到同機其他分頁；多分頁以心跳選一個 leader 發聲。
@@ -26,7 +27,7 @@
     var szTabId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
     // ── 持久狀態（localStorage）──
-    var state = { silencedKeys: [], snoozeUntil: 0 };
+    var state = { silencedKeys: [], snoozeUntil: 0, isSilenced: false };
 
     // ── 執行期狀態 ──
     var pendingAlarms = [];          // 未確認且 severity <= 2
@@ -51,6 +52,7 @@
                 var o = JSON.parse(sz);
                 state.silencedKeys = Array.isArray(o.silencedKeys) ? o.silencedKeys : [];
                 state.snoozeUntil = Number(o.snoozeUntil) || 0;
+                state.isSilenced = !!o.isSilenced;
             }
         } catch (e) { /* 存取失敗退化為記憶體狀態 */ }
     }
@@ -207,6 +209,13 @@
         }
 
         var audible = audibleAlarms();
+
+        // 新警報突破消音名單（要響）→ 已消音狀態自動解除，鈴鐺回到響鈴
+        if (state.isSilenced && audible.length > 0) {
+            state.isSilenced = false;
+            saveState();
+        }
+
         var nWorst = audible.reduce(function (m, a) { return Math.min(m, a.severity); }, 99);
 
         if (!isLeader || isAudioLocked()) {
@@ -258,6 +267,7 @@
     function silence() {
         unlockAudio();
         state.silencedKeys = pendingAlarms.map(keyOf);
+        state.isSilenced = true;
         saveState();
         evaluate();
     }
@@ -273,6 +283,7 @@
         unlockAudio();
         state.snoozeUntil = 0;
         state.silencedKeys = [];
+        state.isSilenced = false;
         saveState();
         evaluate();
     }
@@ -293,8 +304,9 @@
         var isSnooze = isSnoozed();
         var isSounding = audible.length > 0;
 
-        // 已消音：有未確認警報但全在消音名單內（不發聲）→ 與暫時靜音同樣切 🔕（紅色不淡化，仍提醒有警報）
-        var isSilenced = nPending > 0 && !isSounding && !isSnooze;
+        // 已消音：按過「消音」且尚未被新警報突破 / 取消 → 與暫時靜音同樣切 🔕
+        // （有未確認警報時維持紅色不淡化，仍提醒有警報；沒有警報時也切，讓按鈕有即時回饋）
+        var isSilenced = state.isSilenced && !isSounding;
 
         $nav.classList.toggle('as-alerting', isSounding);
         $nav.classList.toggle('as-has-pending', nPending > 0);
@@ -314,10 +326,11 @@
         else if (isSnooze) szStatus = t('layout.alarm_sound.status.snoozed', { min: Math.ceil((state.snoozeUntil - Date.now()) / 60000) });
         else if (isSounding) szStatus = t('layout.alarm_sound.status.sounding', { count: audible.length });
         else if (nPending > 0) szStatus = t('layout.alarm_sound.status.silenced', { count: nPending });
+        else if (isSilenced) szStatus = t('layout.alarm_sound.status.silenced_idle');
         else szStatus = t('layout.alarm_sound.status.normal');
         $status.textContent = szStatus;
 
-        $resume.classList.toggle('d-none', !isSnooze && state.silencedKeys.length === 0);
+        $resume.classList.toggle('d-none', !isSnooze && !state.isSilenced && state.silencedKeys.length === 0);
 
         // 有聲要發卻被瀏覽器擋 → 提示點擊啟用
         $unlock.classList.toggle('d-none', !(isSounding && isAudioLocked() && !isOtherLeaderUnlocked));

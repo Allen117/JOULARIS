@@ -160,6 +160,7 @@
   <data name="layout.alarm_sound.status.normal" xml:space="preserve"><value>無未確認警報</value></data>
   <data name="layout.alarm_sound.status.sounding" xml:space="preserve"><value>{count} 筆未確認警報響鈴中</value></data>
   <data name="layout.alarm_sound.status.silenced" xml:space="preserve"><value>{count} 筆未確認警報（已消音）</value></data>
+  <data name="layout.alarm_sound.status.silenced_idle" xml:space="preserve"><value>已消音，目前無未確認警報（新警報仍會響）</value></data>
   <data name="layout.alarm_sound.status.snoozed" xml:space="preserve"><value>暫時靜音中，剩 {min} 分鐘</value></data>
   <data name="layout.alarm_sound.status.offline" xml:space="preserve"><value>無法取得警報資料</value></data>
   <data name="layout.menu.contract_capacity" xml:space="preserve"><value>契約容量最佳化</value></data>
