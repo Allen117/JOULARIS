@@ -81,7 +81,6 @@
   <data name="history.chart.title.placeholder" xml:space="preserve"><value>請加入點位後按下查詢</value></data>
   <data name="history.chart.title.queried" xml:space="preserve"><value>已查詢 {0} 個點位</value></data>
 
-  <data name="history.chart.warning.limit" xml:space="preserve"><value>部分點位超過 5000 筆上限</value></data>
   <data name="history.chart.button.export" xml:space="preserve"><value>匯出 Excel</value></data>
   <data name="history.chart.axis_dual" xml:space="preserve"><value>雙軸</value></data>
   <data name="history.chart.axis_single" xml:space="preserve"><value>單軸</value></data>
@@ -99,7 +98,6 @@
   <data name="history.stats.max" xml:space="preserve"><value>最大值</value></data>
   <data name="history.stats.avg" xml:space="preserve"><value>平均值</value></data>
   <data name="history.stats.std_dev" xml:space="preserve"><value>標準差</value></data>
-  <data name="history.stats.diff" xml:space="preserve"><value>差值</value></data>
   <data name="history.stats.count" xml:space="preserve"><value>筆數</value></data>
 
   <data name="history.multistats.point" xml:space="preserve"><value>點位</value></data>
@@ -126,18 +124,10 @@
 
   <data name="history.basket.button.remove" xml:space="preserve"><value>移除</value></data>
 
-  <data name="history.excel.col.timestamp" xml:space="preserve"><value>時間戳記</value></data>
-  <data name="history.excel.col.value" xml:space="preserve"><value>數值</value></data>
-  <data name="history.excel.col.quality" xml:space="preserve"><value>品質</value></data>
-  <data name="history.excel.summary.sheet" xml:space="preserve"><value>統計摘要</value></data>
-  <data name="history.excel.summary.col.point" xml:space="preserve"><value>點位名稱</value></data>
-  <data name="history.excel.summary.col.unit" xml:space="preserve"><value>單位</value></data>
-  <data name="history.excel.summary.col.count" xml:space="preserve"><value>筆數</value></data>
-  <data name="history.excel.summary.col.min" xml:space="preserve"><value>最小值</value></data>
-  <data name="history.excel.summary.col.max" xml:space="preserve"><value>最大值</value></data>
-  <data name="history.excel.summary.col.avg" xml:space="preserve"><value>平均值</value></data>
-  <data name="history.excel.summary.col.std_dev" xml:space="preserve"><value>標準差</value></data>
-  <data name="history.excel.summary.col.diff" xml:space="preserve"><value>差值</value></data>
-  <data name="history.excel.filename" xml:space="preserve"><value>歷史趨勢</value></data>
   <data name="history.coordinator.demand" xml:space="preserve"><value>需量</value></data>
+  <data name="history.chart.warning.limit" xml:space="preserve"><value>部分點位超過每點位筆數上限</value></data>
+  <data name="history.stats.diff" xml:space="preserve"><value>差異值</value></data>
+  <data name="history.alert.export_limit" xml:space="preserve"><value>預估 {0} 格，超過匯出上限 {1} 格，請縮短區間、減少點位或加大查詢間隔</value></data>
+  <data name="history.alert.export_failed" xml:space="preserve"><value>匯出失敗，請稍後再試</value></data>
+  <data name="history.chart.button.exporting" xml:space="preserve"><value>匯出中…</value></data>
 </root>

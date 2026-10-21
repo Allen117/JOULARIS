@@ -282,6 +282,10 @@ builder.Services.AddScoped<ScadaEngine.Web.Services.RefrigerationTonReportExcelE
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnergyDeclarationExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.AirCompressorDeclarationExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.ContractCapacityExcelExporter>();
+// 歷史趨勢：查詢 + 統計（/api/history/data 與匯出共用）、匯出 Excel（統計 / 圖表分頁）、工程師專屬系統參數（SystemSettings system_parameters）
+builder.Services.AddScoped<ScadaEngine.Web.Services.HistoryQueryService>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.HistoryExcelExporter>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.SystemParameterService>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.ElectricityCostReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnPIReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.WaterUsageReportExcelExporter>();

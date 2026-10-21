@@ -164,4 +164,5 @@
   <data name="layout.alarm_sound.status.snoozed" xml:space="preserve"><value>暫時靜音中，剩 {min} 分鐘</value></data>
   <data name="layout.alarm_sound.status.offline" xml:space="preserve"><value>無法取得警報資料</value></data>
   <data name="layout.menu.contract_capacity" xml:space="preserve"><value>契約容量最佳化</value></data>
+  <data name="layout.menu.system_parameter" xml:space="preserve"><value>系統參數</value></data>
 </root>

@@ -1,0 +1,50 @@
+/* 系統參數頁（工程師專屬）— 每列：名稱 / 輸入 + 單位 / 說明 + 範圍 */
+
+.sp-row {
+    display: grid;
+    grid-template-columns: 220px 220px 1fr;
+    gap: 0.5rem 1rem;
+    align-items: start;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.sp-row:last-child {
+    border-bottom: none;
+}
+
+.sp-label {
+    font-weight: 600;
+    padding-top: 0.25rem;
+}
+
+.sp-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sp-input input {
+    max-width: 160px;
+}
+
+.sp-unit {
+    color: var(--bs-secondary-color, #6c757d);
+    white-space: nowrap;
+}
+
+.sp-desc {
+    font-size: 0.875rem;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.sp-range {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+    .sp-row {
+        grid-template-columns: 1fr;
+    }
+}

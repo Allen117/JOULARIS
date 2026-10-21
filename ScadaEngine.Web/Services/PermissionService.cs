@@ -71,6 +71,7 @@ public static class PermissionService
         ("/OpcUaCoordinator", "OPC UA 來源"),
         ("/CalcPoint",      "計算點位"),
         ("/LogicFlow",      "流程圖控制"),
+        ("/SystemParameter", "系統參數"),
     ];
 
     /// <summary>

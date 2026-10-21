@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="excel.filename" xml:space="preserve"><value>Trend</value></data>
+  <data name="excel.sheet.stats" xml:space="preserve"><value>Statistics</value></data>
+  <data name="excel.sheet.chart" xml:space="preserve"><value>Charts</value></data>
+  <data name="excel.col.timestamp" xml:space="preserve"><value>Timestamp</value></data>
+  <data name="excel.col.value" xml:space="preserve"><value>Value</value></data>
+  <data name="excel.col.quality" xml:space="preserve"><value>Quality</value></data>
+  <data name="excel.col.valid" xml:space="preserve"><value>Valid Value</value></data>
+  <data name="excel.stats.range" xml:space="preserve"><value>Period: {0} ~ {1}</value></data>
+  <data name="excel.stats.interval" xml:space="preserve"><value>Sampling interval: {0} min</value></data>
+  <data name="excel.stats.interval_raw" xml:space="preserve"><value>Sampling interval: raw data</value></data>
+  <data name="excel.stats.col.point" xml:space="preserve"><value>Point Name</value></data>
+  <data name="excel.stats.col.unit" xml:space="preserve"><value>Unit</value></data>
+  <data name="excel.stats.col.kind" xml:space="preserve"><value>Type</value></data>
+  <data name="excel.stats.col.count" xml:space="preserve"><value>Count</value></data>
+  <data name="excel.stats.col.valid_count" xml:space="preserve"><value>Valid Count</value></data>
+  <data name="excel.stats.col.min" xml:space="preserve"><value>Min</value></data>
+  <data name="excel.stats.col.max" xml:space="preserve"><value>Max</value></data>
+  <data name="excel.stats.col.avg" xml:space="preserve"><value>Avg</value></data>
+  <data name="excel.stats.col.std_dev" xml:space="preserve"><value>Std Dev</value></data>
+  <data name="excel.stats.col.diff" xml:space="preserve"><value>Difference</value></data>
+  <data name="excel.stats.col.remark" xml:space="preserve"><value>Remarks</value></data>
+  <data name="excel.kind.instant" xml:space="preserve"><value>Instantaneous</value></data>
+  <data name="excel.kind.cumulative" xml:space="preserve"><value>Cumulative</value></data>
+  <data name="excel.kind.period" xml:space="preserve"><value>Period</value></data>
+  <data name="excel.kind.status" xml:space="preserve"><value>Status</value></data>
+  <data name="excel.remark.no_valid" xml:space="preserve"><value>No valid data in the whole period</value></data>
+  <data name="excel.remark.limited" xml:space="preserve"><value>Reached the {0}-row per-point limit; later data not included</value></data>
+  <data name="excel.remark.status_avg" xml:space="preserve"><value>Average = running ratio</value></data>
+  <data name="excel.remark.drop" xml:space="preserve"><value>Reset / meter replacement detected {0} time(s) (segments summed)</value></data>
+  <data name="excel.remark.spike" xml:space="preserve"><value>{0} single-sample spike(s) removed</value></data>
+  <data name="excel.remark.start_inset" xml:space="preserve"><value>Start moved in to {0} (no valid data before)</value></data>
+  <data name="excel.remark.end_inset" xml:space="preserve"><value>End moved in to {0} (no valid data after)</value></data>
+  <data name="excel.chart.col.point" xml:space="preserve"><value>Point Name</value></data>
+  <data name="excel.chart.col.diff" xml:space="preserve"><value>Difference</value></data>
+  <data name="excel.chart.col.unit" xml:space="preserve"><value>Unit</value></data>
+  <data name="excel.chart.bar_title" xml:space="preserve"><value>Difference ({0})</value></data>
+  <data name="excel.chart.pie_title" xml:space="preserve"><value>Difference Share ({0})</value></data>
+  <data name="excel.chart.line_title" xml:space="preserve"><value>Trend ({0})</value></data>
+  <data name="excel.chart.none" xml:space="preserve"><value>No charts for this export (period / status points and points without valid data are not charted)</value></data>
+</root>

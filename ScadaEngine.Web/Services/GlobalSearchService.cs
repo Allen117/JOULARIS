@@ -33,6 +33,7 @@ public class GlobalSearchService
         new("/OpcUaCoordinator",   "layout.menu.opcuacoordinator",  "fas fa-plug",             "opc ua opcua 通訊 點位 來源"),
         new("/CalcPoint",          "layout.menu.calcpoint",         "fas fa-calculator",       "計算 點位 公式 虛擬 calc formula"),
         new("/LogicFlow",          "layout.menu.logicflow",         "fas fa-project-diagram",  "流程 邏輯 演算法 flow algorithm"),
+        new("/SystemParameter",    "layout.menu.system_parameter",  "fas fa-sliders-h",        "系統 參數 上限 匯出 筆數 容差 system parameter limit"),
 
         // ── EMS 體系 ──
         new("/EMS",                        "layout.brand.ems",                       "fas fa-leaf",                "能源 管理 首頁 ems energy hub"),

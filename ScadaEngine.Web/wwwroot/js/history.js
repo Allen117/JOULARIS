@@ -50,18 +50,7 @@
         });
     })();
 
-    // ── KWH 單位別名（與 designer/row-template.js KWH 列表對齊）── 用於決定是否顯示「差值」統計
-    var KWH_UNIT_ALIASES = [
-        'kwh', 'kw_h', 'wh', 'mwh', 'kilowatthour', 'kilowatthours',
-        'energy', 'consumption', 'accumulated',
-        'kwh_total', 'kwhtotal', 'total_kwh',
-        '度數', '用電量', '電能', '累計用電', '累積電能', '總電能',
-        '用電度數', '總耗電'
-    ];
-    function isKwhUnit(szUnit) {
-        if (!szUnit) return false;
-        return KWH_UNIT_ALIASES.indexOf(String(szUnit).trim().toLowerCase()) >= 0;
-    }
+    // 統計（含點位分類、累計值差異值 dDiff）一律由後端 HistoryStatisticsCalculator 算好，前端只顯示
 
     // ── 常數 ─────────────────────────────────────────────────────────────
     var CHART_COLORS = [
@@ -240,6 +229,7 @@
     var currentChartType = 'line';
     var isSingleAxis  = false;
     var lastResults   = null;
+    var lastQuery     = null;   // 匯出沿用查詢當下的點位 / 起訖 / 間隔，與畫面一致
 
     function destroyAllCharts() {
         if (trendChart) { trendChart.destroy(); trendChart = null; }
@@ -507,6 +497,13 @@
         dataTableCard.classList.add('d-none');
         btnQuery.disabled = true;
 
+        var queryParams = {
+            sids: basket.map(function (p) { return p.sid; }),
+            szStart: szStart,
+            szEnd: szEnd,
+            nInterval: nInterval
+        };
+
         Promise.all(basket.map(function (p) {
             return fetch('/api/history/data?szSID=' + encodeURIComponent(p.sid)
                 + '&szStart=' + encodeURIComponent(szStart)
@@ -517,6 +514,7 @@
             loadingSpinner.classList.add('d-none');
             btnQuery.disabled = false;
             lastResults = results;
+            lastQuery = queryParams;
 
             var failed = results.find(function (r) { return !r.success; });
             if (failed) {
@@ -532,7 +530,7 @@
             if (limitedResults.length > 0) {
                 limitWarning.classList.remove('d-none');
                 var szNames = limitedResults.map(function (r) { return r.szName; }).join('、');
-                showAlert(t('history.alert.row_limit_exceeded', { 0: 5000, 1: szNames }), 'warning', 8000);
+                showAlert(t('history.alert.row_limit_exceeded', { 0: limitedResults[0].nMaxRecords, 1: szNames }), 'warning', 8000);
             }
 
             var btnAxis = document.getElementById('btnSingleAxis');
@@ -557,8 +555,8 @@
                 document.getElementById('statAvg').textContent    = fmt(json.dAvg);
                 document.getElementById('statStdDev').textContent = fmt(json.dStdDev);
                 var statDiffCol = document.getElementById('statDiffCol');
-                if (isKwhUnit(json.szUnit) && json.dMin != null && json.dMax != null) {
-                    document.getElementById('statDiff').textContent = fmt(json.dMax - json.dMin);
+                if (json.dDiff != null) {
+                    document.getElementById('statDiff').textContent = fmt(json.dDiff);
                     statDiffCol.classList.remove('d-none');
                 } else {
                     statDiffCol.classList.add('d-none');
@@ -566,18 +564,12 @@
                 statsRow.style.display = '';
             } else {
                 var validResults = results.filter(function (r) { return r.nCount > 0; });
-                var hasKwh = validResults.some(function (r) { return isKwhUnit(r.szUnit); });
-                document.getElementById('multiStatsThDiff').classList.toggle('d-none', !hasKwh);
+                var hasDiff = validResults.some(function (r) { return r.dDiff != null; });
+                document.getElementById('multiStatsThDiff').classList.toggle('d-none', !hasDiff);
                 document.getElementById('multiStatsTbody').innerHTML = validResults
                     .map(function (json) {
                         var fmt = function (v) { return v != null ? Number(v).toFixed(3) + (json.szUnit ? ' ' + json.szUnit : '') : '--'; };
-                        var szDiffCell = '';
-                        if (hasKwh) {
-                            var szDiffVal = (isKwhUnit(json.szUnit) && json.dMin != null && json.dMax != null)
-                                ? fmt(json.dMax - json.dMin)
-                                : '--';
-                            szDiffCell = '<td class="text-end">' + szDiffVal + '</td>';
-                        }
+                        var szDiffCell = hasDiff ? '<td class="text-end">' + fmt(json.dDiff) + '</td>' : '';
                         return '<tr>'
                             + '<td class="fw-semibold">' + json.szName + '</td>'
                             + '<td class="text-end">' + fmt(json.dMin) + '</td>'
@@ -629,61 +621,67 @@
     }
 
     // ── 匯出 Excel ──────────────────────────────────────────────────────
+    // 伺服器端產檔（POST /api/history/export）：各點位資料 + 「統計」+「圖表」分頁，
+    // 沿用查詢當下參數重查；超過系統參數「匯出儲存格上限」回 400 export_limit
     function exportToExcel() {
-        if (!lastResults || !lastResults.some(function (r) { return r.nCount > 0; })) {
+        if (!lastQuery || !lastResults || !lastResults.some(function (r) { return r.nCount > 0; })) {
             showAlert(t('history.alert.no_export_data'), 'warning');
             return;
         }
 
-        var wb = XLSX.utils.book_new();
+        var btn = document.getElementById('btnExportExcel');
+        var szBtnHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + t('history.chart.button.exporting');
 
-        lastResults.filter(function (r) { return r.nCount > 0; }).forEach(function (json) {
-            var sheetName = (json.szName || json.szSID)
-                .replace(/[[\]:*?/\\]/g, '_')
-                .substring(0, 31);
-            var finalName = sheetName;
-            var counter   = 1;
-            while (wb.SheetNames.includes(finalName)) {
-                finalName = sheetName.substring(0, 28) + '(' + (counter++) + ')';
+        fetch('/api/history/export', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(lastQuery)
+        }).then(function (res) {
+            if (res.ok) {
+                return res.blob().then(function (blob) {
+                    downloadBlob(blob, fileNameFromDisposition(res.headers.get('Content-Disposition')));
+                });
             }
-
-            var unitSuffix = json.szUnit ? ' (' + json.szUnit + ')' : '';
-            var rows = [[t('history.excel.col.timestamp'), t('history.excel.col.value') + unitSuffix, t('history.excel.col.quality')]];
-            json.data.forEach(function (d) { rows.push([d.t.replace('T', ' '), d.v, d.q]); });
-
-            var ws = XLSX.utils.aoa_to_sheet(rows);
-            ws['!cols'] = [{ wch: 22 }, { wch: 15 }, { wch: 8 }];
-            XLSX.utils.book_append_sheet(wb, ws, finalName);
-        });
-
-        var validSummary = lastResults.filter(function (r) { return r.nCount > 0; });
-        if (validSummary.length > 1) {
-            var hasKwhSummary = validSummary.some(function (r) { return isKwhUnit(r.szUnit); });
-            var header = [t('history.excel.summary.col.point'), t('history.excel.summary.col.unit'), t('history.excel.summary.col.count'), t('history.excel.summary.col.min'), t('history.excel.summary.col.max'), t('history.excel.summary.col.avg'), t('history.excel.summary.col.std_dev')];
-            if (hasKwhSummary) header.push(t('history.excel.summary.col.diff'));
-            var summaryRows = [header];
-            validSummary.forEach(function (json) {
-                var f = function (v) { return v != null ? Number(v) : ''; };
-                var row = [json.szName, json.szUnit, json.nCount,
-                    f(json.dMin), f(json.dMax), f(json.dAvg), f(json.dStdDev)];
-                if (hasKwhSummary) {
-                    row.push((isKwhUnit(json.szUnit) && json.dMin != null && json.dMax != null)
-                        ? Number(json.dMax - json.dMin) : '');
+            return res.json().catch(function () { return {}; }).then(function (err) {
+                if (err.code === 'export_limit') {
+                    showAlert(t('history.alert.export_limit', {
+                        0: Number(err.nEstimatedCells).toLocaleString(),
+                        1: Number(err.nMaxCells).toLocaleString()
+                    }), 'warning', 10000);
+                } else {
+                    showAlert(t('history.alert.export_failed'), 'danger', 6000);
                 }
-                summaryRows.push(row);
             });
-            var wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-            var cols = [{ wch: 20 }, { wch: 8 }, { wch: 8 },
-                        { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
-            if (hasKwhSummary) cols.push({ wch: 14 });
-            wsSummary['!cols'] = cols;
-            XLSX.utils.book_append_sheet(wb, wsSummary, t('history.excel.summary.sheet'));
-        }
+        }).catch(function () {
+            showAlert(t('history.alert.export_failed'), 'danger', 6000);
+        }).then(function () {
+            btn.disabled = false;
+            btn.innerHTML = szBtnHtml;
+        });
+    }
 
-        var p     = function (n) { return String(n).padStart(2, '0'); };
-        var now   = new Date();
-        var fname = t('history.excel.filename') + '_' + now.getFullYear() + p(now.getMonth()+1) + p(now.getDate()) + '_' + p(now.getHours()) + p(now.getMinutes()) + '.xlsx';
-        XLSX.writeFile(wb, fname);
+    // Content-Disposition 優先取 RFC 5987 filename*（中文檔名），否則 filename
+    function fileNameFromDisposition(szHeader) {
+        if (szHeader) {
+            var m = szHeader.match(/filename\*=UTF-8''([^;]+)/i);
+            if (m) return decodeURIComponent(m[1]);
+            m = szHeader.match(/filename="?([^";]+)"?/i);
+            if (m) return m[1];
+        }
+        return 'history.xlsx';
+    }
+
+    function downloadBlob(blob, szFileName) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = szFileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
     }
 
     // ── 工具函式 ─────────────────────────────────────────────────────────

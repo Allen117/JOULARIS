@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="sysparam.title" xml:space="preserve"><value>系統參數</value></data>
+  <data name="sysparam.hint.page" xml:space="preserve"><value>工程師專屬。修改後按「儲存」，下一次操作即生效，不需重啟服務。</value></data>
+  <data name="sysparam.group.history" xml:space="preserve"><value>歷史趨勢</value></data>
+  <data name="sysparam.history_max_records.label" xml:space="preserve"><value>每點位最多筆數</value></data>
+  <data name="sysparam.history_max_records.desc" xml:space="preserve"><value>歷史趨勢查詢與匯出共用；超過時只取前 N 筆並提示使用者縮短區間或加大間隔。</value></data>
+  <data name="sysparam.history_export_max_cells.label" xml:space="preserve"><value>匯出儲存格上限</value></data>
+  <data name="sysparam.history_export_max_cells.desc" xml:space="preserve"><value>匯出前預估「Σ 點位 × 預估筆數」，超過即擋下（不查資料庫），避免伺服器記憶體不足。</value></data>
+  <data name="sysparam.jitter.label" xml:space="preserve"><value>累計值抖動容差</value></data>
+  <data name="sysparam.jitter.desc" xml:space="preserve"><value>累計值（kWh、m³…）下降幅度在「前值 × 容差%」以內視為讀值抖動；超過才判定為歸零 / 換表並分段計算差異值。</value></data>
+  <data name="sysparam.range" xml:space="preserve"><value>範圍 {0} ~ {1}，預設 {2}</value></data>
+  <data name="sysparam.unit.records" xml:space="preserve"><value>筆</value></data>
+  <data name="sysparam.unit.cells" xml:space="preserve"><value>格</value></data>
+  <data name="sysparam.button.save" xml:space="preserve"><value>儲存</value></data>
+  <data name="sysparam.button.defaults" xml:space="preserve"><value>填入預設值</value></data>
+  <data name="sysparam.updated_at" xml:space="preserve"><value>最後更新：{0}</value></data>
+  <data name="sysparam.updated_never" xml:space="preserve"><value>尚未自訂（使用預設值）</value></data>
+  <data name="sysparam.msg.load_fail" xml:space="preserve"><value>系統參數載入失敗</value></data>
+  <data name="sysparam.msg.saved" xml:space="preserve"><value>已儲存</value></data>
+  <data name="sysparam.msg.save_fail" xml:space="preserve"><value>儲存失敗，請稍後再試</value></data>
+  <data name="sysparam.msg.invalid" xml:space="preserve"><value>「{0}」數值無效或超出範圍</value></data>
+  <data name="sysparam.error.history_max_records" xml:space="preserve"><value>每點位最多筆數超出允許範圍</value></data>
+  <data name="sysparam.error.history_export_max_cells" xml:space="preserve"><value>匯出儲存格上限超出允許範圍</value></data>
+  <data name="sysparam.error.jitter" xml:space="preserve"><value>累計值抖動容差超出允許範圍</value></data>
+</root>
