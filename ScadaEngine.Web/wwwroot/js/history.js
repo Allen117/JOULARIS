@@ -179,11 +179,6 @@
 
         if (basket.length === 0) {
             basketContainer.innerHTML = '';
-            var emptyDiv = document.createElement('div');
-            emptyDiv.id = 'basketEmpty';
-            emptyDiv.className = 'text-muted text-center small py-4';
-            emptyDiv.innerHTML = '<i class="fas fa-inbox d-block mb-1 opacity-50"></i>' + t('history.basket.empty') + '';
-            basketContainer.appendChild(emptyDiv);
             hint.style.display = 'none';
             return;
         }

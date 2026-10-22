@@ -62,7 +62,6 @@
 
   <data name="history.basket.title" xml:space="preserve"><value>待查詢清單</value></data>
   <data name="history.basket.button.clear_all" xml:space="preserve"><value>清除全部</value></data>
-  <data name="history.basket.empty" xml:space="preserve"><value>尚未加入任何點位</value></data>
   <data name="history.basket.hint" xml:space="preserve"><value>可跨設備加入，最多 8 個點位</value></data>
 
   <data name="history.time.start" xml:space="preserve"><value>開始時間</value></data>
