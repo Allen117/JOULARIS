@@ -43,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **實作期間**：每次 `git commit` / `git push` 後，追記該階段累計 token（跨對話的 plan：每個對話收尾前先把該對話用量寫進 plan，避免遺失）
 - **Archive 時**：回填**總 token**（input / output / cache read / cache write 分列）、**模型**、**對應 API 費用** — 費用依「當下」官方牌價換算並列出計算式；牌價必須現查（`claude-api` skill 或 https://platform.claude.com/docs/en/about-claude/pricing ），**不可憑記憶報價**
 - **token 取得方式**（模型無法自省用量，禁止估計或編造）：
-  1. 解析本 session transcript：`%USERPROFILE%\.claude\projects\` 下**對應本專案**的資料夾（名稱 = 工作目錄路徑轉 kebab-case，形如 `c--Users-<帳號>-Desktop-ScadaEngine`）中**最近修改**的 `<session-id>.jsonl`，加總各則 assistant 訊息的 `message.usage`（`input_tokens` / `output_tokens` / `cache_read_input_tokens` / `cache_creation_input_tokens`）
+  1. 解析本 session transcript：`%USERPROFILE%\.claude\projects\` 下**對應本專案**的資料夾（名稱 = 工作目錄路徑轉 kebab-case，形如 `c--Users-<帳號>-Desktop-JOULARIS`）中**最近修改**的 `<session-id>.jsonl`，加總各則 assistant 訊息的 `message.usage`（`input_tokens` / `output_tokens` / `cache_read_input_tokens` / `cache_creation_input_tokens`）
      - ⚠️ 勿寫死帳號 —— 不同機器/帳號路徑不同；用 `ls -t <projects 目錄>/*.jsonl | head -1` 取最新那份
   2. 若無法讀取，請使用者執行 `/cost` 並貼上結果
 - 若某階段數字取不到，如實標「未取得」，不可補估
@@ -101,12 +101,12 @@ Web 埠 5038 寫死在 Program.cs（`ListenAnyIP`，環境變數無效），生�
 ### 卡住的 Web 進程（鎖住 bin 導致 build 失敗）
 
 ⚠️ 這台機器上**同時會有兩個 `ScadaEngine.Web` 進程**：
-`C:\JOULARIS\Web\App\` 是**部署站台**、`...\Desktop\ScadaEngine\ScadaEngine.Web\bin\Debug\` 才是開發 build。
+`C:\JOULARIS\Web\App\` 是**部署站台**、`...\Desktop\JOULARIS\ScadaEngine.Web\bin\Debug\` 才是開發 build（2026-10-22 起 repo 資料夾由 `ScadaEngine` 改名為 `JOULARIS`）。
 只有後者會鎖住 build 輸出，**不分路徑盲殺會一併關掉正式站台**，務必用路徑過濾：
 
 ```powershell
 Get-Process -Name 'ScadaEngine.Web' -ErrorAction SilentlyContinue |
-  Where-Object { $_.Path -like '*\Desktop\ScadaEngine\ScadaEngine.Web\bin\*' } |
+  Where-Object { $_.Path -like '*\Desktop\JOULARIS\ScadaEngine.Web\bin\*' } |
   Stop-Process -Force
 ```
 
