@@ -6,6 +6,7 @@
 // widget-defs.js（isDesignerBindingKey / DESIGNER_BINDING_DELETE_KEYS）/
 // page-tree.js（saveCurrentPageState / findPage / loadPageState /
 // renderPageTree）/ ctx-menu.js（showDesignToast）。
+// 對外共用：insertNewPage / makeUniqueSiblingName（page-import.js 匯入頁面檔用）。
 //
 // ⚠️ 與**元件層級** Ctrl+C / Ctrl+V（widget-core.js copySelectedWidgets /
 // pasteWidgets）是兩回事：那邊複製選取元件且**保留**點位綁定（局部複製通常
@@ -52,15 +53,54 @@ function stripPageBindings(arrWidgetState) {
 }
 
 // ============================================================
-// 唯一命名：「原名 - 複製」，同層已存在則「原名 - 複製 (2)」遞增
+// 唯一命名：同層已存在則加「 (2)」「 (3)」遞增
 // ============================================================
-function makeUniquePageName(szBaseName, arrSiblings) {
+// 貼上：「原名 - 複製」起跳（makeUniquePageName）；匯入頁面檔：原名起跳（page-import.js）
+function makeUniqueSiblingName(szCandidateBase, arrSiblings) {
     const setUsed = new Set((arrSiblings || []).map(p => p.szName));
-    const szSuffix = t('designer.page.copy_suffix');
-    let szCandidate = szBaseName + szSuffix;
+    let szCandidate = szCandidateBase;
     let n = 2;
-    while (setUsed.has(szCandidate)) szCandidate = `${szBaseName}${szSuffix} (${n++})`;
+    while (setUsed.has(szCandidate)) szCandidate = `${szCandidateBase} (${n++})`;
     return szCandidate;
+}
+
+function makeUniquePageName(szBaseName, arrSiblings) {
+    return makeUniqueSiblingName(szBaseName + t('designer.page.copy_suffix'), arrSiblings);
+}
+
+// ============================================================
+// 建新頁並切換過去（pastePage / page-import.js 共用）
+// ============================================================
+// szParentId = null → 根頁面；否則為該頁的子頁。fnMakeName(arrSiblings) 決定頁名。
+// objPage 提供 szIcon / 畫布尺寸 / 背景圖 / arrWidgetState（呼叫端已處理好綁定）。
+// 回新頁；父頁不存在回 null（不建頁）。
+function insertNewPage(szParentId, objPage, fnMakeName) {
+    // 先把當前畫布存回樹，否則切頁時會用舊狀態覆蓋
+    saveCurrentPageState();
+
+    const parent = szParentId === null ? null : findPage(szParentId);
+    if (szParentId !== null && !parent) return null;
+    const arrSiblings = parent ? parent.arrChildren : arrPageTree;
+
+    const newPage = {
+        szId: 'p' + (++nPageIdCounter),
+        szName: fnMakeName(arrSiblings),
+        szIcon: objPage.szIcon || 'fa-file-alt',
+        arrChildren: [],
+        szBgDataUrl: objPage.szBgDataUrl || null,
+        szBgFileName: objPage.szBgFileName || null,
+        nCanvasW: objPage.nCanvasW || 1200,
+        nCanvasH: objPage.nCanvasH || 800,
+        arrWidgetState: objPage.arrWidgetState || []
+    };
+
+    arrSiblings.push(newPage);
+
+    // 自動切換到新頁（建完就想開始改）
+    szCurrentPageId = newPage.szId;
+    loadPageState(newPage);
+    renderPageTree();
+    return newPage;
 }
 
 // ============================================================
@@ -135,32 +175,12 @@ function pastePage(szParentId) {
     const clip = readPageClipboard();
     if (!clip) return;
 
-    // 先把當前畫布存回樹，否則切頁時會用舊狀態覆蓋
-    saveCurrentPageState();
-
-    const parent = szParentId === null ? null : findPage(szParentId);
-    if (szParentId !== null && !parent) return;
-    const arrSiblings = parent ? parent.arrChildren : arrPageTree;
-
-    const newPage = {
-        szId: 'p' + (++nPageIdCounter),
-        szName: makeUniquePageName(clip.szName, arrSiblings),
-        szIcon: clip.szIcon || 'fa-file-alt',
-        arrChildren: [],
-        szBgDataUrl: clip.szBgDataUrl || null,
-        szBgFileName: clip.szBgFileName || null,
-        nCanvasW: clip.nCanvasW || 1200,
-        nCanvasH: clip.nCanvasH || 800,
+    const newPage = insertNewPage(szParentId, {
+        ...clip,
         // 剪貼簿已是清過綁定的版本；再清一次以防舊格式剪貼簿（升級前複製、升級後貼上）
         arrWidgetState: stripPageBindings(clip.arrWidgetState)
-    };
-
-    arrSiblings.push(newPage);
-
-    // 自動切換到新頁（貼完就想開始改）
-    szCurrentPageId = newPage.szId;
-    loadPageState(newPage);
-    renderPageTree();
+    }, arrSiblings => makeUniquePageName(clip.szName, arrSiblings));
+    if (!newPage) return;
 
     showDesignToast('success',
         '<i class="fas fa-paste me-1"></i>' + escHtml(t('designer.page.pasted', { name: newPage.szName })));

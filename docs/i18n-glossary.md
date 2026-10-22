@@ -931,6 +931,14 @@
 | 未找到 | Not found | 設備預覽槽位 tag |
 | 多筆命中（取第一筆） | Multiple matches (first used) | 設備預覽槽位 tag |
 | 已帶入 {n} / {m} 個槽位 | Applied {n} / {m} slots | toast |
+| 匯入頁面檔 | Import Page File | 頁面樹右鍵；檔案 = joularis-layout-gen 產的 `.joularis-page.json`（2026-10-21） |
+| 頁面檔 | Page file | 底圖 + widget 位置 + 角色綁定的可攜 JSON |
+| 座位 | Seat | 匯入頁面檔的固定點位格（有就坐、沒有就空著） |
+| 未綁定佔位 | Unbound placeholder | 感測器 / 面板旁預放、不自動綁點的 AI 元件 |
+| 保留未命中的座位（之後手動綁點） | Keep unmatched seats (bind manually later) | 匯入對話框勾選 |
+| 合計命中 {n} / {m} 個角色 | Total matched: {n} / {m} roles | 匯入對話框 |
+| 手自動 / 啟停 / 冰水出水溫 / 溫度設定 | H/A / Start/Stop / CHW Out / Temp Set | 匯入座位標題短名（widget 僅 100 px 寬） |
+| 模式 / 遠端 / 水溫 / 頻設 / 溫設 | HOA / Rem / CHW·CW / HzSP / TSP | 匯入座位左側 text 標籤（40 px 寬、扣內距只放得下 2 個中文字 / 4 個英文字） |
 
 ## EMS 卡片顯示設定 (EmsCardSetting)
 

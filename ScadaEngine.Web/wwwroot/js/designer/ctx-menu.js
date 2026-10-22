@@ -3,7 +3,7 @@
 // ============================================================
 // 內容：頁面樹右鍵、畫布右鍵、表格 cell 右鍵、Toast 顯示。
 // 依賴：state.js / page-tree.js（addPage / editPage / deletePage /
-// countPages）/ prop-panel.js（onTableCellClick / clearCellSid /
+// countPages）/ page-import.js（startPageImport）/ prop-panel.js（onTableCellClick / clearCellSid /
 // nSelectedCellRow / nSelectedCellCol）/ picker.js（openCellPointPicker）/
 // widget-core.js（selectWidget / createWidget）/ widget-defs.js
 // （initArrCells）。
@@ -22,10 +22,11 @@ function showCtxMenu(e, szPageId) {
     if (szPageId === null) {
         // 空白區右鍵
         items.push({ szIcon: 'fa-plus', szLabel: t('designer.ctx.add_page'), fn: () => addPage(null) });
+        items.push({ isDivider: true });
         if (bHasClip) {
-            items.push({ isDivider: true });
             items.push({ szIcon: 'fa-paste', szLabel: t('designer.ctx.paste_as_root'), fn: () => pastePage(null) });
         }
+        items.push({ szIcon: 'fa-file-import', szLabel: t('designer.ctx.import_page'), fn: () => startPageImport(null) });
     } else {
         // 節點右鍵
         items.push({ szIcon: 'fa-pen',  szLabel: t('designer.ctx.edit'),         fn: () => editPage(szPageId) });
@@ -35,6 +36,7 @@ function showCtxMenu(e, szPageId) {
         if (bHasClip) {
             items.push({ szIcon: 'fa-paste', szLabel: t('designer.ctx.paste_as_subpage'), fn: () => pastePage(szPageId) });
         }
+        items.push({ szIcon: 'fa-file-import', szLabel: t('designer.ctx.import_page'), fn: () => startPageImport(szPageId) });
         if (countPages(arrPageTree) > 1) {
             items.push({ isDivider: true });
             items.push({ szIcon: 'fa-trash-alt', szLabel: t('designer.ctx.delete'), fn: () => deletePage(szPageId), isDanger: true });
