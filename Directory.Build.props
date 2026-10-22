@@ -6,7 +6,7 @@
     BuildRelease.ps1 讀此檔 → Release 包名 + Install.bat 的 Windows 服務描述。
   -->
   <PropertyGroup>
-    <Version>26.16.4</Version>
+    <Version>26.16.5</Version>
     <!-- .NET 8 SDK 預設把 git commit hash 接在 InformationalVersion 後（26.1.0+abc123），關掉 -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>JOULARIS</Product>

@@ -40,7 +40,7 @@
     var isFetchOk = true;
 
     // ── DOM ──
-    var $nav, $icon, $count, $snoozeLabel, $status, $unlock, $resume;
+    var $nav, $icon, $count, $snoozeLabel, $status, $unlock, $resume, $silence;
 
     // ════════════════ localStorage ════════════════
 
@@ -298,7 +298,8 @@
         $nav.classList.toggle('as-has-pending', nPending > 0);
         $nav.classList.toggle('as-muted', isSnooze);
 
-        $icon.className = (isSnooze || isSilenced) ? 'fas fa-bell-slash' : 'fas fa-bell';
+        // 頂端圖示與選單項目同圖：暫時靜音 = bell-slash、消音 = volume-mute、其餘 = bell
+        $icon.className = isSnooze ? 'fas fa-bell-slash' : (isSilenced ? 'fas fa-volume-mute' : 'fas fa-bell');
         $count.textContent = nPending;
         $count.classList.toggle('d-none', nPending === 0);
 
@@ -317,6 +318,10 @@
         else if (nPending > 0) szStatus = t('layout.alarm_sound.status.silenced', { count: nPending });
         else szStatus = t('layout.alarm_sound.status.normal');
         $status.textContent = szStatus;
+
+        // 消音只針對「正在響」的警報；沒在響時（無警報 / 已消音 / 暫時靜音）點了沒作用 → 停用
+        $silence.classList.toggle('disabled', !isSounding);
+        $silence.setAttribute('aria-disabled', String(!isSounding));
 
         $resume.classList.toggle('d-none', !isSnooze && state.silencedKeys.length === 0);
 
@@ -345,6 +350,7 @@
         $status = document.getElementById('alarmSoundStatus');
         $unlock = document.getElementById('alarmSoundUnlock');
         $resume = document.getElementById('alarmSoundResume');
+        $silence = document.getElementById('alarmSoundSilence');
 
         loadState();
         heartbeat();
