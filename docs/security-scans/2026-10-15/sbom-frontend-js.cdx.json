@@ -2,7 +2,7 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
   "serialNumber": "urn:uuid:a60f5128-5acc-4fa9-925b-4a71d72c8c01",
-  "version": 1,
+  "version": 2,
   "metadata": {
     "timestamp": "2026-10-15T08:23:39+00:00",
     "tools": [
@@ -142,10 +142,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/xlsx@0.18.5",
+      "bom-ref": "pkg:npm/xlsx@0.20.3",
       "name": "xlsx (SheetJS CE)",
-      "version": "0.18.5",
-      "purl": "pkg:npm/xlsx@0.18.5",
+      "version": "0.20.3",
+      "purl": "pkg:npm/xlsx@0.20.3",
       "licenses": [
         {
           "license": {

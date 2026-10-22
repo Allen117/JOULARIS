@@ -16,6 +16,7 @@ widget 只帶「我是哪台設備的哪個角色」（`props.objRoleBind`），
    - `"target": "joularis"`（預留區 320 × 60；寫成 iauto 也能排，但報告會警告）
    - 每個 guide 寫 `"for": "<設備 id>"`（沒寫就從 `text` 第一個空白前的字串猜，報告標「由文字推斷」）
    - 冰機 / 冷卻水塔的 guide 建議 `"size": "wide"`（430 寬，4 欄 × 100）；一般 320 寬塞 4 欄會把 widget 壓到 72 寬且放不下角色標籤
+   - 直式預留區 `"size": "tall"`（210×100）會自動改排成 2 欄多列（fit_grid 取 widget 最寬的排法），報告標「已改少欄多列」屬正常
 2. 產生：
    ```
    python <skill 目錄>/scripts/gen_page.py <案名>/layout.json [--bg png|svg] [--out <資料夾>]

@@ -130,7 +130,7 @@ def match_guides(L, roles):
 # ───────────────────────── 座位排列 ─────────────────────────
 
 def fit_grid(box, seats, wdef):
-    """把座位表塞進 box。先試原排列（縮 widget 寬到 min_w 為止），放不下再改少欄多列（略過空座位）。
+    """把座位表塞進 box。原排列（縮 widget 寬到 min_w 為止）和少欄多列（略過空座位）都試，取 widget 最寬的。
     回 (grid, w, col_pitch, row_pitch, reflowed)；grid = [[seat 或 None]]。放不下 → None。"""
     bx, by, bw, bh = box
     H = wdef["h"]
@@ -151,16 +151,18 @@ def fit_grid(box, seats, wdef):
             return None
         return (grid, w, w + wdef["col_gap"], rp)
 
+    # 原排列與少欄多列都試，取 widget 最寬的（同寬用原排列）：直式預留區（size tall）會因此改排成 2 欄 3 列
+    best = None
     r = try_grid(seats)
     if r:
-        return r + (False,)
+        best = r + (False,)
     flat = [s for row in seats for s in row if s]
     for nC in range(max(len(r) for r in seats) - 1, 0, -1):
         grid = [flat[i:i + nC] for i in range(0, len(flat), nC)]
         r = try_grid(grid)
-        if r:
-            return r + (True,)
-    return None
+        if r and (best is None or r[1] > best[1]):
+            best = r + (True,)
+    return best
 
 
 def place_equipment(match, roles, target, targets):
