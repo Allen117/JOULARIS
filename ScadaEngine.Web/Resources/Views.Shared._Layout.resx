@@ -149,7 +149,6 @@
   <data name="layout.search.recent" xml:space="preserve"><value>最近使用</value></data>
   <data name="layout.search.hint" xml:space="preserve"><value>↑↓ 選擇 · Enter 前往 · Esc 關閉</value></data>
   <data name="layout.search.error" xml:space="preserve"><value>搜尋索引載入失敗，請重新整理頁面</value></data>
-  <data name="layout.alarm_sound.nav" xml:space="preserve"><value>警報音</value></data>
   <data name="layout.alarm_sound.title" xml:space="preserve"><value>警報音</value></data>
   <data name="layout.alarm_sound.unlock" xml:space="preserve"><value>點此啟用警報音</value></data>
   <data name="layout.alarm_sound.silence" xml:space="preserve"><value>消音（新警報仍會響）</value></data>

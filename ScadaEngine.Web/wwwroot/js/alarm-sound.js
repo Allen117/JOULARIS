@@ -292,12 +292,13 @@
         var nPending = pendingAlarms.length;
         var isSnooze = isSnoozed();
         var isSounding = audible.length > 0;
+        var isSilenced = !isSnooze && nPending > 0 && !isSounding; // 消音：有未確認警報但全在消音名單
 
         $nav.classList.toggle('as-alerting', isSounding);
         $nav.classList.toggle('as-has-pending', nPending > 0);
         $nav.classList.toggle('as-muted', isSnooze);
 
-        $icon.className = isSnooze ? 'fas fa-bell-slash' : 'fas fa-bell';
+        $icon.className = (isSnooze || isSilenced) ? 'fas fa-bell-slash' : 'fas fa-bell';
         $count.textContent = nPending;
         $count.classList.toggle('d-none', nPending === 0);
 

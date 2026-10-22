@@ -149,7 +149,6 @@
   <data name="layout.search.recent" xml:space="preserve"><value>Recently Used</value></data>
   <data name="layout.search.hint" xml:space="preserve"><value>↑↓ Select · Enter Open · Esc Close</value></data>
   <data name="layout.search.error" xml:space="preserve"><value>Failed to load search index. Please refresh the page.</value></data>
-  <data name="layout.alarm_sound.nav" xml:space="preserve"><value>Alarm Sound</value></data>
   <data name="layout.alarm_sound.title" xml:space="preserve"><value>Alarm Sound</value></data>
   <data name="layout.alarm_sound.unlock" xml:space="preserve"><value>Click to enable alarm sound</value></data>
   <data name="layout.alarm_sound.silence" xml:space="preserve"><value>Silence (new alarms still sound)</value></data>
