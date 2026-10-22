@@ -101,17 +101,3 @@
     border-top: 1px solid #e9ecef;
     font-size: 0.75rem;
 }
-
-/* 導覽列搜尋鈕的 Ctrl K 提示 */
-.gs-nav-kbd kbd {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-    padding: 1px 5px;
-    font-size: 0.7rem;
-}
-
-/* EMS 淡色 navbar 下改深色底，避免白字 kbd 看不見 */
-body.ems-mode .gs-nav-kbd kbd {
-    background: rgba(0, 0, 0, 0.1);
-    color: inherit;
-}
