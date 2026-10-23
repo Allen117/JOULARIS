@@ -1656,11 +1656,12 @@ function renderTableCellPropPanel(el, nRow, nCol) {
         </div>
         <div class="prop-group">
             <label>${escHtml(t('designer.prop.alignment'))}</label>
-            <select onchange="setCellProp('szAlign', this.value)">
-                <option value="left" ${(cell.szAlign||'left')==='left'?'selected':''}>${escHtml(t('designer.prop.align.left'))}</option>
-                <option value="center" ${cell.szAlign==='center'?'selected':''}>${escHtml(t('designer.prop.align.center'))}</option>
-                <option value="right" ${cell.szAlign==='right'?'selected':''}>${escHtml(t('designer.prop.align.right'))}</option>
-            </select>
+            <div class="btn-group btn-group-sm w-100" id="cellAlignGroup">
+                ${['left', 'center', 'right'].map(a => `
+                <button type="button" data-align="${a}"
+                        class="btn ${(cell.szAlign || 'left') === a ? 'btn-primary' : 'btn-outline-secondary'}"
+                        onclick="setCellAlign('${a}')">${escHtml(t('designer.prop.align.' + a))}</button>`).join('')}
+            </div>
         </div>`;
 
     if (!isHeader && cell.nCircuitId != null) {
@@ -1868,6 +1869,16 @@ function setCellProp(szKey, val) {
     if (arrReRenderKeys.includes(szKey)) {
         renderTableCellPropPanel(selectedEl, nSelectedCellRow, nSelectedCellCol);
     }
+}
+
+// 對齊用按鈕而非 select：標題列預設已置中，select 再選同值不觸發 change，首列同步整欄就不會跑
+function setCellAlign(szAlign) {
+    setCellProp('szAlign', szAlign);
+    document.querySelectorAll('#cellAlignGroup [data-align]').forEach(btn => {
+        const isActive = btn.dataset.align === szAlign;
+        btn.classList.toggle('btn-primary', isActive);
+        btn.classList.toggle('btn-outline-secondary', !isActive);
+    });
 }
 
 function setColDecimals(nCol, val) {
