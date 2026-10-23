@@ -163,7 +163,7 @@
                                     <ul class="dropdown-menu">
                                         @if (canAccess("/ChilledWaterCircuitInfo"))
                                         {
-                                            <li><a class="dropdown-item" href="/ChilledWaterCircuitInfo"><i class="fas fa-snowflake me-2"></i>@Localizer["layout.menu.chilled_water_circuit_info"]</a></li>
+                                            <li><a class="dropdown-item" href="/ChilledWaterCircuitInfo"><i class="fas fa-temperature-arrow-down me-2"></i>@Localizer["layout.menu.chilled_water_circuit_info"]</a></li>
                                         }
                                         @if (canAccess("/ElectricityCircuitInfo"))
                                         {
@@ -180,7 +180,7 @@
                                     </ul>
                                 </li>
                             }
-                            @if (canAccess("/ChillerEfficiency") || canAccess("/CompressorEfficiency"))
+                            @if (canAccess("/ChillerEfficiency") || canAccess("/CompressorEfficiency") || canAccess("/EquipmentEfficiencySetting"))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -195,6 +195,14 @@
                                         @if (canAccess("/CompressorEfficiency"))
                                         {
                                             <li><a class="dropdown-item" href="/CompressorEfficiency"><i class="fas fa-compress-arrows-alt me-2"></i>@Localizer["layout.menu.compressor_efficiency"]</a></li>
+                                        }
+                                        @if (canAccess("/EquipmentEfficiencySetting"))
+                                        {
+                                            @if (canAccess("/ChillerEfficiency") || canAccess("/CompressorEfficiency"))
+                                            {
+                                                <li><hr class="dropdown-divider"></li>
+                                            }
+                                            <li><a class="dropdown-item" href="/EquipmentEfficiencySetting"><i class="fas fa-sliders-h me-2"></i>@Localizer["layout.menu.equipment_efficiency_setting"]</a></li>
                                         }
                                     </ul>
                                 </li>
@@ -221,7 +229,7 @@
                                         }
                                         @if (canAccess("/RefrigerationTonReport"))
                                         {
-                                            <li><a class="dropdown-item" href="/RefrigerationTonReport"><i class="fas fa-snowflake me-2"></i>@Localizer["layout.menu.refrigeration_ton_report"]</a></li>
+                                            <li><a class="dropdown-item" href="/RefrigerationTonReport"><i class="fas fa-temperature-arrow-down me-2"></i>@Localizer["layout.menu.refrigeration_ton_report"]</a></li>
                                         }
                                         @if (canAccess("/WaterUsageReport"))
                                         {
@@ -270,7 +278,7 @@
                                     </a>
                                 </li>
                             }
-                            @if (canAccess("/ChilledWaterSystem") || canAccess("/EnergyMeter") || canAccess("/WaterMeterSetting") || canAccess("/GasMeterSetting") || canAccess("/AirMeterSetting") || canAccess("/EquipmentEfficiencySetting") || canAccess("/BillingPeriodSetting") || canAccess("/WaterBillingPeriodSetting") || canAccess("/GasBillingPeriodSetting") || canAccess("/TariffSetting") || canAccess("/WaterTariffSetting") || canAccess("/GasTariffSetting") || canAccess("/HolidaySetting") || canAccess("/ShiftSetting") || canAccess("/EmsCardSetting") || canAccess("/DailyReportSetting"))
+                            @if (canAccess("/ChilledWaterSystem") || canAccess("/EnergyMeter") || canAccess("/WaterMeterSetting") || canAccess("/GasMeterSetting") || canAccess("/AirMeterSetting") || canAccess("/BillingPeriodSetting") || canAccess("/WaterBillingPeriodSetting") || canAccess("/GasBillingPeriodSetting") || canAccess("/TariffSetting") || canAccess("/WaterTariffSetting") || canAccess("/GasTariffSetting") || canAccess("/HolidaySetting") || canAccess("/ShiftSetting") || canAccess("/EmsCardSetting") || canAccess("/DailyReportSetting"))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -281,9 +289,9 @@
                                         @if (canAccess("/ChilledWaterSystem"))
                                         {
                                             <li class="dropdown-submenu">
-                                                <a class="dropdown-item dropdown-toggle" href="#" role="button"><i class="fas fa-water me-2"></i>@Localizer["layout.menu.group_water_system"]</a>
+                                                <a class="dropdown-item dropdown-toggle" href="#" role="button"><i class="fas fa-temperature-arrow-down me-2"></i>@Localizer["layout.menu.group_water_system"]</a>
                                                 <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="/ChilledWaterSystem"><i class="fas fa-tint me-2"></i>@Localizer["layout.menu.chilled_water"]</a></li>
+                                                    <li><a class="dropdown-item" href="/ChilledWaterSystem"><i class="fas fa-temperature-arrow-down me-2"></i>@Localizer["layout.menu.chilled_water"]</a></li>
                                                 </ul>
                                             </li>
                                         }
@@ -354,15 +362,6 @@
                                                 <a class="dropdown-item dropdown-toggle" href="#" role="button"><i class="fas fa-wind me-2"></i>@Localizer["layout.menu.group_air_meter"]</a>
                                                 <ul class="dropdown-menu">
                                                     <li><a class="dropdown-item" href="/AirMeterSetting"><i class="fas fa-wind me-2"></i>@Localizer["layout.menu.air_meter"]</a></li>
-                                                </ul>
-                                            </li>
-                                        }
-                                        @if (canAccess("/EquipmentEfficiencySetting"))
-                                        {
-                                            <li class="dropdown-submenu">
-                                                <a class="dropdown-item dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-2"></i>@Localizer["layout.menu.equipment_efficiency"]</a>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="/EquipmentEfficiencySetting"><i class="fas fa-sliders-h me-2"></i>@Localizer["layout.menu.equipment_efficiency_setting"]</a></li>
                                                 </ul>
                                             </li>
                                         }
