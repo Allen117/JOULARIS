@@ -757,6 +757,9 @@
     <!-- i18n helper（要在頁面其他 JS 之前載入）-->
     <script src="~/js/i18n.js"></script>
 
+    <!-- 日期 / 時間輸入滾輪調值（全站共用；原生 date / month + flatpickr 文字框與面板）-->
+    <script src="~/js/common/date-wheel.js" asp-append-version="true"></script>
+
     @if (User.Identity?.IsAuthenticated == true)
     {
         <!-- 全站搜尋（Ctrl+K） -->
