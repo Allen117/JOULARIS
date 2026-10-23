@@ -110,6 +110,8 @@
   <data name="eq.scan.multi" xml:space="preserve"><value>{n} matches</value></data>
   <data name="eq.scan.multi_hint" xml:space="preserve"><value>Several points match this role; the first was picked. Please verify.</value></data>
   <data name="eq.scan.pick_other" xml:space="preserve"><value>Pick a point from another device</value></data>
+  <data name="eq.scan.opt_own" xml:space="preserve"><value>This device</value></data>
+  <data name="eq.scan.opt_other" xml:space="preserve"><value>Other devices (matching this role)</value></data>
   <data name="eq.scan.device" xml:space="preserve"><value>Device group</value></data>
   <data name="eq.scan.basis" xml:space="preserve"><value>Matched roles</value></data>
   <data name="eq.scan.roles_detail" xml:space="preserve"><value>Role points</value></data>

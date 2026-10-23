@@ -4,6 +4,9 @@
 // ============================================================
 // 流程：全點位（/Designer/Points + szDeviceLabel，由 PointPicker.load() 提供）
 //   → 依 szDeviceLabel 分群（設備邊界 = 既有 Device 分群，point-grouping.js 四級 fallback）
+//     只要現場有任何 Modbus 子設備（Tag.Device / 多站號具名子站），標籤僅是 Coordinator 名的
+//     Modbus 點位（isCoordLabel）一律不參與分群 — 設備邊界以通訊子設備為準，避免 Coordinator
+//     內未歸子設備的雜項點位（製程水溫、戶外溫度）或獨立流量計 Coordinator 被當成一台冰機
 //   → 每群以 _equipRoleMatch.resolveEquipRole(name, 該 kind 的角色集合) 算命中
 //   → 判定該群是否為此 kind 的候選、缺哪些必要角色、是否已存在
 //
@@ -11,6 +14,7 @@
 //   (d) 中文別名「包含式」：名稱含 ≥ 3 字的中文別名即命中（最長者優先）
 //       → 吃「冰水出水溫度」「冷卻水進水溫度」這類別名後面再接「溫度」的命名；
 //         2 字別名（功率 / 壓力 / 流量）不走包含式，避免「功率因數」被當 KW。
+//   (e) 尾 token 是「total / sum / tot / all / 合計 / 總計」等通稱 → 去掉後重比（吃電表的 kW_total / kWh_total）
 //   resolveEquipRole 本身行為不變（Designer 自動綁定不受影響）。
 //
 // 判定：
@@ -18,6 +22,8 @@
 //   空壓機特徵角色 AIRFLOW / DISCHPRESS / DISCHTEMP / LOADED；
 //   群名含關鍵字（冰機 / 主機 / chiller / CH#；空壓 / air comp / compressor / AC#）+2 分。
 //   score(本 kind) > 0 且 ≥ score(另一 kind) 才列為候選（同一群不會同時被兩邊搶，平手兩邊都列）。
+//   另須「群名含關鍵字」或「特徵角色 ≥ 2」— 單一個流量點不足以判定為主機（流量計 / 水泵常只有流量）。
+//   群名含輔機字樣（泵 / pump / CHP / CWP / 水塔 / CT / FL / 流量計）一律排除，流量點改由使用者手動綁。
 // 必要角色（與 Common EquipmentKind.MissingRequired 同語意）：
 //   電力 KW 或 KWH；冰機產出 FLOW + CHWS + CHWR 三者齊或 RT；空壓機產出 AIRFLOW。
 // ============================================================
@@ -38,6 +44,8 @@
         chiller: /(冰機|冰水主機|主機|chiller|(^|[^a-z])ch[\s_-]*\d)/i,
         compressor: /(空壓|空氣壓縮|air[\s_-]*comp|compressor|(^|[^a-z])ac[\s_-]*\d)/i
     };
+    // 輔機（水泵 / 水塔 / 流量計）群名 — 不列為冰機或空壓機候選
+    var AUXILIARY = /(泵|pump|水塔|冷卻塔|流量計|(^|[^a-z])(chp|cwp|ct|fl|fm)[\s_-]*\d*($|[^a-z]))/i;
     // 「主要 SID」— 已存在判定用（任一相同即視為同一台）
     var PRIMARY_ROLES = ['KW', 'KWH', 'FLOW', 'RT', 'AIRFLOW'];
 
@@ -66,8 +74,17 @@
         return pairs;
     }
 
+    var GENERIC_TAIL = /[-_\s]+(total|sum|tot|all|合計|總計)$/i;
+
     // 點位名 → 角色（限定 arrRoles）或 null
     function resolveScanRole(szName, arrRoles) {
+        var r0 = _resolveScanRole(szName, arrRoles);
+        if (r0) return r0;
+        var szTrim = String(szName == null ? '' : szName).trim();
+        return GENERIC_TAIL.test(szTrim) ? _resolveScanRole(szTrim.replace(GENERIC_TAIL, ''), arrRoles) : null;
+    }
+
+    function _resolveScanRole(szName, arrRoles) {
         var m = root && root._equipRoleMatch;
         var r = m && m.resolveEquipRole ? m.resolveEquipRole(szName || '', arrRoles) : null;
         if (r) return r;
@@ -152,7 +169,7 @@
 
     /**
      * 掃描。
-     * @param {Array} points  [{ szSid, szName, szUnit, szDeviceLabel }]
+     * @param {Array} points  [{ szSid, szName, szUnit, szDeviceLabel, isCoordLabel }]
      * @param {string} kind   'chiller' | 'compressor'
      * @param {Object} opts   { rtSids: {sid:true}, existing: [{name, sids}], meta }
      * @returns {Array} 候選 [{ szLabel, szName, roles: {ROLE: {szSid, szName, szUnit, szUnitGuess, nHits, alts:[...] }},
@@ -161,20 +178,26 @@
     function scan(points, kind, opts) {
         opts = opts || {};
         var groups = {};
+        var isSubDeviceSite = (points || []).some(function (p) {
+            return p && p.szSid && p.isCoordLabel === false;
+        });
         (points || []).forEach(function (p) {
             var szLabel = p && p.szDeviceLabel ? String(p.szDeviceLabel).trim() : '';
             if (!szLabel || !p.szSid) return;
+            if (isSubDeviceSite && p.isCoordLabel) return;
             (groups[szLabel] = groups[szLabel] || []).push(p);
         });
 
         var out = [];
         Object.keys(groups).sort().forEach(function (szLabel) {
+            if (AUXILIARY.test(szLabel)) return;
             var pts = groups[szLabel];
             var mine = _resolveGroup(pts, kind, opts.rtSids);
             var theirs = _resolveGroup(pts, other(kind), opts.rtSids);
             var sMine = _score(kind, mine, szLabel);
             var sTheirs = _score(other(kind), theirs, szLabel);
             if (sMine.nScore <= 0 || sMine.nScore < sTheirs.nScore) return;
+            if (!sMine.isKeyword && sMine.nSignature < 2) return;
 
             var roles = {};
             var arrMatched = [];

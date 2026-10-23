@@ -153,8 +153,9 @@
         RT:         ['rt', 'usrt', 'ton', 'tons', 'capacity', 'cooling', '冷凍噸', '冷量', '噸'],
         FLOW:       ['flow', 'lpm', 'gpm', 'lps', '流量', '冰水流量'],
         CHWS:       ['chws', 'chwst', 'chwout', 'lchwt', '冰水出水', '出水溫'],
-        CHWR:       ['chwr', 'chwrt', 'chwin', 'echwt', '冰水回水', '回水溫'],
-        CDWS:       ['cdws', 'cws', 'cwin', 'ecwt', '冷卻水進水', '冷卻水入水'],
+        // 回水 = 進水 = 入水（回到主機的那一側）；冷卻水回水 = 自水塔回主機 = 冷凝器進水
+        CHWR:       ['chwr', 'chwrt', 'chwin', 'echwt', '冰水回水', '冰水進水', '冰水入水', '回水溫'],
+        CDWS:       ['cdws', 'cws', 'cwin', 'ecwt', '冷卻水進水', '冷卻水入水', '冷卻水回水'],
         CDWR:       ['cdwr', 'cwr', 'cwout', 'lcwt', '冷卻水出水'],
         EVAPT:      ['evap', 'evapt', 'sst', '蒸發溫度', '蒸發器'],
         CONDT:      ['cond', 'condt', 'sdt', '冷凝溫度', '冷凝器'],

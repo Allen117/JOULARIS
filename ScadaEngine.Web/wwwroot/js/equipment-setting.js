@@ -273,17 +273,31 @@
             '<span class="badge eqs-conf-' + c.szConfidence + ' me-1">' + esc(t('eq.scan.conf_' + c.szConfidence)) + '</span>' +
             (isReady ? '' : '<span class="badge bg-warning text-dark">' + esc(t('eq.scan.missing', { list: missingText(miss) })) + '</span>');
         var szBasis = (c.arrMatched || []).map(function (r) { return esc(roleLabel(r)); }).join('、') || '—';
+        // 下拉兩段：本設備（群內全部點位）＋ 其他設備中名稱命中此角色者（流量計 / 電表常不在主機子設備內）
+        var optHtml = function (p, szSel) {
+            // 群外點位帶設備前綴，群內只顯示點位名
+            var szText = (p.szDeviceLabel && p.szDeviceLabel !== c.szLabel) ? pointLabel(p.szSid) : (p.szName || p.szSid);
+            return '<option value="' + esc(p.szSid) + '"' + (p.szSid === szSel ? ' selected' : '') + '>' +
+                esc(szText) + (p.szUnit ? ' (' + esc(p.szUnit) + ')' : '') + '</option>';
+        };
         var opts = function (role) {
             var b = c.bindings[role];
             var szSel = b && b.szSID ? b.szSID : '';
-            var pts = c.groupPoints.slice();
-            if (szSel && !pts.some(function (p) { return p.szSid === szSel; }) && _pointBySid[szSel]) pts.unshift(_pointBySid[szSel]);
-            return '<option value="">' + esc(t('eq.scan.unbound')) + '</option>' + pts.map(function (p) {
-                // 群外點位（經「其他…」挑選）帶設備前綴，群內只顯示點位名
-                var szText = (p.szDeviceLabel && p.szDeviceLabel !== c.szLabel) ? pointLabel(p.szSid) : (p.szName || p.szSid);
-                return '<option value="' + esc(p.szSid) + '"' + (p.szSid === szSel ? ' selected' : '') + '>' +
-                    esc(szText) + (p.szUnit ? ' (' + esc(p.szUnit) + ')' : '') + '</option>';
-            }).join('');
+            var own = c.groupPoints;
+            var inGroup = {};
+            own.forEach(function (p) { inGroup[p.szSid] = true; });
+            var arrRoles = window._equipScan.ROLES[c.szKind];
+            var others = _points.filter(function (p) {
+                if (!p.szSid || inGroup[p.szSid]) return false;
+                if (p.szSid === szSel) return true;   // 經「其他…」挑選的群外點位
+                return window._equipScan.resolveScanRole(p.szName || '', arrRoles) === role;
+            });
+            if (szSel && !inGroup[szSel] && !others.some(function (p) { return p.szSid === szSel; }) && _pointBySid[szSel]) others.unshift(_pointBySid[szSel]);
+            var szHtml = '<option value="">' + esc(t('eq.scan.unbound')) + '</option>';
+            if (others.length === 0) return szHtml + own.map(function (p) { return optHtml(p, szSel); }).join('');
+            return szHtml +
+                '<optgroup label="' + esc(t('eq.scan.opt_own')) + '">' + own.map(function (p) { return optHtml(p, szSel); }).join('') + '</optgroup>' +
+                '<optgroup label="' + esc(t('eq.scan.opt_other')) + '">' + others.map(function (p) { return optHtml(p, szSel); }).join('') + '</optgroup>';
         };
         var rows = rolesOf(c.szKind).map(function (role) {
             var b = c.bindings[role];
