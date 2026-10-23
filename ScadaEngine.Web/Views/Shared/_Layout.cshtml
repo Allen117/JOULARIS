@@ -587,6 +587,13 @@
                                     <i class="fas fa-search"></i>
                                 </a>
                             </li>
+                            <!-- 使用手冊：帶目前頁面路由，有對應章節就直接跳過去 -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="/Manual?from=@Uri.EscapeDataString(Context.Request.Path.Value ?? "")"
+                                   title="@Localizer["layout.manual.title"]" aria-label="@Localizer["layout.manual.title"]">
+                                    <partial name="~/Views/Shared/_ManualIcon.cshtml" />
+                                </a>
+                            </li>
                         }
                         <!-- 語系切換 -->
                         <li class="nav-item dropdown">

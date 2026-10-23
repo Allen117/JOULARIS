@@ -1,0 +1,41 @@
+@model ScadaEngine.Web.Features.Manual.Models.ManualIndexViewModel
+@{
+    ViewData["Title"] = Localizer["manual.title"].Value;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-3 manual-shelf">
+    <h2 class="mb-3">
+        <span class="text-primary me-2"><partial name="~/Views/Shared/_ManualIcon.cshtml" /></span>@Localizer["manual.title"]
+    </h2>
+
+    @if (Model.books.Count == 0)
+    {
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-inbox fa-3x mb-2 d-block"></i>
+            <div>@Localizer["manual.shelf.empty"]</div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var item in Model.books)
+            {
+                <div class="col-12 col-md-6 col-xl-4">
+                    <a class="card shadow-sm h-100 manual-shelf-card text-decoration-none" href="/Manual/@item.book.szKey/@item.szFirstSlug">
+                        <div class="card-body p-3 d-flex gap-3">
+                            <div class="manual-shelf-icon manual-shelf-icon-@item.book.szKey"><i class="@item.book.szIcon"></i></div>
+                            <div>
+                                <h5 class="mb-1 text-body">@Localizer[item.book.szTitleKey]</h5>
+                                <div class="text-muted small mb-2">@Localizer[item.book.szDescKey]</div>
+                                <span class="badge bg-light text-secondary border">@Localizer["manual.shelf.chapter_count", item.nChapterCount]</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<link rel="stylesheet" href="~/css/manual.css" asp-append-version="true" />

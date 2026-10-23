@@ -314,6 +314,11 @@ builder.Services.AddSingleton<ScadaEngine.Web.Services.I18nResourceService>();
 // 全站搜尋索引（Ctrl+K 命令面板 — 註冊表 + 雙語標題，依登入者權限過濾）
 builder.Services.AddSingleton<ScadaEngine.Web.Services.GlobalSearchService>();
 
+// 線上使用手冊（Manual/{book}/_toc.json + 各章 .md；ContentRoot 開發 = 專案目錄可即改即看、服務模式 = 安裝目錄）
+builder.Services.AddSingleton(sp => new ScadaEngine.Web.Services.ManualContentService(
+    Path.Combine(builder.Environment.ContentRootPath, "Manual"),
+    sp.GetRequiredService<ILogger<ScadaEngine.Web.Services.ManualContentService>>()));
+
 // 警報訊息 i18n 翻譯器（依當前 culture 套 messageKey + args → 顯示字串）
 builder.Services.AddScoped<ScadaEngine.Web.Services.AlarmMessageLocalizer>();
 

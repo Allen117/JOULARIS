@@ -1,0 +1,260 @@
+[
+  {
+    "slug": "ems-home",
+    "title": "EMS 首頁",
+    "titleEn": "EMS Home",
+    "group": "入門",
+    "groupEn": "Getting Started",
+    "routes": [
+      "/EMS"
+    ]
+  },
+  {
+    "slug": "circuit-info",
+    "title": "迴路資訊",
+    "titleEn": "Circuit Information",
+    "group": "迴路資訊",
+    "groupEn": "Circuits",
+    "routes": [
+      "/ElectricityCircuitInfo",
+      "/ChilledWaterCircuitInfo",
+      "/WaterCircuitInfo",
+      "/GasCircuitInfo"
+    ]
+  },
+  {
+    "slug": "energy-report",
+    "title": "用電報表",
+    "titleEn": "Electricity Usage Report",
+    "group": "報表查詢",
+    "groupEn": "Reports",
+    "routes": [
+      "/EnergyReport"
+    ]
+  },
+  {
+    "slug": "electricity-cost",
+    "title": "電費報表",
+    "titleEn": "Electricity Cost Report",
+    "group": "報表查詢",
+    "groupEn": "Reports",
+    "routes": [
+      "/ElectricityCostReport"
+    ]
+  },
+  {
+    "slug": "contract-capacity",
+    "title": "契約容量最佳化",
+    "titleEn": "Contract Capacity Optimization",
+    "group": "報表查詢",
+    "groupEn": "Reports",
+    "routes": [
+      "/ContractCapacity"
+    ]
+  },
+  {
+    "slug": "refrigeration-ton",
+    "title": "冷凍噸報表",
+    "titleEn": "Refrigeration Ton Report",
+    "group": "報表查詢",
+    "groupEn": "Reports",
+    "routes": [
+      "/RefrigerationTonReport"
+    ]
+  },
+  {
+    "slug": "water-report",
+    "title": "用水與水費報表",
+    "titleEn": "Water Usage & Cost Reports",
+    "group": "報表查詢",
+    "groupEn": "Reports",
+    "routes": [
+      "/WaterUsageReport",
+      "/WaterCostReport"
+    ]
+  },
+  {
+    "slug": "gas-report",
+    "title": "用氣與氣費報表",
+    "titleEn": "Gas Usage & Cost Reports",
+    "group": "報表查詢",
+    "groupEn": "Reports",
+    "routes": [
+      "/GasUsageReport",
+      "/GasCostReport"
+    ]
+  },
+  {
+    "slug": "daily-report",
+    "title": "能源日報",
+    "titleEn": "Daily Energy Report",
+    "group": "報表查詢",
+    "groupEn": "Reports",
+    "routes": [
+      "/DailyReport"
+    ]
+  },
+  {
+    "slug": "equipment-efficiency",
+    "title": "冰機 / 空壓機效率診斷",
+    "titleEn": "Chiller / Compressor Efficiency",
+    "group": "設備效率",
+    "groupEn": "Equipment Efficiency",
+    "routes": [
+      "/ChillerEfficiency",
+      "/CompressorEfficiency"
+    ]
+  },
+  {
+    "slug": "equipment-efficiency-setting",
+    "title": "設備效率設定",
+    "titleEn": "Equipment Efficiency Settings",
+    "group": "設備效率",
+    "groupEn": "Equipment Efficiency",
+    "routes": [
+      "/EquipmentEfficiencySetting"
+    ]
+  },
+  {
+    "slug": "energy-baseline",
+    "title": "能源基準",
+    "titleEn": "Energy Baseline",
+    "group": "能源管理",
+    "groupEn": "Energy Management",
+    "routes": [
+      "/EnergyBaseline"
+    ]
+  },
+  {
+    "slug": "energy-declaration",
+    "title": "能源申報",
+    "titleEn": "Energy Declaration",
+    "group": "能源管理",
+    "groupEn": "Energy Management",
+    "routes": [
+      "/EnergyDeclaration"
+    ]
+  },
+  {
+    "slug": "air-compressor-declaration",
+    "title": "空壓機能源申報",
+    "titleEn": "Air Compressor Declaration",
+    "group": "能源管理",
+    "groupEn": "Energy Management",
+    "routes": [
+      "/AirCompressorDeclaration"
+    ]
+  },
+  {
+    "slug": "electricity-meter-setting",
+    "title": "電表/迴路設定",
+    "titleEn": "Power Meter & Circuit Settings",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/EnergyMeter"
+    ]
+  },
+  {
+    "slug": "chilled-water-system",
+    "title": "空調水系統迴路設定",
+    "titleEn": "Chilled Water System Settings",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/ChilledWaterSystem"
+    ]
+  },
+  {
+    "slug": "water-meter-setting",
+    "title": "自來水表/迴路設定",
+    "titleEn": "Water Meter Settings",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/WaterMeterSetting"
+    ]
+  },
+  {
+    "slug": "gas-meter-setting",
+    "title": "氣表/迴路設定",
+    "titleEn": "Gas Meter Settings",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/GasMeterSetting"
+    ]
+  },
+  {
+    "slug": "air-meter-setting",
+    "title": "產氣量表/迴路設定",
+    "titleEn": "Air Flow Meter Settings",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/AirMeterSetting"
+    ]
+  },
+  {
+    "slug": "billing-period",
+    "title": "月結週期（電 / 水 / 氣）",
+    "titleEn": "Billing Periods",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/BillingPeriodSetting",
+      "/WaterBillingPeriodSetting",
+      "/GasBillingPeriodSetting"
+    ]
+  },
+  {
+    "slug": "tariff",
+    "title": "費率設定（電 / 水 / 氣）",
+    "titleEn": "Tariff Settings",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/TariffSetting",
+      "/WaterTariffSetting",
+      "/GasTariffSetting"
+    ]
+  },
+  {
+    "slug": "holiday-shift",
+    "title": "國定假日與班別",
+    "titleEn": "Holidays & Shifts",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/HolidaySetting",
+      "/ShiftSetting"
+    ]
+  },
+  {
+    "slug": "ems-card-setting",
+    "title": "卡片顯示設定",
+    "titleEn": "Dashboard Card Settings",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/EmsCardSetting"
+    ]
+  },
+  {
+    "slug": "daily-report-setting",
+    "title": "日報設定",
+    "titleEn": "Daily Report Settings",
+    "group": "能管設定",
+    "groupEn": "EMS Settings",
+    "routes": [
+      "/DailyReportSetting"
+    ]
+  },
+  {
+    "slug": "faq",
+    "title": "常見問題",
+    "titleEn": "FAQ",
+    "group": "其他",
+    "groupEn": "More"
+  }
+]

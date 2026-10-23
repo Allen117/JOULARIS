@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="manual.book.scada" xml:space="preserve"><value>SCADA 使用手冊</value></data>
+  <data name="manual.book.scada_desc" xml:space="preserve"><value>即時監控、趨勢、警報、排程與帳號等日常操作</value></data>
+  <data name="manual.book.ems" xml:space="preserve"><value>EMS 使用手冊</value></data>
+  <data name="manual.book.ems_desc" xml:space="preserve"><value>能源報表、電水氣費、效率診斷與能源申報</value></data>
+  <data name="manual.book.engineer" xml:space="preserve"><value>工程師手冊</value></data>
+  <data name="manual.book.engineer_desc" xml:space="preserve"><value>資料來源、畫面設計、流程控制、部署與疑難排解（僅工程師）</value></data>
+  <data name="manual.title" xml:space="preserve"><value>使用手冊</value></data>
+  <data name="manual.switch_book" xml:space="preserve"><value>切換手冊</value></data>
+  <data name="manual.print" xml:space="preserve"><value>列印</value></data>
+  <data name="manual.toc" xml:space="preserve"><value>章節目錄</value></data>
+  <data name="manual.on_this_page" xml:space="preserve"><value>本頁目錄</value></data>
+  <data name="manual.lang_fallback" xml:space="preserve"><value>本章尚無英文版，以下顯示中文內容。</value></data>
+  <data name="manual.empty_chapter" xml:space="preserve"><value>本章內容撰寫中</value></data>
+</root>

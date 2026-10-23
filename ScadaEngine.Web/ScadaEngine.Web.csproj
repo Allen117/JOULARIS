@@ -24,6 +24,8 @@
     <PackageReference Include="NCalcSync" Version="6.3.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
+    <!-- 線上使用手冊 Markdown → HTML，見 docs/功能說明書_使用手冊.md -->
+    <PackageReference Include="Markdig" Version="0.37.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,6 +46,10 @@
          開發時 dotnet run 讀專案目錄 certs\scada-web.pfx（ContentRoot=專案目錄，不需 copy）；
          部署機由 certs\generate-https-cert.ps1 在該機現產，見 docs/功能說明書_內網HTTPS部署.md -->
     <None Update="certs\*.pfx" CopyToPublishDirectory="Never" CopyToOutputDirectory="Never" />
+    <!-- 線上使用手冊內容：不放 wwwroot（靜態檔不經授權），由 ManualController 依角色輸出 -->
+    <None Update="Manual\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Web SDK 把 .json 歸為 Content，None Update 套不到，_toc.json 另外宣告 -->
+    <Content Update="Manual\**\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <!-- Claude Code skill lock：開發用，不打包進 build/publish -->
     <Content Remove="skills-lock.json" />
     <None Remove="skills-lock.json" />
