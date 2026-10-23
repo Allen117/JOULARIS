@@ -441,6 +441,14 @@ AI 點位除綁單一 SID 外，也可在 picker 的「**迴路**」來源分頁
 - 品質 BAD 時顯示「斷線」
 - 右鍵可針對單一儲存格加入趨勢圖
 
+**儲存格樣式同步**（字體大小 / 粗細 / 對齊，`setCellProp`）：
+
+- 改**首列**（標題列 row 0）某格 → 該**整欄**資料格同步
+- 改**首欄**（資料列 col 0）某格 → 該**整列**同步
+- 改其他格 → 只改該格，並記入 cell 級 `arrOwnKeys`（如 `["szAlign"]`）；之後首列 / 首欄同步會**跳過**已自訂該屬性的格
+- `[0,0]` 同時屬首列與首欄，依首列規則同步整欄
+- 點位屬性 `szPointType` 維持原規則：整欄資料列同步（標題列各自獨立）
+
 **迴路指標 cell**（plan 2026-07-23）：資料 cell 也可在 picker「迴路」分頁綁 `EnergyCircuit` 五指標
 （cell 級新鍵 `nCircuitId` / `szCircuitName` / `szMetric`，與 `szSid` 互斥，解除綁定時全 `delete`）。
 五指標語意與計算來源同 realtimeValue「迴路指標模式」一節。執行期 td 掛 `scada-cmetric-cell` class 且**不帶 `data-sid`**

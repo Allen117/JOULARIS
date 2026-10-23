@@ -1802,9 +1802,29 @@ function setCellProp(szKey, val) {
     if (!selectedEl || nSelectedCellRow < 0) return;
     const props = selectedEl.widgetProps;
     if (!props.arrCells || nSelectedCellRow >= props.arrCells.length) return;
-    // 字體大小、對齊、粗細 → 整欄同步修改（標題列與資料列各自獨立）
-    const arrColWideKeys = ['nFontSize', 'szAlign', 'szFontWeight', 'szPointType'];
-    if (arrColWideKeys.includes(szKey)) {
+    // 字體大小、對齊、粗細：
+    //   首列（標題列）改 → 整欄同步；首欄（資料列第 0 欄）改 → 整列同步
+    //   其他格自己改 → 只改該格並記入 arrOwnKeys，之後首列/首欄同步會跳過它
+    //   [0,0] 同時屬首列與首欄，依首列規則同步整欄
+    const arrStyleKeys = ['nFontSize', 'szAlign', 'szFontWeight'];
+    if (arrStyleKeys.includes(szKey)) {
+        const nRow = nSelectedCellRow, nCol = nSelectedCellCol;
+        const self = props.arrCells[nRow][nCol];
+        self[szKey] = val;
+        const _applyUnlessOwn = (cell) => {
+            if (cell && !(cell.arrOwnKeys || []).includes(szKey)) cell[szKey] = val;
+        };
+        if (nRow === 0) {
+            for (let ri = 1; ri < props.arrCells.length; ri++) _applyUnlessOwn(props.arrCells[ri][nCol]);
+        } else if (nCol === 0) {
+            const row = props.arrCells[nRow];
+            for (let ci = 1; ci < row.length; ci++) _applyUnlessOwn(row[ci]);
+        } else {
+            if (!Array.isArray(self.arrOwnKeys)) self.arrOwnKeys = [];
+            if (!self.arrOwnKeys.includes(szKey)) self.arrOwnKeys.push(szKey);
+        }
+    } else if (szKey === 'szPointType') {
+        // 點位屬性 → 整欄同步（標題列與資料列各自獨立）
         const nCol = nSelectedCellCol;
         const isHeader = nSelectedCellRow === 0;
         for (let ri = 0; ri < props.arrCells.length; ri++) {
