@@ -121,13 +121,19 @@
               _mmFields.forEach(function (f) {
                   var el = document.getElementById('mm' + f.key + 'Value');
                   var d = map[f.sid];
-                  el.textContent = d ? d.value : '--';
+                  var v = d ? parseFloat(d.value) : NaN;
+                  el.textContent = isNaN(v) ? '--' : formatMainMeterValue(f.key, v);
               });
           })
           .catch(function (e) { console.error('刷新主要電表即時值失敗', e); })
           .finally(function () {
               _mmTimer = setTimeout(refreshMainMeter, MAIN_METER_REFRESH_MS);
           });
+    }
+
+    // 主要電表數值格式：功率因數 3 位小數，其餘（電壓/電流/功率）1 位
+    function formatMainMeterValue(szKey, dValue) {
+        return szKey === 'PowerFactor' ? dValue.toFixed(3) : dValue.toFixed(1);
     }
 
     // 虛擬主表：拉後端聚合值（4 個 number|null）
@@ -146,13 +152,7 @@
                 _mmFields.forEach(function (f) {
                     var el = document.getElementById('mm' + f.key + 'Value');
                     var v = mapping[f.key];
-                    if (v == null) {
-                        el.textContent = '--';
-                    } else if (f.key === 'PowerFactor') {
-                        el.textContent = v.toFixed(3);
-                    } else {
-                        el.textContent = (Math.round(v * 100) / 100).toFixed(2);
-                    }
+                    el.textContent = v == null ? '--' : formatMainMeterValue(f.key, v);
                 });
             })
             .catch(function (e) { console.error('刷新主要電表聚合值失敗', e); })
