@@ -12,6 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 改到使用者看得到的操作流程（按鈕、欄位、步驟、選單位置）時，另須同步更新線上使用手冊 `ScadaEngine.Web/Manual/{scada,ems,engineer}/` 對應章節；新增功能頁要在該書 `_toc.json` 加章節並填 `routes`。寫作規範見 `ScadaEngine.Web/Manual/README.md`，架構見 docs/功能說明書_使用手冊.md。
 
+修改過 `docs/功能說明書_*.md` 後，須檢查並同步修改對應的使用手冊內容（`ScadaEngine.Web/Manual/{scada,ems,engineer}/` 中涵蓋同一功能的章節），確保手冊與說明書描述一致；若該功能尚無手冊章節或該次修改不影響手冊內容，在回覆中明講。
+
 ## 實作計畫（Plan）規則
 
 當使用者說「**規劃**」「**計畫**」「**plan**」「**先想清楚**」，

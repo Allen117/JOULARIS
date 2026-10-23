@@ -48,3 +48,5 @@ ScadaEngine.Engine/OpcUaPoint/*.json
 ScadaEngine.Web/certs/*.pfx
 ScadaEngine.Web/certs/*.crt
 ScadaEngine.Web/certs/*.cer
+# macOS Finder 中繼資料
+.DS_Store

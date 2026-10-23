@@ -90,6 +90,8 @@
             var p = ws.props || {};
             el.dataset.sid             = p.szSid            || '';
             el.dataset.szUnit          = p.szUnit           || '';
+            // 舊頁面無 nDecimalPlaces → 沿用 2 位，外觀不變
+            el.dataset.nDecimalPlaces  = p.nDecimalPlaces != null ? p.nDecimalPlaces : 2;
             el.dataset.szTitle         = p.szTitle          || '';
             el.dataset.nFontSize       = p.nFontSize        || 28;
             el.dataset.szFontColor     = p.szFontColor      || '#212529';
@@ -171,7 +173,7 @@
             el.dataset.fMin              = p.fMin                || 0;
             el.dataset.fMax              = p.fMax                || 100;
             el.dataset.fStep             = p.fStep               || 1;
-            el.dataset.nDecimalPlaces    = p.nDecimalPlaces      || 2;
+            el.dataset.nDecimalPlaces    = p.nDecimalPlaces != null ? p.nDecimalPlaces : 2;
             el.dataset.nFontSize         = p.nFontSize           || 16;
             el.dataset.szFontColor       = p.szFontColor         || '#ffffff';
             el.dataset.szMenuManualLabel = p.szMenuManualLabel   || '\u624b\u52d5\u63a7\u5236';
@@ -342,6 +344,12 @@
         }
     }
 
+    // AI 點位小數位數（Designer 綁點時依 DecimalRule 寫入；舊頁面無值 → 2）
+    function _rtDecimals(el) {
+        var n = parseInt(el.dataset.nDecimalPlaces, 10);
+        return isNaN(n) ? 2 : Math.max(0, Math.min(6, n));
+    }
+
     function updateScadaWidgets(data) {
         var sidMap = {};
         var sidValueMap = {};
@@ -452,7 +460,7 @@
                     szFontColor: szAlmClr || (el.dataset.szFontColor || '#212529'),
                     szUnit: el.dataset.szUnit || '', szTitle: hoverTitle(el, sid),
                     szBgColor: el.dataset.szBgColor || 'transparent'
-                }, Number(fVal).toFixed(2));
+                }, Number(fVal).toFixed(_rtDecimals(el)));
             } else if (sidValueMap[sid] !== undefined) {
                 el.innerHTML = buildRealtimeValueViewHtml({
                     nFontSize: parseInt(el.dataset.nFontSize) || 28,

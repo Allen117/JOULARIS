@@ -241,6 +241,9 @@
             const p = a.point;
             cell.szSid       = p.szSid;
             cell.szPointName = p.szDeviceLabel ? (p.szDeviceLabel + ' / ' + p.szName) : p.szName;
+            if (typeof _applyAutoColDecimals === 'function') {
+                _applyAutoColDecimals(props, ci, cell, cell.szPointName, p.szUnit);
+            }
             // 表格 DI Cell 綁定 SID 時，繼承同 SID 已存在的 ON/OFF 標籤
             if (cell.szPointType === 'DI' && typeof _findDiLabelsForSid === 'function') {
                 const diLabels = _findDiLabelsForSid(p.szSid);

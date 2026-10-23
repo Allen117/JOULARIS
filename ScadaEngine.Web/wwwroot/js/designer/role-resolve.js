@@ -66,12 +66,24 @@
         if (szSlotKey === 'szSidFreq')        { props.nFreqMax = point.fMax ?? 60; return; }
         if (szSlotKey === 'szCidFreqSet')     { props.nFreqSetMin = point.fMin ?? 0; props.nFreqSetMax = point.fMax ?? 60; return; }
         if (szSlotKey === 'szSidLoad')        { props.nLoadMax = point.fMax ?? 100; return; }
-        if (szType === 'realtimeValue' && szSlotKey === 'szSid') { props.szUnit = point.szUnit || ''; return; }
+        if (szType === 'realtimeValue' && szSlotKey === 'szSid') {
+            props.szUnit = point.szUnit || '';
+            _applyDecimals(props, point);
+            return;
+        }
         if (szType === 'aoPoint' && szSlotKey === 'szCid') {
             props.szUnit = point.szUnit || '';
             props.fMin = point.fMin ?? 0;
             props.fMax = point.fMax ?? 100;
+            _applyDecimals(props, point);
         }
+    }
+
+    // 小數位數依 DecimalRule 帶入（規則同 prop-panel _applyAutoDecimals；手動改過的不覆蓋）
+    function _applyDecimals(props, point) {
+        if (!root.DecimalRule || props.isDecimalAuto === false) return;
+        props.nDecimalPlaces = root.DecimalRule.guess(pointDisplayName(point), point.szUnit);
+        props.isDecimalAuto  = true;
     }
 
     // ── 主函式：依 objRoleBind 回填 SID / 名稱 ──

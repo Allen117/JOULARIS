@@ -368,6 +368,11 @@ function renderPropPanel(el) {
             <input type="text" value="${escHtml(props.szUnit || '')}"
                    oninput="setProp('szUnit', this.value)">
         </div>
+        <div class="prop-group">
+            <label>${escHtml(t('designer.prop.decimal_places'))}</label>
+            <input type="number" value="${props.nDecimalPlaces ?? 2}" min="0" max="6" step="1"
+                   oninput="setProp('nDecimalPlaces', Math.max(0, Math.min(6, parseInt(this.value) || 0)))">
+        </div>
         ${buildRtValueModeHtml(props)}
         <div class="prop-group">
             <label>${escHtml(t('designer.prop.high_color'))}</label>
@@ -532,8 +537,8 @@ function renderPropPanel(el) {
         </div>
         <div class="prop-group">
             <label>${escHtml(t('designer.prop.decimal_places'))}</label>
-            <input type="number" value="${props.nDecimalPlaces ?? 2}" min="0" max="6" step="1"
-                   oninput="setProp('nDecimalPlaces', +this.value)">
+            <input type="number" value="${props.nDecimalPlaces ?? 1}" min="0" max="6" step="1"
+                   oninput="setProp('nDecimalPlaces', Math.max(0, Math.min(6, parseInt(this.value) || 0)))">
         </div>
         <div class="prop-group">
             <label>${escHtml(t('designer.prop.unit'))}</label>
@@ -1469,6 +1474,8 @@ function _syncDiAlarmColorToSid(szSid, szAlarmColor, elExclude) {
 function setProp(szKey, val) {
     if (!selectedEl) return;
     selectedEl.widgetProps[szKey] = val;
+    // 手動改小數位數 → 之後重選點位不再自動覆蓋
+    if (szKey === 'nDecimalPlaces') selectedEl.widgetProps.isDecimalAuto = false;
     // 當列數/欄數改變時同步 arrCells
     if (selectedEl.dataset.type === 'table' && (szKey === 'nRows' || szKey === 'nCols')) {
         syncArrCellsSize(selectedEl.widgetProps);
@@ -1949,6 +1956,24 @@ function clearCellCircuit(nRow, nCol) {
 }
 
 // ============================================================
+// 小數位數自動帶入（plan 2026-10-23-designer-auto-decimals）
+// 規則單一真相在 js/common/decimal-rule.js；只在綁點位當下判斷一次
+// ============================================================
+function _applyAutoDecimals(props, szName, szUnit) {
+    if (!window.DecimalRule || props.isDecimalAuto === false) return;
+    props.nDecimalPlaces = window.DecimalRule.guess(szName, szUnit);
+    props.isDecimalAuto  = true;
+}
+
+// 表格：位數是「每欄」設定 — 該欄仍為 null 時才依綁入的 AI 點位帶入，已設定不覆蓋
+function _applyAutoColDecimals(props, nCol, cell, szName, szUnit) {
+    if (!window.DecimalRule || !cell || (cell.szPointType || 'AI') !== 'AI') return;
+    if (!props.arrColDecimals) props.arrColDecimals = [];
+    if (props.arrColDecimals[nCol] != null) return;
+    props.arrColDecimals[nCol] = window.DecimalRule.guess(szName, szUnit);
+}
+
+// ============================================================
 // 依點位建立 widget（picker 確認後呼叫）
 // ============================================================
 function createGaugeWithPoint(point, x, y) {
@@ -2053,6 +2078,7 @@ function createRealtimeValueWithPoint(point, x, y) {
         szTitle:     szFullName,
         szUnit:      point.szUnit || ''
     };
+    _applyAutoDecimals(el.widgetProps, szFullName, point.szUnit);
 
     renderWidget(el);
     canvas.appendChild(el);
@@ -2160,6 +2186,7 @@ function createAoPointWithPoint(point, x, y) {
         fMin:          point.fMin ?? 0,
         fMax:          point.fMax ?? 100
     };
+    _applyAutoDecimals(el.widgetProps, szFullName, point.szUnit);
 
     renderWidget(el);
     canvas.appendChild(el);
