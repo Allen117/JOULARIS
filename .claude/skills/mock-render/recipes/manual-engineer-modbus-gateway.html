@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCADA Modbus Gateway — 位址對照表</title>
+<style>
+  :root {
+    --c-bg: #f4f6f9; --c-card: #ffffff; --c-border: #dde3ea;
+    --c-text: #1f2d3d; --c-muted: #7a8794; --c-primary: #1b4f8a;
+    --c-good: #1e8e3e; --c-bad: #d93025; --c-warn: #e37400; --c-off: #9aa0a6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; background: var(--c-bg); color: var(--c-text); }
+  header { background: var(--c-primary); color: #fff; padding: 14px 20px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; }
+  header .sub { font-size: 12px; opacity: .85; }
+  .wrap { max-width: 1280px; margin: 16px auto; padding: 0 16px; }
+  .cards { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: 8px; padding: 10px 16px; min-width: 130px; }
+  .card .k { font-size: 11px; color: var(--c-muted); }
+  .card .v { font-size: 16px; font-weight: 600; margin-top: 2px; }
+  .card .v.ok { color: var(--c-good); }
+  .card .v.err { color: var(--c-bad); }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .toolbar input[type=text] { flex: 1 1 240px; max-width: 360px; padding: 7px 10px; border: 1px solid var(--c-border); border-radius: 6px; font-size: 14px; }
+  .toolbar select { padding: 7px 10px; border: 1px solid var(--c-border); border-radius: 6px; font-size: 14px; background: #fff; }
+  .toolbar button { padding: 7px 14px; border: 1px solid var(--c-primary); border-radius: 6px; background: var(--c-primary); color: #fff; font-size: 14px; cursor: pointer; }
+  .toolbar button:hover { filter: brightness(1.1); }
+  .toolbar button:disabled { opacity: .6; cursor: wait; }
+  .toolbar .hint { font-size: 12px; color: var(--c-muted); margin-left: auto; }
+  .tablebox { background: var(--c-card); border: 1px solid var(--c-border); border-radius: 8px; overflow: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 7px 12px; border-bottom: 1px solid var(--c-border); text-align: left; white-space: nowrap; }
+  th { position: sticky; top: 0; background: #eef2f7; font-weight: 600; z-index: 1; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.disabled td { color: var(--c-off); text-decoration: line-through; }
+  tr.disabled td.status { text-decoration: none; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .b-good { background: #e6f4ea; color: var(--c-good); }
+  .b-bad { background: #fce8e6; color: var(--c-bad); }
+  .b-stale { background: #fef7e0; color: var(--c-warn); }
+  .b-nodata { background: #f1f3f4; color: var(--c-muted); }
+  .b-off { background: #f1f3f4; color: var(--c-off); }
+  .src { font-size: 11px; color: var(--c-muted); }
+  #empty { padding: 30px; text-align: center; color: var(--c-muted); }
+</style>
+<!-- 工程師手冊 modbus-gateway-01：ScadaEngine.ModbusServer/Web/index.html 原檔 + fetch mock /api/points（不走 _Layout）。
+     資料形狀照 ModbusServer Program.cs MapGet("/api/points")；位址段照 ModbusServerSetting.json Segments（Modbus 0 / Calc 10000 / Db 14000 / OpcUa 20000，每點 2 registers） -->
+<script>
+(function () {
+  var DATA = {
+ "server": {
+  "modbusPort": 502,
+  "webPort": 5041,
+  "unitId": 1,
+  "wordOrder": "CDAB",
+  "badQualityMode": "NaN",
+  "modbusRunning": true,
+  "mqttConnected": true,
+  "catalogScanned": true,
+  "lastScanAt": "2026-09-09 08:00:12",
+  "totalPoints": 23,
+  "activePoints": 22
+ },
+ "points": [
+  {
+   "address": 0,
+   "sid": "65793-S1",
+   "name": "電表 M-01 / 電壓 R-S",
+   "source": "Modbus",
+   "rawAddress": "30001",
+   "value": 380.6,
+   "unit": "V",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300001
+  },
+  {
+   "address": 2,
+   "sid": "65793-S2",
+   "name": "電表 M-01 / 電流 R",
+   "source": "Modbus",
+   "rawAddress": "30003",
+   "value": 412.3,
+   "unit": "A",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300003
+  },
+  {
+   "address": 4,
+   "sid": "65793-S3",
+   "name": "電表 M-01 / 有效功率",
+   "source": "Modbus",
+   "rawAddress": "30005",
+   "value": 286.4,
+   "unit": "kW",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300005
+  },
+  {
+   "address": 6,
+   "sid": "65793-S4",
+   "name": "電表 M-01 / 功率因數",
+   "source": "Modbus",
+   "rawAddress": "30007",
+   "value": 0.96,
+   "unit": "",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300007
+  },
+  {
+   "address": 8,
+   "sid": "65793-S5",
+   "name": "電表 M-01 / 累積電度",
+   "source": "Modbus",
+   "rawAddress": "30009",
+   "value": 1284563.5,
+   "unit": "kWh",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300009
+  },
+  {
+   "address": 10,
+   "sid": "66049-S1",
+   "name": "冰水泵 CHP-01 / 運轉狀態",
+   "source": "Modbus",
+   "rawAddress": "10001",
+   "value": 1,
+   "unit": "",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300011
+  },
+  {
+   "address": 12,
+   "sid": "66049-S2",
+   "name": "冰水泵 CHP-01 / 運轉頻率",
+   "source": "Modbus",
+   "rawAddress": "30011",
+   "value": 45.0,
+   "unit": "Hz",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300013
+  },
+  {
+   "address": 14,
+   "sid": "66049-S3",
+   "name": "冰水泵 CHP-02 / 運轉狀態",
+   "source": "Modbus",
+   "rawAddress": "10002",
+   "value": 0,
+   "unit": "",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300015
+  },
+  {
+   "address": 16,
+   "sid": "66049-S4",
+   "name": "冰水泵 CHP-02 / 運轉頻率",
+   "source": "Modbus",
+   "rawAddress": "30013",
+   "value": 0.0,
+   "unit": "Hz",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300017
+  },
+  {
+   "address": 18,
+   "sid": "131329-S1",
+   "name": "空調箱 AHU-01 / 回風溫度",
+   "source": "Modbus",
+   "rawAddress": "30001",
+   "value": 24.6,
+   "unit": "°C",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300019
+  },
+  {
+   "address": 20,
+   "sid": "131329-S2",
+   "name": "空調箱 AHU-01 / 回風濕度",
+   "source": "Modbus",
+   "rawAddress": "30003",
+   "value": 58.2,
+   "unit": "%RH",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300021
+  },
+  {
+   "address": 22,
+   "sid": "131329-S3",
+   "name": "空調箱 AHU-02 / 回風溫度",
+   "source": "Modbus",
+   "rawAddress": "30005",
+   "value": null,
+   "unit": "°C",
+   "status": "BAD",
+   "timestamp": "2026-09-09 15:42:08",
+   "address3x": 300023
+  },
+  {
+   "address": 24,
+   "sid": "131329-S4",
+   "name": "空調箱 AHU-02 / 回風濕度",
+   "source": "Modbus",
+   "rawAddress": "30007",
+   "value": 55.1,
+   "unit": "%RH",
+   "status": "STALE",
+   "timestamp": "2026-09-09 15:31:40",
+   "address3x": 300025
+  },
+  {
+   "address": 10000,
+   "sid": "CALC-S1",
+   "name": "冰水系統 / 冷凍噸",
+   "source": "Calc",
+   "rawAddress": "",
+   "value": 182.4,
+   "unit": "RT",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:00",
+   "address3x": 310001
+  },
+  {
+   "address": 10002,
+   "sid": "CALC-S2",
+   "name": "冰水系統 / 系統效率",
+   "source": "Calc",
+   "rawAddress": "",
+   "value": 0.812,
+   "unit": "kW/RT",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:00",
+   "address3x": 310003
+  },
+  {
+   "address": 10004,
+   "sid": "CALC-S3",
+   "name": "冰水系統 / 供回水溫差",
+   "source": "Calc",
+   "rawAddress": "",
+   "value": 4.9,
+   "unit": "°C",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:00",
+   "address3x": 310005
+  },
+  {
+   "address": 10006,
+   "sid": "CALC-S4",
+   "name": "舊版效率計算",
+   "source": "Calc",
+   "rawAddress": "",
+   "value": null,
+   "unit": "kW/RT",
+   "status": "DISABLED",
+   "timestamp": null,
+   "address3x": 310007
+  },
+  {
+   "address": 14000,
+   "sid": "DB1-S1",
+   "name": "外部系統 / 室外溫度",
+   "source": "Db",
+   "rawAddress": "DB1#1",
+   "value": 29.8,
+   "unit": "°C",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:41:58",
+   "address3x": 314001
+  },
+  {
+   "address": 14002,
+   "sid": "DB1-S2",
+   "name": "外部系統 / 室外濕度",
+   "source": "Db",
+   "rawAddress": "DB1#2",
+   "value": 71.5,
+   "unit": "%RH",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:41:58",
+   "address3x": 314003
+  },
+  {
+   "address": 14004,
+   "sid": "DB1-S3",
+   "name": "外部系統 / 自來水累積量",
+   "source": "Db",
+   "rawAddress": "DB1#3",
+   "value": 53821.0,
+   "unit": "m³",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:41:58",
+   "address3x": 314005
+  },
+  {
+   "address": 20000,
+   "sid": "OPC1-S1",
+   "name": "控制器 PLC-01 / 冷卻水塔風扇頻率",
+   "source": "OpcUa",
+   "rawAddress": "ns=2;s=CT01.Fan.Freq",
+   "value": 42.0,
+   "unit": "Hz",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:07",
+   "address3x": 320001
+  },
+  {
+   "address": 20002,
+   "sid": "OPC1-S2",
+   "name": "控制器 PLC-01 / 冷卻水出水溫",
+   "source": "OpcUa",
+   "rawAddress": "ns=2;s=CT01.Temp.Out",
+   "value": 35.2,
+   "unit": "°C",
+   "status": "GOOD",
+   "timestamp": "2026-09-09 15:42:07",
+   "address3x": 320003
+  },
+  {
+   "address": 20004,
+   "sid": "OPC1-S3",
+   "name": "控制器 PLC-01 / 補水閥開度",
+   "source": "OpcUa",
+   "rawAddress": "ns=2;s=CT01.Valve.Pos",
+   "value": null,
+   "unit": "%",
+   "status": "NO_DATA",
+   "timestamp": null,
+   "address3x": 320005
+  }
+ ]
+};
+  var realFetch = window.fetch;
+  window.fetch = function (url, opts) {
+    var path = String(url).split('?')[0];
+    if (path === '/api/points') return Promise.resolve(new Response(JSON.stringify(DATA), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    return realFetch.apply(this, arguments);
+  };
+  window.setInterval = function () { return 0; };   // 截圖不輪詢
+})();
+</script>
+<style>*,*::before,*::after{transition:none!important;animation:none!important;}</style>
+</head>
+<body>
+<header>
+  <h1>SCADA Modbus Gateway</h1>
+  <span class="sub">FC4 Input Registers &middot; float32&#65292;每點 2 registers&#65292;位址偶數對齊 &middot; 品質不良回報 NaN (0x7FC00000)</span>
+</header>
+<div class="wrap">
+  <div class="cards">
+    <div class="card"><div class="k">Modbus TCP</div><div class="v" id="cModbus">-</div></div>
+    <div class="card"><div class="k">Word Order</div><div class="v" id="cOrder">-</div></div>
+    <div class="card"><div class="k">MQTT 來源</div><div class="v" id="cMqtt">-</div></div>
+    <div class="card"><div class="k">點位總數</div><div class="v" id="cTotal">-</div></div>
+    <div class="card"><div class="k">存活點位</div><div class="v" id="cActive">-</div></div>
+    <div class="card"><div class="k">最後掃描</div><div class="v" id="cScan" style="font-size:13px">-</div></div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="q" placeholder="搜尋 SID / 名稱 / 位址...">
+    <select id="src">
+      <option value="">全部來源</option>
+      <option value="Modbus">Modbus 採集點</option>
+      <option value="Calc">計算點位</option>
+      <option value="Db">DB 來源</option>
+      <option value="OpcUa">OPC UA 來源</option>
+    </select>
+    <select id="st">
+      <option value="">全部狀態</option>
+      <option value="GOOD">GOOD</option>
+      <option value="BAD">BAD</option>
+      <option value="STALE">STALE</option>
+      <option value="NO_DATA">NO_DATA</option>
+      <option value="DISABLED">已停用</option>
+    </select>
+    <button id="btnRescan">重新掃描點位</button>
+    <span class="hint">每 5 秒自動刷新 &middot; 顯示 <span id="cShown">0</span> 筆</span>
+  </div>
+
+  <div class="tablebox">
+    <table>
+      <thead>
+        <tr>
+          <th class="num">位址 (0-based)</th>
+          <th class="num">位址 (3xxxxx)</th>
+          <th>SID</th>
+          <th>名稱</th>
+          <th>來源</th>
+          <th>原始位址</th>
+          <th class="num">即時值</th>
+          <th>單位</th>
+          <th class="status">狀態</th>
+          <th>更新時間</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
+    <div id="empty" style="display:none">無符合的點位</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var allPoints = [];
+  var SOURCE_LABEL = { Modbus: 'Modbus', Calc: '計算點位', Db: 'DB 來源', OpcUa: 'OPC UA' };
+
+  function badgeClass(status) {
+    if (status === 'GOOD') return 'b-good';
+    if (status === 'STALE') return 'b-stale';
+    if (status === 'NO_DATA') return 'b-nodata';
+    if (status === 'DISABLED') return 'b-off';
+    return 'b-bad';
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function render() {
+    var q = document.getElementById('q').value.trim().toLowerCase();
+    var src = document.getElementById('src').value;
+    var st = document.getElementById('st').value;
+    var rows = [];
+    var shown = 0;
+
+    for (var i = 0; i < allPoints.length; i++) {
+      var p = allPoints[i];
+      if (src && p.source !== src) continue;
+      if (st && p.status !== st) continue;
+      if (q) {
+        var hay = (p.sid + ' ' + p.name + ' ' + p.address + ' ' + p.address3x + ' ' + p.rawAddress).toLowerCase();
+        if (hay.indexOf(q) < 0) continue;
+      }
+      shown++;
+      var valueText = p.value == null ? 'NaN' : Number(p.value.toFixed(3)).toString();
+      rows.push('<tr class="' + (p.status === 'DISABLED' ? 'disabled' : '') + '">' +
+        '<td class="num">' + p.address + '</td>' +
+        '<td class="num">' + p.address3x + '</td>' +
+        '<td>' + esc(p.sid) + '</td>' +
+        '<td>' + esc(p.name) + '</td>' +
+        '<td><span class="src">' + (SOURCE_LABEL[p.source] || esc(p.source)) + '</span></td>' +
+        '<td><span class="src">' + esc(p.rawAddress) + '</span></td>' +
+        '<td class="num">' + valueText + '</td>' +
+        '<td>' + esc(p.unit) + '</td>' +
+        '<td class="status"><span class="badge ' + badgeClass(p.status) + '">' +
+          (p.status === 'DISABLED' ? '已停用' : esc(p.status)) + '</span></td>' +
+        '<td>' + esc(p.timestamp || '-') + '</td>' +
+        '</tr>');
+    }
+
+    document.getElementById('tb').innerHTML = rows.join('');
+    document.getElementById('empty').style.display = shown ? 'none' : '';
+    document.getElementById('cShown').textContent = shown;
+  }
+
+  function setCard(id, text, okClass) {
+    var el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'v' + (okClass === undefined ? '' : (okClass ? ' ok' : ' err'));
+  }
+
+  function refresh() {
+    fetch('/api/points').then(function (r) { return r.json(); }).then(function (data) {
+      var s = data.server;
+      setCard('cModbus', s.modbusRunning ? ':' + s.modbusPort + ' 監聽中' : '未監聽', s.modbusRunning);
+      setCard('cOrder', s.wordOrder + ' / Unit ' + s.unitId);
+      setCard('cMqtt', s.mqttConnected ? '已連線' : '斷線', s.mqttConnected);
+      setCard('cTotal', s.totalPoints);
+      setCard('cActive', s.activePoints);
+      document.getElementById('cScan').textContent = s.lastScanAt || (s.catalogScanned ? '-' : '尚未成功');
+      allPoints = data.points;
+      render();
+    }).catch(function () {
+      setCard('cMqtt', '連線失敗', false);
+    });
+  }
+
+  document.getElementById('q').addEventListener('input', render);
+  document.getElementById('src').addEventListener('change', render);
+  document.getElementById('st').addEventListener('change', render);
+
+  document.getElementById('btnRescan').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    fetch('/api/rescan', { method: 'POST' }).then(function (r) { return r.json(); }).then(function (res) {
+      if (res.ok) {
+        alert('掃描完成：新增 ' + res.added + ' 點，總計 ' + res.total + ' 點');
+      } else {
+        alert('掃描失敗：' + (res.error || ''));
+      }
+    }).catch(function (e) {
+      alert('掃描失敗：' + e);
+    }).finally(function () {
+      btn.disabled = false;
+      refresh();
+    });
+  });
+
+  refresh();
+  setInterval(refresh, 5000); // 使用者裁定 5 秒（打的是本進程記憶體快取，不經 MQTT broker）
+})();
+</script>
+</body>
+</html>

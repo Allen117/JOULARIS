@@ -14,7 +14,7 @@
 
 ## 建立申報報表
 
-<!-- IMG-TODO: ems/energy-declaration-01 | 能源申報：申報報表設定清單與新增申報報表視窗 | route=/EnergyDeclaration -->
+![能源申報：申報報表設定清單與新增申報報表視窗](images/energy-declaration-01.png)
 
 1. 在 **申報報表設定** 卡片按 **新增報表**
 2. 在「新增申報報表」視窗填寫：
@@ -33,7 +33,7 @@
 3. 按 **查詢**
 4. 需要存檔時按 **匯出 Excel**
 
-<!-- IMG-TODO: ems/energy-declaration-02 | 能源申報：用電量長條與冷凍噸折線雙軸圖與 12 個月明細 | route=/EnergyDeclaration -->
+![能源申報：用電量長條與冷凍噸折線雙軸圖與 12 個月明細](images/energy-declaration-02.png)
 
 ### 結果怎麼看
 

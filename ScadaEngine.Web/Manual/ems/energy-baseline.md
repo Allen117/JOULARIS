@@ -21,7 +21,7 @@
 
 ## 基線建模
 
-<!-- IMG-TODO: ems/energy-baseline-01 | 能源基準：基線建模分頁的模型定義與回歸結果 | route=/EnergyBaseline -->
+![能源基準：基線建模分頁的模型定義與回歸結果](images/energy-baseline-01.png)
 
 ### 建立模型
 
@@ -72,7 +72,7 @@
 3. 按 **查詢**
 4. 需要存檔時按 **匯出 Excel**
 
-<!-- IMG-TODO: ems/energy-baseline-02 | EnPI 報告：實際 vs 基線預測長條與累計節能量折線 | route=/EnergyBaseline -->
+![EnPI 報告：實際 vs 基線預測長條與累計節能量折線](images/energy-baseline-02.png)
 
 ### 結果怎麼看
 

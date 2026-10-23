@@ -8,7 +8,7 @@
 
 只有 Engineer 可進入。頁面依群組列出參數，每個參數顯示說明、允許範圍與預設值；頁尾顯示 **最後更新** 時間（從未修改過則顯示「尚未自訂（使用預設值）」）。
 
-<!-- IMG-TODO: engineer/system-parameter-01 | 系統參數：歷史趨勢群組的三個參數與儲存按鈕 | route=/SystemParameter -->
+![系統參數：歷史趨勢群組的三個參數與儲存按鈕](images/system-parameter-01.png)
 
 ## 參數一覽
 

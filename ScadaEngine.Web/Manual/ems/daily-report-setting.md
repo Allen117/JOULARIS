@@ -6,7 +6,7 @@
 
 ## 畫面說明
 
-<!-- IMG-TODO: ems/daily-report-setting-01 | 日報設定：寄送設定、內容區塊與收件人清單 | route=/DailyReportSetting -->
+![日報設定：寄送設定、內容區塊與收件人清單](images/daily-report-setting-01.png)
 
 - 右上按鈕：**回日報頁**、**測試寄送**、**儲存設定**
 - **寄送設定**：自動寄送開關、**日報語言**、**差異提示門檻（±%）**、**假日提示**

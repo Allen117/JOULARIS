@@ -22,7 +22,7 @@
 
 ## 畫面說明
 
-<!-- IMG-TODO: ems/air-meter-setting-01 | 產氣量表/迴路設定：空壓機房總產氣與各空壓機節點 | route=/AirMeterSetting -->
+![產氣量表/迴路設定：空壓機房總產氣與各空壓機節點](images/air-meter-setting-01.png)
 
 - **左側「迴路階層」** 與 **右上「新增產氣量表/迴路」**：建立與管理樹
 - **右側詳情區**：類型、名稱、貢獻方向、點位名稱、單位換算、溢位上限 MaxVolume、說明

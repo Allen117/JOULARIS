@@ -88,7 +88,7 @@ Gateway 是**選配**，與主系統分開安裝（`InstallModbusServer.bat`）�
 - 頂部顯示 Modbus 監聽狀態、字組順序、Unit ID、MQTT 連線、點位總數與最後掃描時間
 - **重新掃描點位** 按鈕：手動把新點位加入對照表
 
-<!-- IMG-TODO: engineer/modbus-gateway-01 | Gateway 瀏覽網頁：位址對照表與即時值 | route=none -->
+![Gateway 瀏覽網頁：位址對照表與即時值](images/modbus-gateway-01.png)
 
 把此網頁的對照表（可篩選後截圖或抄錄）交給第三方，作為他們設定讀取位址的依據。
 

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<!-- 能源基準（ISO 50001）Tab2 EnPI/節能量報告：區域 A 凍結基線，2025 1~8月 實際vs預測，離線模擬渲染 -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>能源基準 ISO50001 · EnPI 報告 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/energy-baseline.css">
+
+    <style>
+        html, body { overflow-x: hidden; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 0; margin-top: auto; }
+        main { min-height: calc(100vh - 140px); }
+        .card { border: none; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-radius: 10px; }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+            .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘 2025-12-31 ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2025, 11, 31, 10, 0, 0).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse; MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API ──────
+    (function () {
+        // 24 個曆月（2023~2024）散布：actual≈predicted（近對角線 → R² 高）；不用 random，固定 jitter
+        var SCATTER = (function () {
+            var pred = [156000,150000,168000,183000,199000,213000,222000,220000,205000,188000,170000,159000,
+                        158000,152000,170000,185000,201000,215000,224000,222000,207000,190000,172000,161000];
+            var jit  = [3000,-2000,4000,-3000,2000,5000,-4000,3000,-2000,4000,-3000,2000,
+                        -2000,3000,-4000,2000,-3000,4000,-2000,3000,2000,-3000,4000,-2000];
+            var mon = [];
+            for (var y = 2023; y <= 2024; y++) for (var m = 1; m <= 12; m++) mon.push(y + '-' + String(m).padStart(2, '0'));
+            return pred.map(function (p, i) { return { label: mon[i], actual: p + jit[i], predicted: p }; });
+        })();
+
+        // 區域 A 基線係數（皆正、皆顯著）：Y = 90,250 + 176.4·CDD26 + 302.7·在場人數 + 11.35·生產批數
+        var VARS_RESULT = [
+            { label: '冷氣度時 CDD26（基準26°C）', unit: '°C·day', coefficient: 176.4, pValue: 0.0004 },
+            { label: '在場人數',                unit: '人',      coefficient: 302.7, pValue: 0.0128 },
+            { label: '生產批數',                unit: '批',    coefficient: 11.35, pValue: 0.0041 }
+        ];
+        var RUN_RESP = {
+            intercept: 90250, r2: 0.9121, adjR2: 0.8990, cvRmse: 0.0482, sampleCount: 24,
+            droppedCount: 0, incompleteCount: 0, isSampleLow: false, isR2Low: false,
+            variables: VARS_RESULT, scatter: SCATTER
+        };
+
+        var MODEL_VARS = [
+            { nId: 1, nBaselineId: 1, nSequence: 1, szVarType: 'point', szSourceSID: 'CDD26',  nSourceCircuitId: null, szLabel: '冷氣度時 CDD26（基準26°C）', szUnit: '°C·day', dCoefficient: 176.4, dPValue: 0.0004 },
+            { nId: 2, nBaselineId: 1, nSequence: 2, szVarType: 'point', szSourceSID: 'DUTY',   nSourceCircuitId: null, szLabel: '在場人數',              szUnit: '人',    dCoefficient: 302.7, dPValue: 0.0128 },
+            { nId: 3, nBaselineId: 1, nSequence: 3, szVarType: 'point', szSourceSID: 'FLIGHT', nSourceCircuitId: null, szLabel: '生產批數',              szUnit: '批',  dCoefficient: 11.35, dPValue: 0.0041 }
+        ];
+        var MODEL_1 = {
+            nId: 1, szName: '區域 A 能源基線（ISO 50001）',
+            szDescription: 'Y = 區域 A 總用電；X = 冷氣度時 + 在場人數 + 生產批數，扣除天氣/營運外生因素後看真實績效',
+            szTargetType: 'circuit', nTargetCircuitId: 101, szTargetSID: null,
+            szTargetLabel: '區域 A 總用電', szTargetUnit: 'kWh', szTargetMode: 'cumulative',
+            szGranularity: 'month', dtBaselineStart: '2023-01-01T00:00:00', dtBaselineEnd: '2024-12-31T00:00:00',
+            szStatus: 'draft',
+            dIntercept: 90250, dR2: 0.9121, dAdjR2: 0.8990, dCvRmse: 0.0482, nSampleCount: 24,
+            dtFrozenAt: null, dtCreatedAt: '2025-01-05T09:00:00', dtUpdatedAt: '2025-01-05T09:00:00',
+            variables: MODEL_VARS
+        };
+        // 左側清單：五個區域各一模型（每區驅動因子不同，見說明）
+        // EnPI 報告期 2025 1~8 月：實際 vs 凍結基線預測（皆優於基線 → 正節能量、EnPI<1）
+        var EN = [
+            { szLabel: '2025-01', pred: 158000, act: 153200 },
+            { szLabel: '2025-02', pred: 151500, act: 147900 },
+            { szLabel: '2025-03', pred: 167200, act: 160500 },
+            { szLabel: '2025-04', pred: 182400, act: 174100 },
+            { szLabel: '2025-05', pred: 198600, act: 189300 },
+            { szLabel: '2025-06', pred: 212800, act: 201900 },
+            { szLabel: '2025-07', pred: 221500, act: 209700 },
+            { szLabel: '2025-08', pred: 219300, act: 208600 }
+        ];
+        var g_cum = 0;
+        var EN_BUCKETS = EN.map(function (m) {
+            var sav = m.pred - m.act; g_cum += sav;
+            return {
+                dtBucketStart: m.szLabel + '-01T00:00:00', szLabel: m.szLabel,
+                dActual: m.act, dPredicted: m.pred, dSavings: sav,
+                dCumulativeSavings: g_cum, dEnpi: m.act / m.pred, isMissing: false, xValues: []
+            };
+        });
+        var EN_TOTAL_ACT = EN.reduce(function (s, m) { return s + m.act; }, 0);
+        var EN_TOTAL_PRED = EN.reduce(function (s, m) { return s + m.pred; }, 0);
+        var ENPI_RESULT = {
+            nBaselineId: 1, szBaselineName: '區域 A 能源基線（ISO 50001）',
+            szTargetLabel: '區域 A 總用電', szTargetUnit: 'kWh', szGranularity: 'month',
+            dtStart: '2025-01-01T00:00:00', dtEnd: '2025-08-31T00:00:00',
+            variableLabels: ['冷氣度時 CDD26（基準26°C）', '在場人數', '生產批數'],
+            buckets: EN_BUCKETS,
+            dTotalActual: EN_TOTAL_ACT, dTotalPredicted: EN_TOTAL_PRED,
+            dTotalSavings: EN_TOTAL_PRED - EN_TOTAL_ACT,
+            dOverallEnpi: EN_TOTAL_ACT / EN_TOTAL_PRED, nMissingCount: 0
+        };
+
+        var MODELS = [
+            { nId: 1, szName: '區域 A 能源基線（ISO 50001）', szStatus: 'frozen', szGranularity: 'month', szTargetLabel: '區域 A 總用電',        dR2: 0.9121 },
+            { nId: 2, szName: '區域 B 基線',        szStatus: 'frozen', szGranularity: 'month', szTargetLabel: '區域 B 用電', dR2: 0.8781 },
+            { nId: 3, szName: '區域 C 基線',        szStatus: 'frozen', szGranularity: 'month', szTargetLabel: '區域 C 用電', dR2: 0.9342 },
+            { nId: 4, szName: '區域 D 能源基線',              szStatus: 'frozen', szGranularity: 'month', szTargetLabel: '區域 D 用電',           dR2: 0.9013 },
+            { nId: 5, szName: '區域 E 能源基線',          szStatus: 'frozen', szGranularity: 'month', szTargetLabel: '區域 E 用電',       dR2: 0.8665 }
+        ];
+        var CIRCUITS = [
+            { id: 100, name: '總表', parentId: null, sid: '10000' },
+            { id: 101, name: '區域 A 總用電',        parentId: 100, sid: '10101' },
+            { id: 102, name: '區域 B 用電', parentId: 100, sid: '10102' },
+            { id: 103, name: '區域 C 用電', parentId: 100, sid: '10103' },
+            { id: 104, name: '區域 D 用電',          parentId: 100, sid: '10104' },
+            { id: 105, name: '區域 E 用電',      parentId: 100, sid: '10105' }
+        ];
+        var POINTS = [
+            { szSid: 'CDD26',  szName: '冷氣度時 CDD26（基準26°C）', szUnit: '°C·day', szType: 'Calculated', szGroupName: '氣象與營運指標', szDeviceGroup: null },
+            { szSid: 'DUTY',   szName: '在場人數',              szUnit: '人',    szType: 'Calculated', szGroupName: '氣象與營運指標', szDeviceGroup: null },
+            { szSid: 'FLIGHT', szName: '生產批數',              szUnit: '批',  szType: 'Calculated', szGroupName: '氣象與營運指標', szDeviceGroup: null }
+        ];
+
+        // api/models/1 第一次呼叫立即回（填表），第二次以後延遲（避免 run 後散布圖被 renderStoredResult 蓋掉）
+        var g_model1Calls = 0;
+
+        var MOCK = {
+            '/EnergyBaseline/api/circuits': function () { return CIRCUITS; },
+            '/EnergyBaseline/api/points':   function () { return POINTS; },
+            '/EnergyBaseline/api/devices':  function () { return []; },
+            '/EnergyBaseline/api/models':   function () { return MODELS; },
+            '/EnergyBaseline/api/models/1': function () { return MODEL_1; },
+            '__POST__/EnergyBaseline/api/enpi/query': function () { return ENPI_RESULT; }
+        };
+
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            var method = (opts && opts.method ? opts.method : 'GET').toUpperCase();
+            var key = method === 'POST' ? ('__POST__' + path) : path;
+
+            // 延遲第二次以後的 models/1（保住散布圖）
+            if (method === 'GET' && path === '/EnergyBaseline/api/models/1') {
+                g_model1Calls++;
+                if (g_model1Calls >= 2) {
+                    return new Promise(function (resolve) {
+                        setTimeout(function () {
+                            resolve(new Response(JSON.stringify(MODEL_1), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+                        }, 12000);
+                    });
+                }
+            }
+            if (MOCK[key]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[key]()), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT ═══════════ -->
+        <div class="container-fluid px-4 py-3">
+            <div class="d-flex align-items-center mb-3">
+                <h4 class="mb-0"><i class="fas fa-chart-line me-2 text-primary"></i>能源基準（ISO 50001）</h4>
+                <span class="text-muted ms-3 small">能源基線回歸 · EnPI 績效 · SEU 重大能源使用鑑別</span>
+            </div>
+
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabModel" type="button">基線建模</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabEnpi" type="button">EnPI / 節能量報告</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSeu" type="button">SEU 鑑別</button></li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="tabModel">
+                    <div class="row g-3">
+                        <div class="col-lg-4">
+                            <div class="card shadow-sm">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span>基線模型</span>
+                                    <button class="btn btn-sm btn-primary" onclick="window._enb.newModel()"><i class="fas fa-plus me-1"></i>新增模型</button>
+                                </div>
+                                <div class="list-group list-group-flush" id="enbModelList">
+                                    <div class="list-group-item text-muted small">尚無基線模型，點「新增模型」開始</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-8">
+                            <div class="card shadow-sm" id="enbEditorCard" style="display:none">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span id="enbEditorTitle">模型定義</span>
+                                    <span id="enbStatusBadge"></span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">模型名稱 <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="enbName" maxlength="100" autocomplete="off" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">說明</label>
+                                            <input type="text" class="form-control" id="enbDescription" maxlength="500" autocomplete="off" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">目標能耗 Y <span class="text-danger">*</span></label>
+                                            <div class="d-flex gap-3 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="enbTargetType" id="enbTargetTypeCircuit" value="circuit" checked onchange="window._enb.onTargetTypeChange()" />
+                                                    <label class="form-check-label" for="enbTargetTypeCircuit">能源迴路</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="enbTargetType" id="enbTargetTypePoint" value="point" onchange="window._enb.onTargetTypeChange()" />
+                                                    <label class="form-check-label" for="enbTargetTypePoint">任意點位</label>
+                                                </div>
+                                            </div>
+                                            <select class="form-select" id="enbTargetCircuit"></select>
+                                            <div class="input-group" id="enbTargetPointGroup" style="display:none">
+                                                <input type="text" class="form-control" id="enbTargetPointDisplay" readonly placeholder="請選擇" />
+                                                <button class="btn btn-outline-secondary" type="button" onclick="window._enb.pickPoint('target')">選點位</button>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Y 取樣方式</label>
+                                            <div class="d-flex gap-3 pt-2" id="enbTargetModeGroup">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="enbTargetMode" id="enbModeCumulative" value="cumulative" checked />
+                                                    <label class="form-check-label" for="enbModeCumulative">累計值（期初期末相減）</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="enbTargetMode" id="enbModeAverage" value="average" />
+                                                    <label class="form-check-label" for="enbModeAverage">瞬時值(期間均值)</label>
+                                                </div>
+                                            </div>
+                                            <div class="form-text">kWh 類累計電表選「累計值」；溫度 / kW 等瞬時量選「瞬時值」。選點位後依單位自動判斷，可再修改。</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">取樣粒度</label>
+                                            <select class="form-select" id="enbGranularity">
+                                                <option value="day">日粒度</option>
+                                                <option value="month">月粒度（曆月）</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">基線期起 <span class="text-danger">*</span></label>
+                                            <input type="date" class="form-control" id="enbStart" />
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">基線期訖 <span class="text-danger">*</span></label>
+                                            <input type="date" class="form-control" id="enbEnd" />
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <label class="form-label mb-0">相關變數 X <span class="text-danger">*</span> <span class="text-muted small">（外氣溫度、濕度、冷凍噸、產量…，最多 5 個）</span></label>
+                                                <button class="btn btn-sm btn-outline-primary" id="enbVarAddBtn" onclick="window._enb.addVariable()"><i class="fas fa-plus me-1"></i>加變數</button>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle enb-var-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width:40px">#</th>
+                                                            <th style="width:130px">型別</th>
+                                                            <th>來源</th>
+                                                            <th style="width:180px">名稱</th>
+                                                            <th style="width:90px">單位</th>
+                                                            <th style="width:50px"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="enbVarRows"></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2 mt-3 flex-wrap" id="enbEditorButtons">
+                                        <button class="btn btn-primary" id="enbSaveBtn" onclick="window._enb.saveModel(false)"><i class="fas fa-save me-1"></i>儲存模型</button>
+                                        <button class="btn btn-success" id="enbRunBtn" onclick="window._enb.saveModel(true)"><i class="fas fa-calculator me-1"></i>建立基線（跑回歸）</button>
+                                        <button class="btn btn-outline-primary" id="enbFreezeBtn" onclick="window._enb.freezeModel()" style="display:none"><i class="fas fa-lock me-1"></i>凍結基線</button>
+                                        <button class="btn btn-outline-warning" id="enbUnfreezeBtn" onclick="window._enb.unfreezeModel()" style="display:none"><i class="fas fa-lock-open me-1"></i>解除凍結</button>
+                                        <button class="btn btn-outline-danger ms-auto" id="enbDeleteBtn" onclick="window._enb.deleteModel()" style="display:none"><i class="fas fa-trash me-1"></i>刪除</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card shadow-sm mt-3" id="enbResultCard" style="display:none">
+                                <div class="card-header">回歸結果</div>
+                                <div class="card-body">
+                                    <div id="enbResultWarnings"></div>
+                                    <div class="row g-2 mb-3" id="enbStatCards"></div>
+                                    <div class="row g-3">
+                                        <div class="col-lg-5">
+                                            <h6 class="text-muted">係數表</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>名稱</th>
+                                                            <th class="text-end">係數 β</th>
+                                                            <th class="text-end">p-value</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="enbCoefRows"></tbody>
+                                                </table>
+                                            </div>
+                                            <div class="text-muted small">基線公式：<div id="enbFormula" class="enb-formula"></div></div>
+                                        </div>
+                                        <div class="col-lg-7">
+                                            <h6 class="text-muted">實際 vs 預測散布圖</h6>
+                                            <div class="enb-chart-box"><canvas id="enbScatterChart"></canvas></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tabEnpi">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label">基線模型（限已凍結）</label>
+                                    <select class="form-select" id="enpiBaseline"></select>
+                                </div>
+                                <div class="col-md-2"><label class="form-label">報告期起</label><input type="date" class="form-control" id="enpiStart" /></div>
+                                <div class="col-md-2"><label class="form-label">報告期訖</label><input type="date" class="form-control" id="enpiEnd" /></div>
+                                <div class="col-md-4 d-flex gap-2">
+                                    <button class="btn btn-primary" onclick="window._enb.queryEnpi()"><i class="fas fa-search me-1"></i>查詢</button>
+                                    <button class="btn btn-outline-success" onclick="window._enb.exportEnpi()"><i class="fas fa-file-excel me-1"></i>匯出 Excel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="enpiResultArea" style="display:none">
+                        <div class="row g-2 mb-3" id="enpiSummaryCards"></div>
+                        <div class="card shadow-sm mb-3"><div class="card-body"><div class="enb-chart-box-lg"><canvas id="enpiChart"></canvas></div></div></div>
+                        <div class="card shadow-sm"><div class="card-body table-responsive">
+                            <table class="table table-sm table-hover align-middle">
+                                <thead><tr><th>期間</th><th class="text-end">實際</th><th class="text-end">基線預測</th><th class="text-end">節能量</th><th class="text-end">累計節能量</th><th class="text-end">EnPI</th></tr></thead>
+                                <tbody id="enpiRows"></tbody>
+                            </table>
+                        </div></div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tabSeu">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-2"><label class="form-label">期間起</label><input type="date" class="form-control" id="seuStart" /></div>
+                                <div class="col-md-2"><label class="form-label">期間訖</label><input type="date" class="form-control" id="seuEnd" /></div>
+                                <div class="col-md-2"><label class="form-label">累計占比門檻</label><div class="input-group"><input type="number" class="form-control" id="seuThreshold" value="80" min="1" max="100" step="1" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-md-3"><button class="btn btn-primary" onclick="window._enb.querySeu()"><i class="fas fa-ranking-star me-1"></i>分析</button></div>
+                            </div>
+                            <div class="form-text mt-1">以主要電表的直接子迴路為能源使用單位做帕累托排名，累計占比達門檻前的項目（含跨越門檻項）鑑別為重大能源使用（SEU）。</div>
+                        </div>
+                    </div>
+                    <div id="seuResultArea" style="display:none">
+                        <div class="card shadow-sm mb-3"><div class="card-header" id="seuChartTitle"></div><div class="card-body"><div class="enb-chart-box-lg"><canvas id="seuChart"></canvas></div></div></div>
+                        <div class="card shadow-sm"><div class="card-body table-responsive">
+                            <table class="table table-sm table-hover align-middle">
+                                <thead><tr><th style="width:60px">排名</th><th>能源使用</th><th class="text-end">用電量 (kWh)</th><th class="text-end">占比</th><th class="text-end">累計占比</th><th style="width:100px" class="text-center">SEU</th></tr></thead>
+                                <tbody id="seuRows"></tbody>
+                            </table>
+                        </div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="enbPointPickerModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="enbPkTitle">選擇點位</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="enb-pk-crumb mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="enbPkBackBtn" onclick="window._enb.pkBack()" style="display:none"><i class="fas fa-chevron-left me-1"></i>返回</button>
+                            <span class="enb-pk-scope text-muted small ms-1" id="enbPkScope"></span>
+                        </div>
+                        <div id="enbPkStep0">
+                            <input type="text" class="form-control mb-2" id="enbPkGlobalSearch" placeholder="搜尋全部點位（SID / 名稱 / 單位）…" oninput="window._enb.pkGlobalSearch(this.value)" autocomplete="off" />
+                            <div class="row g-2" id="enbPkSourceCards"></div>
+                            <div class="list-group" id="enbPkGlobalResults" style="display:none"></div>
+                        </div>
+                        <div id="enbPkStep1" style="display:none"><div class="list-group" id="enbPkGroupList"></div></div>
+                        <div id="enbPkStep2" style="display:none">
+                            <input type="text" class="form-control mb-2" id="enbPkPointSearch" placeholder="搜尋 SID / 名稱 / 單位…" oninput="window._enb.pkPointFilter(this.value)" autocomplete="off" />
+                            <div class="list-group" id="enbPkPointList"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" id="enbPkConfirmBtn" onclick="window._enb.pkConfirm()" disabled>確定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+
+    <!-- ═══════════ PAGE_SCRIPTS ═══════════ -->
+    <script>
+    window.i18n = {
+        _dict: {
+            'enb.model.status.frozen': '已凍結', 'enb.model.status.draft': '草稿',
+            'enb.model.granularity.day': '日粒度', 'enb.model.granularity.month': '月粒度（曆月）',
+            'enb.model.empty': '尚無基線模型，點「新增模型」開始',
+            'enb.edit.select_placeholder': '請選擇', 'enb.edit.pick': '選點位',
+            'enb.edit.var_type_point': '點位（均值）', 'enb.edit.var_type_circuit': '迴路（kWh）',
+            'enb.result.adj_r2': '調整後 R²', 'enb.result.samples': '樣本數', 'enb.result.intercept': '截距 β0',
+            'enb.result.scatter_series': '樣本', 'enb.result.scatter_actual': '實際', 'enb.result.scatter_predicted': '預測',
+            'enb.result.warn_sample_low': '樣本數不足（少於變數數 × 5），模型可能不可靠 — 建議拉長基線期或減少變數。',
+            'enb.result.warn_r2_low': 'R² 偏低（< 0.5），基線解釋力弱 — 建議檢查變數是否與能耗真正相關。',
+            'enb.result.dropped': '有 {n} 個取樣區間因 Y 或 X 缺值被剔除。',
+            'enb.enpi.total_actual': '實際能耗合計', 'enb.enpi.total_predicted': '基線預測合計',
+            'enb.enpi.total_savings': '累計節能量', 'enb.enpi.overall': '整體 EnPI（實際÷預測）',
+            'enb.enpi.chart_actual': '實際', 'enb.enpi.chart_predicted': '基線預測', 'enb.enpi.chart_cum': '累計節能量',
+            'enb.enpi.missing': '資料不足（未列入統計）', 'enb.enpi.no_frozen': '（尚無已凍結的基線）',
+            'enb.seu.title': '{name} 用電結構 — 期間合計 {total} kWh', 'enb.seu.all_roots': '全部根迴路',
+            'enb.seu.chart_cum': '累計占比', 'enb.seu.no_source': '找不到可分析的迴路'
+        },
+        t: function (key, args) {
+            var s = this._dict[key] || key;
+            if (args) Object.keys(args).forEach(function (k) { s = s.split('{' + k + '}').join(args[k]); });
+            return s;
+        },
+        ready: function (cb) { cb(); }
+    };
+    </script>
+    <script src="{{WWWROOT}}/js/common/point-grouping.js"></script>
+    <script src="{{WWWROOT}}/js/energy-baseline.js"></script>
+    <script>
+        window._enbInit = { today: '2025-12-31' };
+        // 驅動：切到 EnPI 頁 → 選區域 A 凍結基線 → 報告期 2025 1~8 月 → 查詢
+        (function () {
+            function drive() {
+                var btn = document.querySelector('[data-bs-target="#tabEnpi"]');
+                if (btn) new bootstrap.Tab(btn).show();
+                var sel = document.getElementById('enpiBaseline');
+                var opt = sel && Array.prototype.find.call(sel.options, function (o) { return o.value === '1'; });
+                if (!opt) { setTimeout(drive, 60); return; }
+                sel.value = '1';
+                document.getElementById('enpiStart').value = '2025-01-01';
+                document.getElementById('enpiEnd').value = '2025-08-31';
+                window._enb.queryEnpi();
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(drive, 120); });
+            else setTimeout(drive, 120);
+        })();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

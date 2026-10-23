@@ -23,7 +23,7 @@
 
 ## 畫面說明
 
-<!-- IMG-TODO: ems/gas-meter-setting-01 | 氣表/迴路設定：新增氣表視窗與點位清單提示 | route=/GasMeterSetting -->
+![氣表/迴路設定：新增氣表視窗與點位清單提示](images/gas-meter-setting-01.png)
 
 - **左側「迴路階層」** 與 **右上「新增氣表/迴路」**：同水表頁
 - **右側詳情區**：類型、名稱、貢獻方向、點位名稱、單位換算、溢位上限 MaxVolume、說明

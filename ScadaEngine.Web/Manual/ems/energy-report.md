@@ -8,7 +8,7 @@
 
 ## 畫面說明
 
-<!-- IMG-TODO: ems/energy-report-01 | 用電報表：查詢條件列、長條圖與數據明細表 | route=/EnergyReport -->
+![用電報表：查詢條件列、長條圖與數據明細表](images/energy-report-01.png)
 
 頁面由上而下分三區：
 

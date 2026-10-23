@@ -21,7 +21,7 @@
 
 有權限的使用者右上角還會看到 **日報設定** 按鈕，可直接前往設定頁。
 
-<!-- IMG-TODO: ems/daily-report-01 | 能源日報：狀態徽章、警報摘要與四張時報表 | route=/DailyReport -->
+![能源日報：狀態徽章、警報摘要與四張時報表](images/daily-report-01.png)
 
 ### 狀態徽章
 

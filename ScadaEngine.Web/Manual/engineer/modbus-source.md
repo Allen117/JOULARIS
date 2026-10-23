@@ -21,7 +21,7 @@
 - **左側「Modbus 通訊」清單**：所有已載入的設備；多站號設備會展開各站號子項
 - **右側「設備詳細資料」**：**IP（設備位址）**、**Port（連接埠）**、**Name（設備名稱）**、**ModbusID**、**DelayTime（延遲時間 ms）**、**MonitorEnabled（啟用監控）**，以及 **點位設定**、**刪除設備** 按鈕
 
-<!-- IMG-TODO: engineer/modbus-source-01 | Modbus來源：左側設備清單與右側設備詳細資料 | route=/ModbusCoordinator -->
+![Modbus來源：左側設備清單與右側設備詳細資料](images/modbus-source-01.png)
 
 清單上的徽章：
 
@@ -90,7 +90,7 @@
 4. 確認勾選後按 **確認匯入**，有覆寫或刪除時會再跳確認框列出設備名稱
 5. 寫入後頁面等待 Engine 載入（最多約 20 秒）再自動重新整理
 
-<!-- IMG-TODO: engineer/modbus-source-02 | 匯入預覽：新增／覆寫／錯誤分類與 SID 位移警告 | route=/ModbusCoordinator -->
+![匯入預覽：新增／覆寫／錯誤分類與 SID 位移警告](images/modbus-source-02.png)
 
 ### 預覽中的兩種高風險警告
 

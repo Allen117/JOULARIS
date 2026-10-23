@@ -21,7 +21,7 @@
 
 ## 畫面說明
 
-<!-- IMG-TODO: ems/electricity-meter-setting-01 | 電表/迴路設定：左側迴路階層樹、右側節點詳情 | route=/EnergyMeter -->
+![電表/迴路設定：左側迴路階層樹、右側節點詳情](images/electricity-meter-setting-01.png)
 
 - **左側「迴路階層」**：樹狀清單。滑鼠移到節點上會出現 ＋（**新增子節點**）、✎（**編輯**）、🗑（**刪除**）三個小按鈕
   - 金色 ★ = 主要電表
@@ -92,7 +92,7 @@
 
 四個點位都可以留空；虛擬迴路沒有這個按鈕。
 
-<!-- IMG-TODO: ems/electricity-meter-setting-02 | 電表資訊設定視窗：自動比對建議卡與四列綁定 | route=/EnergyMeter -->
+![電表資訊設定視窗：自動比對建議卡與四列綁定](images/electricity-meter-setting-02.png)
 
 ## 拖曳搬移節點
 
@@ -114,7 +114,7 @@
 - 電表頁搬到最上層時，該節點的貢獻方向會自動重設為正向
 - 主要電表的 ★ 會跟著節點走，搬動不影響
 
-<!-- IMG-TODO: ems/electricity-meter-setting-03 | 拖曳節點時的落點標示（上緣藍線 / 虛線框） | route=/EnergyMeter -->
+![拖曳節點時的落點標示（上緣藍線 / 虛線框）](images/electricity-meter-setting-03.png)
 
 > ⚠️ 注意：拖曳需使用滑鼠操作，平板等觸控裝置無法拖曳，請改用電腦。
 

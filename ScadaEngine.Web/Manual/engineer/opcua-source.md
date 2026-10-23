@@ -19,7 +19,7 @@ Engine 可作為 OPC UA Client，週期讀取外部 OPC UA Server 的節點，�
 - **左側「Server 清單」**
 - **右側「連線設定」卡**與**「點位設定」卡**
 
-<!-- IMG-TODO: engineer/opcua-source-01 | OPC UA 來源：連線設定與依設備分組的點位設定表 | route=/OpcUaCoordinator -->
+![OPC UA 來源：連線設定與依設備分組的點位設定表](images/opcua-source-01.png)
 
 ## 新增 Server
 

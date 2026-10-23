@@ -61,6 +61,8 @@ def main():
                                 device_scale_factor=1.5)
         logs = []
         page.on("console", lambda m: logs.append(f"[{m.type}] {m.text}"))
+        # 未捕捉例外（含頁面 JS 語法錯誤）不會進 console，要另外接
+        page.on("pageerror", lambda e: logs.append(f"[pageerror] {e}"))
         page.goto(tmp.as_uri() + ("#" + a.hash if a.hash else ""))
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)

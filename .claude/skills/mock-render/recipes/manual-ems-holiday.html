@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<!-- 手冊 ems/holiday-shift-01：/HolidaySetting 2026 年曆（16 個平日國定假日紅底）。mock /HolidaySetting/api/holidays -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>國定假日設定 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/holidaysetting.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/HolidaySetting/api/holidays': function () {
+                // 2026 國定假日中落在平日者（週末本來就是假日色）
+                return { year: 2026, dates: ['2026-01-01','2026-02-16','2026-02-17','2026-02-18','2026-02-19','2026-02-20',
+                    '2026-02-27','2026-04-03','2026-04-06','2026-05-01','2026-06-19','2026-09-25','2026-09-28',
+                    '2026-10-09','2026-10-26','2026-12-25'] };
+            },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path](String(url), opts || {})), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            <i class="fas fa-calendar-day text-primary me-2"></i>國定假日設定
+        </h2>
+    </div>
+
+    <!-- 工具列：年份切換 + 儲存 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body py-2 d-flex flex-wrap align-items-center gap-3">
+            <div class="d-flex align-items-center gap-1">
+                <button class="btn btn-outline-secondary btn-sm" onclick="window._hs.prevYear()" title="&#x2039;">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="fw-bold fs-5 px-2" id="hsYearLabel">----</span>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window._hs.nextYear()" title="&#x203A;">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <span class="hs-legend">
+                <span class="hs-legend-swatch hs-swatch-holiday"></span>國定假日（離峰日計價）
+                <span class="hs-legend-swatch hs-swatch-weekend ms-3"></span>週六 / 週日（本來即非平日費率，不需標註）
+                <span class="hs-legend-swatch hs-swatch-today ms-3"></span>今日
+            </span>
+            <span class="ms-auto d-flex align-items-center gap-2">
+                <span id="hsDirtyHint" class="small text-warning d-none">
+                    <i class="fas fa-exclamation-triangle me-1"></i>有未儲存的變更
+                </span>
+                <span id="hsCountLabel" class="small text-muted"></span>
+                <button class="btn btn-primary btn-sm" id="btnHsSave" onclick="window._hs.save()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </span>
+        </div>
+    </div>
+
+    <div class="alert alert-info py-2 small mb-3">
+        <i class="fas fa-info-circle me-1"></i>點選日期標註/取消國定假日。標註日在時間電價（TOU）計價時以「週日及離峰日」費率計價，儲存後自動計價立即生效；已計算過的歷史區間如需回溯，請至「電費設定」頁執行重新計算。
+    </div>
+
+    <!-- 12 個月年曆（JS 渲染） -->
+    <div id="hsCalendarGrid" class="hs-calendar-grid">
+        <div class="text-center text-muted py-4 w-100">載入中…</div>
+    </div>
+</div>
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+    // i18n stub（只含本頁用到的 key，取自 Resources/*.resx zh-TW）
+    window.i18n = (function () {
+        var D = {"holidaysetting.title": "國定假日設定", "holidaysetting.loading": "載入中…", "holidaysetting.legend.holiday": "國定假日（離峰日計價）", "holidaysetting.legend.weekend": "週六 / 週日（本來即非平日費率，不需標註）", "holidaysetting.legend.today": "今日", "holidaysetting.button.save": "儲存", "holidaysetting.hint.unsaved": "有未儲存的變更", "holidaysetting.hint.usage": "點選日期標註/取消國定假日。標註日在時間電價（TOU）計價時以「週日及離峰日」費率計價，儲存後自動計價立即生效；已計算過的歷史區間如需回溯，請至「電費設定」頁執行重新計算。", "holidaysetting.label.count": "本年已標註 {0} 天", "holidaysetting.confirm.switch_dirty": "尚有未儲存的變更，切換年份將放棄變更，確定繼續？", "holidaysetting.msg.saved": "已儲存。標註變更自下一次自動計價起生效；歷史區間如需回溯，請至電費設定執行重新計算。", "holidaysetting.msg.save_fail": "儲存失敗：{0}", "holidaysetting.msg.load_fail": "載入失敗，請重新整理頁面", "holidaysetting.week.sun": "日", "holidaysetting.week.mon": "一", "holidaysetting.week.tue": "二", "holidaysetting.week.wed": "三", "holidaysetting.week.thu": "四", "holidaysetting.week.fri": "五", "holidaysetting.week.sat": "六", "holidaysetting.month.1": "1 月", "holidaysetting.month.2": "2 月", "holidaysetting.month.3": "3 月", "holidaysetting.month.4": "4 月", "holidaysetting.month.5": "5 月", "holidaysetting.month.6": "6 月", "holidaysetting.month.7": "7 月", "holidaysetting.month.8": "8 月", "holidaysetting.month.9": "9 月", "holidaysetting.month.10": "10 月", "holidaysetting.month.11": "11 月", "holidaysetting.month.12": "12 月"};
+        return { t: function (k, a) { var v = D[k] != null ? D[k] : k; if (a) Object.keys(a).forEach(function (n) { v = v.split("{" + n + "}").join(a[n]); }); return v; },
+                 ready: function (cb) { setTimeout(cb, 0); }, currentCulture: function () { return "zh-TW"; } };
+    })();
+    </script>
+    <script src="{{WWWROOT}}/js/holidaysetting.js"></script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

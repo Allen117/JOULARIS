@@ -19,7 +19,7 @@
 
 ## 畫面說明
 
-<!-- IMG-TODO: ems/electricity-cost-01 | 電費報表：查詢結果長條圖與 kWh / 電費明細表 | route=/ElectricityCostReport -->
+![電費報表：查詢結果長條圖與 kWh / 電費明細表](images/electricity-cost-01.png)
 
 - **查詢條件**：**迴路**、**單位**（**時** / **日** / **月** / **年**）、起訖時間、**查詢**、**匯出 Excel**
 - **電費分布**：每個時段的電費長條圖，滑鼠移上去同時顯示度數

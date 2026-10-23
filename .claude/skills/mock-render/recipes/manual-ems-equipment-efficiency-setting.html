@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<!-- EMS 模式外殼（淡綠主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>設備效率設定 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+
+    <style>*, *::before, *::after { transition: none !important; animation: none !important; }</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/EquipmentEfficiencySetting/api/meta': function () { return {"kinds": ["chiller", "compressor"], "order": {"chiller": ["KW", "KWH", "FLOW", "CHWS", "CHWR", "RT", "CDWS", "CDWR", "EVAPT", "CONDT", "LOAD", "RUN"], "compressor": ["KW", "KWH", "AIRFLOW", "DISCHPRESS", "DISCHTEMP", "LOADED", "LOAD", "RUN"]}, "roles": {"chiller": {"KW": {"quantity": "Power", "units": [{"unit": "kW", "scale": 1}, {"unit": "W", "scale": 0.001}, {"unit": "MW", "scale": 1000}]}, "KWH": {"quantity": "Energy", "units": [{"unit": "kWh", "scale": 1}, {"unit": "Wh", "scale": 0.001}, {"unit": "MWh", "scale": 1000}]}, "FLOW": {"quantity": "WaterFlow", "units": [{"unit": "L/min", "scale": 1}, {"unit": "L/s", "scale": 60}, {"unit": "m³/h", "scale": 16.666666666666668}, {"unit": "GPM", "scale": 3.785411784}]}, "CHWS": {"quantity": "Temperature", "units": [{"unit": "°C", "scale": 1}]}, "CHWR": {"quantity": "Temperature", "units": [{"unit": "°C", "scale": 1}]}, "RT": {"quantity": "Cooling", "units": [{"unit": "RT", "scale": 1}, {"unit": "USRT", "scale": 1}, {"unit": "kW", "scale": 0.2843332385555872}]}, "CDWS": {"quantity": "Temperature", "units": [{"unit": "°C", "scale": 1}]}, "CDWR": {"quantity": "Temperature", "units": [{"unit": "°C", "scale": 1}]}, "EVAPT": {"quantity": "Temperature", "units": [{"unit": "°C", "scale": 1}]}, "CONDT": {"quantity": "Temperature", "units": [{"unit": "°C", "scale": 1}]}, "LOAD": {"quantity": "Percent", "units": [{"unit": "%", "scale": 1}]}, "RUN": {"quantity": "Status", "units": [{"unit": "", "scale": 1}]}}, "compressor": {"KW": {"quantity": "Power", "units": [{"unit": "kW", "scale": 1}, {"unit": "W", "scale": 0.001}, {"unit": "MW", "scale": 1000}]}, "KWH": {"quantity": "Energy", "units": [{"unit": "kWh", "scale": 1}, {"unit": "Wh", "scale": 0.001}, {"unit": "MWh", "scale": 1000}]}, "AIRFLOW": {"quantity": "AirFlow", "units": [{"unit": "m³/min", "scale": 1}, {"unit": "m³/h", "scale": 0.016666666666666666}, {"unit": "Nm³/h", "scale": 0.016666666666666666}, {"unit": "cfm", "scale": 0.028316846592}, {"unit": "L/min", "scale": 0.001}]}, "DISCHPRESS": {"quantity": "Pressure", "units": [{"unit": "bar", "scale": 1}, {"unit": "kPa", "scale": 0.01}, {"unit": "psi", "scale": 0.0689475729}, {"unit": "MPa", "scale": 10}]}, "DISCHTEMP": {"quantity": "Temperature", "units": [{"unit": "°C", "scale": 1}]}, "LOADED": {"quantity": "Status", "units": [{"unit": "", "scale": 1}]}, "LOAD": {"quantity": "Percent", "units": [{"unit": "%", "scale": 1}]}, "RUN": {"quantity": "Status", "units": [{"unit": "", "scale": 1}]}}}, "unitAliases": {"Power": {"kw": "kW", "w": "W", "mw": "MW"}, "Energy": {"kwh": "kWh", "度": "kWh", "wh": "Wh", "mwh": "MWh"}, "Cooling": {"rt": "RT", "usrt": "USRT", "ton": "RT", "tons": "RT", "冷凍噸": "RT", "kw": "kW", "kwr": "kW"}, "WaterFlow": {"l/min": "L/min", "lpm": "L/min", "l/m": "L/min", "l/s": "L/s", "lps": "L/s", "m3/h": "m³/h", "m3/hr": "m³/h", "cmh": "m³/h", "t/h": "m³/h", "gpm": "GPM"}, "AirFlow": {"m3/min": "m³/min", "cmm": "m³/min", "nm3/min": "m³/min", "m3/h": "m³/h", "m3/hr": "m³/h", "cmh": "m³/h", "nm3/h": "Nm³/h", "nm3/hr": "Nm³/h", "cfm": "cfm", "scfm": "cfm", "l/min": "L/min", "lpm": "L/min"}, "Temperature": {"°c": "°C", "℃": "°C", "c": "°C", "degc": "°C"}, "Pressure": {"bar": "bar", "barg": "bar", "kpa": "kPa", "psi": "psi", "psig": "psi", "mpa": "MPa", "kg/cm2": "bar", "kgf/cm2": "bar"}, "Percent": {"%": "%", "pct": "%"}}, "defaults": {"chiller": {"good": 0.56, "fair": 0.644}, "compressor": {"good": 7, "fair": 9}}, "defaultSpecificHeat": 4.186, "chillerStandard": {"name": "ASHRAE 90.1-2022 Table 6.8.1-3", "fairFactor": 1.15, "bands": [{"family": "centrifugal", "minRt": 0, "maxRt": 150, "pathA": 0.61, "pathB": 0.695}, {"family": "centrifugal", "minRt": 150, "maxRt": 300, "pathA": 0.61, "pathB": 0.635}, {"family": "centrifugal", "minRt": 300, "maxRt": 400, "pathA": 0.56, "pathB": 0.595}, {"family": "centrifugal", "minRt": 400, "maxRt": 600, "pathA": 0.56, "pathB": 0.585}, {"family": "centrifugal", "minRt": 600, "maxRt": null, "pathA": 0.56, "pathB": 0.585}, {"family": "pd", "minRt": 0, "maxRt": 75, "pathA": 0.75, "pathB": 0.78}, {"family": "pd", "minRt": 75, "maxRt": 150, "pathA": 0.72, "pathB": 0.75}, {"family": "pd", "minRt": 150, "maxRt": 300, "pathA": 0.66, "pathB": 0.68}, {"family": "pd", "minRt": 300, "maxRt": 600, "pathA": 0.61, "pathB": 0.625}, {"family": "pd", "minRt": 600, "maxRt": null, "pathA": 0.56, "pathB": 0.585}, {"family": "air", "minRt": 0, "maxRt": 150, "pathA": 1.188, "pathB": 1.237}, {"family": "air", "minRt": 150, "maxRt": null, "pathA": 1.188, "pathB": 1.237}]}, "rtSids": []}; },
+            '/EquipmentEfficiencySetting/api/profiles': function () { return []; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path](url, opts)), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+<link rel="stylesheet" href="{{WWWROOT}}/css/point-picker.css" />
+<link rel="stylesheet" href="{{WWWROOT}}/css/equipment.css" />
+
+
+<div class="container-fluid mt-3 eqs-page" id="eqSettingRoot" data-kind="chiller">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h5 class="mb-0"><i class="fas fa-gauge-high me-2 text-primary"></i>設備效率設定</h5>
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="eqsBtnScan"><i class="fas fa-magic me-1"></i>重新掃描</button>
+            <button type="button" class="btn btn-sm btn-primary" id="eqsBtnAdd"><i class="fas fa-plus me-1"></i>手動新增</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="eqsBtnBackfillAll"><i class="fas fa-history me-1"></i>回填全部</button>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs" id="eqsTabs">
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-kind="chiller"><i class="fas fa-temperature-low me-1"></i>冰機
+                <span class="badge rounded-pill bg-secondary ms-1" data-count="chiller">0</span></a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-kind="compressor"><i class="fas fa-compress-arrows-alt me-1"></i>空壓機
+                <span class="badge rounded-pill bg-secondary ms-1" data-count="compressor">0</span></a>
+        </li>
+    </ul>
+    <div class="card border-top-0 rounded-0 rounded-bottom shadow-sm">
+        <div class="card-body p-2" id="eqsListBody">
+            <div class="text-center text-muted py-4">載入中…</div>
+        </div>
+    </div>
+    <div class="small text-muted mt-2"><i class="fas fa-info-circle me-1"></i>設定存檔後 Engine 於下一個整點起依新設定聚合（免重啟）；要補算過去的資料請按「回填歷史」。</div>
+    <div id="eqsToast" class="eqs-toast-host"></div>
+</div>
+
+<!-- 掃描結果 -->
+<div class="modal fade" id="eqsScanModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-magic me-1 text-primary"></i><span id="eqsScanTitle"></span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="eqsScanBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary me-auto" id="eqsScanSelectAll">全選可帶入者</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-sm btn-primary" id="eqsScanImport" disabled></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增 / 編輯 -->
+<div class="modal fade" id="eqsEditModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-pen me-1 text-primary"></i><span id="eqsEditTitle"></span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="eqsEditBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-sm btn-primary" id="eqsEditSave">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 回填歷史 -->
+<div class="modal fade" id="eqsBackfillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-history me-1 text-primary"></i>回填歷史</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2 small">對象：<strong id="eqsBackfillTarget"></strong></div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small mb-0" for="eqsBackfillFrom">起日</label>
+                        <input type="date" class="form-control form-control-sm" id="eqsBackfillFrom" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small mb-0" for="eqsBackfillTo">迄日（含）</label>
+                        <input type="date" class="form-control form-control-sm" id="eqsBackfillTo" />
+                    </div>
+                </div>
+                <div class="form-text">Engine 會依目前綁定逐小時重算並覆寫，最多 366 天；資料量大時需數分鐘。</div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-sm btn-primary" id="eqsBackfillRun">開始回填</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+<script>window.i18n={_d:{"eq.kind.chiller": "冰機", "eq.kind.compressor": "空壓機", "eq.role.KW": "電力 kW", "eq.role.KWH": "電能 kWh（累積）", "eq.role.RT": "冷量 RT（直接點）", "eq.role.FLOW": "冰水流量", "eq.role.CHWS": "冰水出水溫", "eq.role.CHWR": "冰水回水溫", "eq.role.CDWS": "冷卻水進水溫", "eq.role.CDWR": "冷卻水出水溫", "eq.role.EVAPT": "蒸發飽和溫度", "eq.role.CONDT": "冷凝飽和溫度", "eq.role.LOAD": "負載率 %", "eq.role.RUN": "運轉狀態", "eq.role.AIRFLOW": "空氣量（排氣量）", "eq.role.DISCHPRESS": "排氣壓力", "eq.role.DISCHTEMP": "排氣溫度", "eq.role.LOADED": "加載狀態", "eq.missing.power": "電力（kW 或 kWh）", "eq.missing.chiller_output": "冷量（冰水流量 + 出回水溫，或 RT 點）", "eq.missing.airflow": "空氣量", "eq.err.invalid_kind": "設備種類不正確", "eq.err.name_required": "請輸入設備名稱", "eq.err.name_too_long": "設備名稱過長（上限 100 字）", "eq.err.negative_value": "數值不可為負（{detail}）", "eq.err.threshold_order": "「優」門檻不可大於「可」門檻", "eq.err.invalid_role": "角色不屬於此設備種類：{detail}", "eq.err.duplicate_role": "角色重複綁定：{detail}", "eq.err.invalid_unit": "單位無法換算：{detail}", "eq.err.missing_required": "必要點位未綁定：{detail}", "eq.err.not_found": "找不到設備（可能已被刪除）", "eq.err.empty": "沒有要帶入的設備", "eq.err.invalid_range": "日期區間不正確", "eq.err.range_too_long": "回填區間最多 366 天", "eq.err.mqtt_unavailable": "無法連線 MQTT，Engine 未收到回填指令", "eq.setting.empty": "尚未設定任何{kind}。可按「掃描」從點位自動判定，或手動新增。", "eq.setting.btn_scan": "掃描", "eq.setting.btn_add": "手動新增", "eq.setting.enabled": "啟用", "eq.setting.disabled": "停用", "eq.setting.edit": "編輯", "eq.setting.backfill": "回填歷史", "eq.setting.delete": "刪除", "eq.setting.col_sort": "排序", "eq.setting.col_name": "設備名稱", "eq.setting.col_status": "狀態", "eq.setting.col_roles": "已綁點位", "eq.setting.col_rated": "額定產出 / 電力", "eq.setting.col_threshold": "門檻（優 / 可）", "eq.setting.delete_confirm": "確定刪除「{name}」？已累計的效率資料會一併刪除。", "eq.setting.deleted": "已刪除", "eq.scan.title_auto": "掃描到 {n} 台疑似{kind}，要帶入嗎？", "eq.scan.title": "掃描結果：{n} 台疑似{kind}", "eq.scan.none": "沒有掃描到疑似{kind}的設備。可改用手動新增。", "eq.scan.hint": "依設備分群與點位名稱判定；可改名、改點位、改單位後再帶入。缺必要點位者需先補齊才能勾選。", "eq.scan.existing": "已存在", "eq.scan.conf_high": "高信心", "eq.scan.conf_medium": "中信心", "eq.scan.conf_low": "低信心", "eq.scan.missing": "缺：{list}", "eq.scan.unbound": "— 未綁定 —", "eq.scan.multi": "{n} 筆命中", "eq.scan.multi_hint": "多筆點位符合此角色，已取第一筆，請確認", "eq.scan.pick_other": "從其他設備挑選點位", "eq.scan.opt_own": "本設備", "eq.scan.opt_other": "其他設備（符合此角色）", "eq.scan.device": "設備分群", "eq.scan.basis": "判定依據", "eq.scan.roles_detail": "角色點位", "eq.scan.import": "帶入勾選的 {n} 台", "eq.scan.imported": "已帶入 {n} 台", "eq.edit.title_edit": "編輯設備", "eq.edit.title_add": "新增{kind}", "eq.edit.name": "名稱", "eq.edit.sort": "排序", "eq.edit.rated_rt": "額定冷量（RT）", "eq.edit.rated_flow": "額定空氣量（m³/min）", "eq.edit.rated_kw": "額定電力（kW）", "eq.edit.max_kwh": "kWh 累積點溢位上限", "eq.edit.good": "「優」門檻（≤ {unit}）", "eq.edit.fair": "「可」門檻（≤ {unit}）", "eq.edit.specific_heat": "比熱 kJ/(kg·K)（乙二醇系統）", "eq.edit.threshold_hint": "預設門檻僅供起點，請依機型銘牌或驗收報告調整。額定電力用於停機判定（低於 5% 視為停機）。", "eq.edit.roles": "角色點位", "eq.edit.roles_hint_chiller": "* 必要：電力 kW 或 kWh 擇一；冷量以「冰水流量 + 出水溫 + 回水溫」計算為主，或綁直接 RT 點。", "eq.edit.roles_hint_compressor": "* 必要：電力 kW 或 kWh 擇一，以及空氣量。", "eq.edit.missing": "尚缺必要點位：{list}", "eq.edit.description": "備註", "eq.edit.saved": "已儲存，下一個整點起 Engine 依新設定聚合", "eq.backfill.all": "全部設備（冰機 + 空壓機）", "eq.backfill.sent": "已送出回填指令，Engine 會在背景逐小時重算", "eq.grade.Good": "優", "eq.grade.Fair": "可", "eq.grade.Poor": "差", "eq.grade.Off": "停機", "eq.grade.NoData": "資料不足", "eq.metric.cop": "COP", "eq.metric.eer": "EER", "eq.metric.cooling": "冷量", "eq.metric.airflow": "空氣量", "eq.metric.load": "負載率", "eq.metric.chw_dt": "冰水 ΔT", "eq.metric.cdw_dt": "冷卻水 ΔT", "eq.metric.evap_approach": "蒸發器趨近", "eq.metric.cond_approach": "冷凝器趨近", "eq.metric.kw_per_100cfm": "kW/100cfm", "eq.metric.specific_energy": "比能耗", "eq.metric.press": "排氣壓力", "eq.metric.disch_temp": "排氣溫度", "eq.metric.loaded_state": "加載", "eq.metric.power": "電力", "eq.diag.load_error": "載入失敗", "eq.diag.updated_at": "更新於 {time}", "eq.diag.running": "運轉中", "eq.diag.stopped": "停機", "eq.diag.run_unknown": "運轉狀態未知", "eq.diag.loaded": "加載", "eq.diag.unloaded": "卸載", "eq.diag.rt_point_compare": "RT 點對照：{v} RT", "eq.diag.no_data": "尚無即時值", "eq.diag.threshold": "門檻 {good} / {fair}", "eq.diag.coverage_warn": "資料覆蓋率 {pct}%（{name} 缺 {missing} 小時，低於 {threshold}%），缺漏時段不計入效率分子分母。", "eq.diag.tile_primary": "期間平均效率", "eq.diag.tile_kwh": "總耗電", "eq.diag.tile_output": "總{name}", "eq.diag.tile_run_hours": "運轉時數", "eq.diag.tile_avg_load": "平均負載率", "eq.diag.tile_loaded_ratio": "加載時間比", "eq.diag.tile_avg_press": "平均排氣壓力", "eq.diag.fleet": "全場加權", "eq.diag.bin_kwh_pct": "耗電占比", "eq.diag.bin_output_pct": "{name}占比", "eq.diag.bin_hours": "運轉 {h} 小時", "eq.diag.bin_efficiency": "效率 {v} {unit}", "eq.diag.col_name": "設備", "eq.diag.col_grade": "評級", "eq.diag.col_run_hours": "運轉時數", "eq.diag.col_avg_load": "平均負載 %", "eq.diag.col_threshold": "門檻", "eq.diag.col_coverage": "覆蓋率", "eq.card.not_configured": "尚未設定", "eq.card.goto_setting": "前往設備效率設定", "eq.card.month_summary": "{month} 累計平均 {value} {unit}・運轉 {hours} h", "eq.card.load_error": "載入失敗", "eq.diag.rule.D": "資料品質", "eq.diag.rule.P": "壓力過高", "eq.diag.rule.L": "洩漏 / 閒置損失", "eq.diag.rule.S1": "卸載比過高", "eq.diag.rule.S2": "停機延遲可縮短", "eq.diag.rule.S3": "頻繁加卸載循環", "eq.diag.rule.S4": "多台同時部分負載", "eq.diag.rule.S5": "調節機順序倒置（VSD 滿載、定頻卸載）", "eq.diag.rule.S6": "運轉但從不加載", "eq.diag.rule.E1": "同工況比功率劣化", "eq.diag.rule.E2": "容量過大", "eq.diag.rule.E3": "容量不足", "eq.diag.rule.E4": "進氣節流機型", "eq.diag.group.pre": "前置：資料品質", "eq.diag.group.p1": "① 壓力最佳化", "eq.diag.group.p2": "② 洩漏與閒置損失", "eq.diag.group.p3": "③ 運轉與排序", "eq.diag.group.p4": "④ 設備適配與生命週期", "eq.diag.status.Triggered": "觸發", "eq.diag.status.NotTriggered": "未觸發", "eq.diag.status.InsufficientData": "資料不足", "eq.diag.status.PendingSiteData": "待補場域資料", "eq.diag.status.PendingSetting": "待設定", "eq.diag.status.NotApplicable": "不適用", "eq.diag.level.attention": "注意", "eq.diag.level.significant": "顯著", "eq.diag.savings.ntd_year": "篩檢節能 NT$ {low} ~ {high} / 年", "eq.diag.savings.kwh_year": "篩檢節能 {low} ~ {high} kWh / 年", "eq.diag.next.fix_data": "先修正資料問題（點位、通訊、單位），受影響的規則才會出結論", "eq.diag.next.pressure_trial": "以試驗步階逐步降低設定壓力，監看末端壓力與露點", "eq.diag.next.measure_end_pressure": "先量測（或綁定）末端關鍵用氣點壓力確認實際管損，再做降壓試驗", "eq.diag.next.pressure_decay_test": "於非生產時段做停機保壓衰減測試以估算洩漏量", "eq.diag.next.leak_survey": "超音波洩漏巡檢並修漏；非生產時段隔離不用的支管", "eq.diag.next.review_unload": "檢視停機延遲（見「停機延遲可縮短」）與多機排序", "eq.diag.next.shutdown_delay_trial": "縮短停機延遲（unload timer）試驗，監看每小時啟動次數", "eq.diag.next.control_band_storage": "加寬加卸載壓力帶或增設儲氣桶，降低循環次數", "eq.diag.next.sequencing_review": "檢視多機排序：讓一台當調節機，其餘滿載或停機", "eq.diag.next.vsd_as_trim": "將 VSD 設為調節機（排序最後加載、最先卸載），定頻機作基載", "eq.diag.next.stop_standby": "將長期只卸載的機台改為備援停機（由排序控制自動啟動）", "eq.diag.next.maintenance_check": "安排保養檢查：進氣濾網、油分離器、冷卻器、進氣閥", "eq.diag.next.right_size_review": "評估以較小調節機 / VSD 或儲氣桶匹配實際需求", "eq.diag.next.leak_then_capacity": "先處理洩漏與壓力損失，仍不足再評估增加容量", "eq.diag.next.replace_modulation": "評估更換為 VSD 或定頻加卸載 + 儲氣桶", "eq.diag.check.record_setpoint": "記錄原設定值（可回復）", "eq.diag.check.step_down": "每次調降一個試驗步階，穩定運轉至少一個生產週期再下一步", "eq.diag.check.watch_end_pressure": "監看末端關鍵用氣點壓力、露點、他機是否被帶起", "eq.diag.check.stop_condition": "停止條件：末端壓力低於需求、製程異常、啟動次數超限", "eq.diag.check.restore": "異常時立即回復原設定並記錄", "eq.diag.check.set_delay": "將停機延遲設為建議候選值", "eq.diag.check.watch_starts": "監看每小時啟動次數與馬達溫度", "eq.diag.check.leak_ultrasonic": "超音波巡檢接頭、快速接頭、排水器、軟管", "eq.diag.check.pressure_decay_test": "停機保壓衰減測試：關機後記錄壓力下降時間換算洩漏量", "eq.diag.check.isolate_idle_branches": "非生產時段關閉不用區域的支管閥", "eq.diag.ev.dq_coverage": "{name} {signal} 覆蓋率 {pct}%（門檻 {min}%）", "eq.diag.ev.dq_flatline": "{name} {signal} 平線（長時間數值完全不變）占 {pct}%", "eq.diag.ev.dq_sentinel": "{name} {signal} 出現 {count} 筆哨兵值 / 負值（已排除）", "eq.diag.ev.dq_conflict": "{name} {signal} 與功率矛盾 {pct}%（改用 kW 推定）", "eq.diag.ev.dq_gap": "{name} {signal} 有 {count} 段缺口超過 {max} 分鐘（最長 {longest} 分鐘）", "eq.diag.ev.dq_ok": "所有已綁定點位皆通過覆蓋率、平線、哨兵值、狀態矛盾檢查", "eq.diag.ev.p_supply": "運轉期間供氣壓力 P05 {p05} / P50 {p50} / P95 {p95} bar", "eq.diag.ev.p_demand": "需求壓力 {demand} bar × {ratio} = 觸發門檻 {threshold} bar", "eq.diag.ev.p_use": "末端壓力 P05 {p05} bar，實測管損中位數 {loss} bar", "eq.diag.ev.p_reducible": "可降量 {raw} bar → 依試驗步階 {step} bar 取 {value} bar", "eq.diag.ev.p_trough_starts": "壓力低谷（≤ P10 {p10} bar）前 5 分鐘內的機台啟動 {count} 次", "eq.diag.ev.p_dewpoint": "壓力露點 P50 {p50} / P95 {p95} °C", "eq.diag.ev.l_windows": "非生產窗口 {count} 個（{days} 個不同日），非生產時數 {hours} h", "eq.diag.ev.l_flow": "非生產殘餘流量 {low} ~ {high}（中位 {center}）m³/min，生產平均 {prod} m³/min，洩漏比 {ratio}%", "eq.diag.ev.l_sp": "運轉小時比功率 P25 {p25} / P50 {p50} / P75 {p75} kW/(m³/min)", "eq.diag.ev.s1_unload": "{name} 卸載比 {pct}%（卸載 {hours} h，{kwh} kWh）", "eq.diag.ev.s2_best": "最佳可行候選：停機延遲 {delay} 分，新增啟動 {starts} 次，每小時最多 {maxPerHour} 次", "eq.diag.ev.s3_cycles": "{name} 每運轉小時循環 P50 {p50} / P95 {p95} 次，最短加載段 {minLoaded} 分（{hours} 個運轉小時）", "eq.diag.ev.s4_single": "期間從未有兩台以上同時運轉", "eq.diag.ev.s4_partload": "多機同時運轉 {multiHours} h 中，兩台以上同時部分負載占 {pct}%（兩台 VSD 同時調頻 {vsdHours} h）", "eq.diag.ev.s5_never_together": "VSD 與定頻機從未同時運轉", "eq.diag.ev.s5_invert": "VSD 與定頻機同時運轉 {hours} h 中，VSD 滿載而定頻機卸載占 {pct}%", "eq.diag.ev.s6_idle": "{name} 運轉 {hours} h，加載僅 {loadedPct}%（{kwh} kWh）", "eq.diag.ev.e1_diff": "{name} 同工況比功率變化 {pct}%（95% 區間 {low} ~ {high}%，{cells} 格 / {hours} h）", "eq.diag.ev.e2_fixed": "{name}（定頻）加載率 {loadedPct}%", "eq.diag.ev.e2_vsd": "{name}（VSD）運轉時在最低負載 {minLoad}% 附近占 {pct}%", "eq.diag.ev.e3_short": "全部機台滿載仍低於需求 {demand} bar 的時間 {minutes} 分（最低 {minPress} bar）", "eq.diag.ev.e4_modulation": "{name} 平均負載 {avgLoad}%", "eq.diag.note.press_from_discharge": "未綁總管壓力，以運轉中各機排氣壓力最高者代替（降級）", "eq.diag.note.pipe_loss_assumed": "未綁末端壓力，管損以預留 {reserve} bar 假設", "eq.diag.note.lowering_may_start_extra": "壓力低谷時曾帶起他機 {count} 次，降壓可能使他機更常啟動", "eq.diag.note.rated_pressure_missing": "未填銘牌最高工作壓力，不做上限檢查", "eq.diag.note.above_rated_pressure": "{name} 排氣壓力 P95 {p95} bar 高於銘牌 {max} bar", "eq.diag.note.dewpoint_unmonitored": "未監測壓力露點，降壓試驗時須人工確認空氣品質", "eq.diag.note.trough_limits": "壓力低谷已接近需求壓力，可降量不足一個試驗步階", "eq.diag.note.flow_from_compressors": "未綁系統總流量，以各機空氣量加總", "eq.diag.note.duty_cycle_upper_bound": "無可信流量，以加載比 × 額定空氣量估算（上限估計）", "eq.diag.note.includes_legit_use": "殘餘流量含非生產時段的合理用氣，實際洩漏量需巡檢確認", "eq.diag.note.no_specific_power": "期間無有效比功率（缺空氣量），不換算 kWh", "eq.diag.note.load_inferred": "無可信加載點，以 kW ≥ 額定 × 卸載門檻 推定加載（推定）", "eq.diag.note.s2_skip_no_kw": "{name} 無可信 kW，未納入停機延遲試算", "eq.diag.note.max_starts_unknown": "有機台未填每小時最多啟動次數，請對照馬達銘牌", "eq.diag.note.current_timer_unknown": "試算假設卸載後依候選延遲停機；現行設定若已更短，實際節能較少", "eq.diag.note.control_type_inferred": "部分機台控制型式由功率分佈推定（推定）", "eq.diag.note.not_quantified": "排序最佳化節能需多機組合試算，v1 不量化", "eq.diag.note.baseline_overlap": "基準期與分析期重疊，比較結果可能低估", "eq.diag.note.flow_bin_observed": "{name} 未填額定空氣量，流量格以觀測最大值等分", "eq.diag.note.pressure_not_matched": "部分小時無平均壓力，該部分不分壓力格比較", "eq.diag.note.min_load_observed": "{name} 未填最低負載，以觀測 P05 {pct}% 代替", "eq.diag.miss.state_signals": "{name} 無可判定運轉狀態的點位（RUN / kW）", "eq.diag.miss.demand_pressure": "末端最低需求壓力（診斷設定）", "eq.diag.miss.supply_pressure": "供氣壓力：綁定總管壓力或各機排氣壓力", "eq.diag.miss.running_pressure_samples": "運轉期間壓力樣本不足（{count} 分鐘）", "eq.diag.miss.use_pressure_samples": "末端壓力樣本不足", "eq.diag.miss.production_schedule": "生產時段（診斷設定）", "eq.diag.miss.flow_signal": "可信流量：系統總流量或各機空氣量", "eq.diag.miss.rated_flow": "額定空氣量：{names}", "eq.diag.miss.load_state": "加卸載狀態（LOADED 或 kW）：{names}", "eq.diag.miss.idle_windows": "非生產窗口僅 {have} 個不同日，需 ≥ {need}", "eq.diag.miss.production_flow": "生產時段無有效流量", "eq.diag.miss.kw_or_loaded": "加卸載狀態：綁定 LOADED 或 kW", "eq.diag.miss.unloaded_kw": "卸載功率：需綁定 kW", "eq.diag.miss.baseline_period": "劣化基準期（診斷設定）", "eq.diag.miss.matched_cells": "{name} 兩期同工況格皆 ≥ {min} 小時者不足", "eq.diag.miss.vsd_kw": "{name}（VSD）需可信 kW 與額定 kW", "eq.diag.formula.D": "覆蓋率 = 有效分鐘 ÷ 期間分鐘；平線 = 非零值連續不變 ≥ 平線分鐘；狀態矛盾 = RUN / LOADED 與 kW（額定 × 5%）不一致比例", "eq.diag.formula.P": "觸發：供氣 P50 > 需求 × 裕度；可降量 = 末端 P05 − 需求（無末端：供氣 P05 − 需求 − 管損預留），捨去到試驗步階；節能 = 可降 bar × 5%~6% × 期間 kWh", "eq.diag.formula.L": "洩漏比 = 非生產窗口殘餘流量中位數 ÷ 生產平均流量；kWh = 流量（低/中/高）× 比功率（P25/P50/P75）× 非生產時數", "eq.diag.formula.S1": "卸載比 = 卸載分鐘 ÷（加載 + 卸載分鐘）", "eq.diag.formula.S2": "每段連續卸載超過候選延遲的部分 × 實測卸載 kW；重新加載的段落 +1 次啟動", "eq.diag.formula.S3": "每運轉小時（≥ 30 分）卸載→加載次數的 P50 / P95", "eq.diag.formula.S4": "兩台以上運轉時，兩台以上同時卸載（或 VSD < 滿載 %）的時間占比", "eq.diag.formula.S5": "VSD 與定頻同時運轉時，VSD ≥ 滿載 % 且定頻卸載的時間占比", "eq.diag.formula.S6": "運轉 ≥ 1 h 且加載 < 1% 的機台；節能 = 其運轉 kWh", "eq.diag.formula.E1": "流量格 × 壓力格配對，兩期同格 ≥ 最少小時才比；差異依分析期 kWh 加權，區間 ± 1.96 × 標準誤；下限 > 0 且中心 > 門檻 = 劣化", "eq.diag.formula.E2": "定頻：加載率 < 門檻且頻繁循環；VSD：最低負載附近時間占比 > 門檻", "eq.diag.formula.E3": "全部機台滿載且供氣壓力 < 需求壓力的分鐘數 ≥ 門檻", "eq.diag.formula.E4": "控制型式 = 進氣節流；平均負載 < 60% 建議 VSD，否則定頻 + 儲氣", "eq.diag.overlap.p_l_overlap": "壓力過高與洩漏同時觸發：降壓後洩漏量隨之變小，兩者節能不可直接相加", "eq.diag.overlap.l_s_overlap": "洩漏 / 閒置與停機延遲 / 從不加載同時觸發：非生產時段的卸載空轉耗電在兩邊都有計入，節能不可直接相加", "eq.diag.overlap.s2_s6_overlap": "停機延遲與從不加載同時觸發：同一段卸載時間重複計入，節能不可直接相加", "eq.diag.baseline_missing": "尚未指定劣化基準期，比功率劣化（E1）無法判定 — 請至「診斷設定」指定", "eq.diag.default_flag_hint": "* 依預設值（未經現場確認）：結論用到工程師尚未確認的預設參數", "eq.diag.screening_disclaimer": "節能為篩檢估計區間，需經現場試驗或量測回應才能視為已驗證節能", "eq.diag.sys.SYS_SUPPLYPRESS": "總管 / 供氣壓力", "eq.diag.sys.SYS_USEPRESS": "末端（關鍵用氣點）壓力", "eq.diag.sys.SYS_FLOW": "系統總流量", "eq.diag.sys.SYS_DEWPOINT": "壓力露點", "eq.diag.sys_hint.SYS_SUPPLYPRESS": "未綁 → 以各機排氣壓力最高者代替", "eq.diag.sys_hint.SYS_USEPRESS": "未綁 → 管損以預留值假設，壓力規則先建議量測", "eq.diag.sys_hint.SYS_FLOW": "未綁 → 各機空氣量加總，再無 → 加載比法（上限估計）", "eq.diag.sys_hint.SYS_DEWPOINT": "未綁 → 降壓建議附註人工確認露點", "eq.ctrl.fixed": "定頻加卸載", "eq.ctrl.vsd": "變頻（VSD）", "eq.ctrl.modulation": "進氣節流", "eq.ctrl.auto": "未填（由功率分佈推定）", "eq.diag.param.dq.min_coverage_pct": "最低覆蓋率 %", "eq.diag.param.dq.flatline_minutes": "平線判定分鐘", "eq.diag.param.dq.flatline_max_pct": "平線容許占比 %", "eq.diag.param.dq.state_conflict_max_pct": "狀態矛盾容許 %", "eq.diag.param.dq.max_gap_minutes": "缺口判定分鐘", "eq.diag.param.p.margin_ratio": "壓力裕度觸發倍數", "eq.diag.param.p.saving_per_bar_low_pct": "每降 1 bar 節能 % 下限", "eq.diag.param.p.saving_per_bar_high_pct": "每降 1 bar 節能 % 上限", "eq.diag.param.p.trial_step_bar": "降壓試驗步階 bar", "eq.diag.param.p.pipe_loss_reserve_bar": "無末端壓力時管損預留 bar", "eq.diag.param.l.warn_pct": "洩漏比注意 %", "eq.diag.param.l.significant_pct": "洩漏比顯著 %", "eq.diag.param.l.min_windows": "非生產窗口最少不同日數", "eq.diag.param.l.min_window_minutes": "非生產窗口最短分鐘", "eq.diag.param.s.unload_kw_ratio": "卸載判定 kW ÷ 額定（無 LOADED 點）", "eq.diag.param.s.unload_ratio_warn_pct": "卸載比警示 %", "eq.diag.param.s.cycles_per_hour_ref": "循環次數參考線 次/h", "eq.diag.param.s.multi_partload_pct": "多台部分負載占比 %", "eq.diag.param.s.order_invert_pct": "順序倒置占比 %", "eq.diag.param.s.vsd_full_load_pct": "VSD 滿載判定 %", "eq.diag.param.e.degrade_pct": "劣化門檻 %", "eq.diag.param.e.flow_bins": "同工況流量分格數", "eq.diag.param.e.press_bin_bar": "同工況壓力格寬 bar", "eq.diag.param.e.min_hours_per_cell": "每格兩期最少小時", "eq.diag.param.e.oversize_load_pct": "定頻過大加載率 %", "eq.diag.param.e.vsd_minload_fraction_pct": "VSD 最低負載附近占比 %", "eq.diag.param.e.undersize_min_minutes": "容量不足最少分鐘", "eq.diag.pgroup.dq": "資料品質", "eq.diag.pgroup.p": "壓力", "eq.diag.pgroup.l": "洩漏 / 閒置", "eq.diag.pgroup.s": "運轉與排序", "eq.diag.pgroup.e": "設備適配", "eq.diag.src.skill": "skill 原文", "eq.diag.src.system": "本系統經驗值", "eq.diag.ui.tab_efficiency": "效率儀表板", "eq.diag.ui.tab_diagnosis": "系統診斷", "eq.diag.ui.tab_setting": "診斷設定", "eq.diag.ui.loading": "載入中…", "eq.diag.ui.no_compressor": "尚未設定啟用中的空壓機。", "eq.diag.ui.no_snapshot": "尚無排程診斷快照（每日 02:00 產生最近 7 天結果）。", "eq.diag.ui.no_snapshot_engineer": "可於下方指定期間立即重算。", "eq.diag.ui.period": "診斷期間", "eq.diag.ui.run_at": "執行時間", "eq.diag.ui.scheduled": "每日排程（最近 7 天）", "eq.diag.ui.manual": "手動重算", "eq.diag.ui.from": "起", "eq.diag.ui.to": "訖", "eq.diag.ui.run": "重算", "eq.diag.ui.running": "計算中…（期間越長越久）", "eq.diag.ui.back_latest": "回到最新排程快照", "eq.diag.ui.tile_triggered": "觸發項目", "eq.diag.ui.tile_pending": "待補資料", "eq.diag.ui.tile_kwh": "期間耗電", "eq.diag.ui.tile_sp": "期間比功率", "eq.diag.ui.tile_price": "電價", "eq.diag.ui.price_tariff": "電費逐時表平均", "eq.diag.ui.price_manual": "手填", "eq.diag.ui.price_none": "無電價（只列 kWh）", "eq.diag.ui.not_additive": "各項節能不可直接相加", "eq.diag.ui.inferred": "推定", "eq.diag.ui.default_flag": "依預設值", "eq.diag.ui.default_flag_title": "用到未經現場確認的預設參數：{list}", "eq.diag.ui.next_step": "建議下一步", "eq.diag.ui.checklist": "試驗檢查清單", "eq.diag.ui.evidence": "證據與公式", "eq.diag.ui.missing": "缺少", "eq.diag.ui.notes": "附註", "eq.diag.ui.formula": "公式", "eq.diag.ui.candidates": "停機延遲候選試算", "eq.diag.ui.col_delay": "延遲（分）", "eq.diag.ui.col_kwh_period": "期間 kWh（低 ~ 高）", "eq.diag.ui.col_added_starts": "新增啟動", "eq.diag.ui.col_max_starts": "每小時最多啟動", "eq.diag.ui.col_feasible": "可行", "eq.diag.ui.feasible_yes": "可行", "eq.diag.ui.feasible_no": "超過啟動上限", "eq.diag.ui.baseline_title": "實測基線", "eq.diag.ui.col_name": "機台", "eq.diag.ui.col_ctrl": "控制型式", "eq.diag.ui.col_kw": "kW P05 / P50 / P95", "eq.diag.ui.col_flow": "空氣量 P50 m³/min", "eq.diag.ui.col_press": "壓力 P50 bar", "eq.diag.ui.col_state": "加載 / 卸載 / 停機 / 未知 %", "eq.diag.ui.col_run_hours": "運轉 h", "eq.diag.ui.col_starts": "啟動次數", "eq.diag.ui.col_cycles": "循環 P50 / P95 次/h", "eq.diag.ui.col_kwh": "kWh", "eq.diag.ui.load_inferred_short": "加卸載推定", "eq.diag.ui.unconfirmed_banner": "部分結論依預設參數（未經現場確認）：{list}", "eq.diag.ui.goto_setting": "前往診斷設定", "eq.diag.ui.save": "儲存設定", "eq.diag.ui.saved": "已儲存，下次診斷生效", "eq.diag.ui.site_title": "場域資料", "eq.diag.ui.demand_press": "末端最低需求壓力（bar）", "eq.diag.ui.demand_press_hint": "關鍵用氣點可接受的最低壓力；壓力過高與容量不足規則依此判定", "eq.diag.ui.manual_price": "手填電價（NT$/kWh）", "eq.diag.ui.manual_price_hint": "期間電費逐時表無資料時使用", "eq.diag.ui.holiday_off": "假日（/HolidaySetting）整天視為非生產", "eq.diag.ui.sys_title": "系統級點位（皆可不綁）", "eq.diag.ui.unbound": "未綁定", "eq.diag.ui.pick": "選擇點位", "eq.diag.ui.clear": "清除", "eq.diag.ui.schedule_title": "生產時段（每週）", "eq.diag.ui.schedule_hint": "未列的時段 = 非生產；跨午夜請拆成兩段", "eq.diag.ui.schedule_fill_weekday": "套用 週一~五 08:00–17:00", "eq.diag.ui.schedule_add": "新增時段", "eq.diag.ui.schedule_none": "非生產", "eq.diag.ui.baseline_period_title": "劣化基準期", "eq.diag.ui.baseline_period_hint": "選一段設備狀況良好（如保養後）的期間；與分析期比較同工況比功率", "eq.diag.ui.params_title": "診斷參數", "eq.diag.ui.params_hint": "留空 = 使用預設值；未覆寫也未確認的參數，結論會標「依預設值」", "eq.diag.ui.confirm_all": "全部確認沿用預設", "eq.diag.ui.col_param": "參數", "eq.diag.ui.col_value": "值", "eq.diag.ui.col_default": "預設", "eq.diag.ui.col_range": "範圍", "eq.diag.ui.col_source": "出處", "eq.diag.ui.col_state_param": "狀態", "eq.diag.ui.param_overridden": "已覆寫", "eq.diag.ui.param_confirmed": "已確認", "eq.diag.ui.param_default": "預設（未確認）", "eq.diag.ui.confirm": "確認", "eq.diag.ui.unconfirm": "取消確認", "eq.diag.ui.device_fields_hint": "各機控制型式、最低負載、銘牌最高壓力、每小時最多啟動次數請至「設備效率設定 → 空壓機」編輯", "eq.diag.ui.updated_by": "最後更新：{at} {by}", "eq.diag.ui.dow0": "週日", "eq.diag.ui.dow1": "週一", "eq.diag.ui.dow2": "週二", "eq.diag.ui.dow3": "週三", "eq.diag.ui.dow4": "週四", "eq.diag.ui.dow5": "週五", "eq.diag.ui.dow6": "週六", "eq.diag.err.demand_pressure_range": "需求壓力超出範圍（0~100 bar）", "eq.diag.err.price_range": "電價超出範圍", "eq.diag.err.invalid_role": "系統點位角色不正確：{detail}", "eq.diag.err.invalid_unit": "單位無法換算：{detail}", "eq.diag.err.invalid_schedule": "生產時段格式錯誤（起須早於訖）：{detail}", "eq.diag.err.baseline_incomplete": "基準期起訖須同時填寫", "eq.diag.err.baseline_range": "基準期日期錯誤", "eq.diag.err.invalid_param": "未知參數：{detail}", "eq.diag.err.param_range": "參數超出範圍：{detail}", "eq.diag.err.invalid_range": "期間日期錯誤", "eq.diag.err.range_too_long": "期間最長 {detail} 天", "eq.diag.err.no_compressor": "沒有啟用中的空壓機", "eq.edit.diag_fields": "空壓系統診斷（皆可不填）", "eq.edit.control_type": "控制型式", "eq.edit.min_load_pct": "VSD 最低負載（%）", "eq.edit.max_pressure": "銘牌最高工作壓力（bar）", "eq.edit.max_starts": "每小時最多啟動次數", "eq.edit.diag_fields_hint": "未填時診斷改用推定 / 觀測值並標示（控制型式由功率分佈推定、最低負載取觀測 P05、不做壓力上限與啟動次數硬性檢查）", "eq.err.invalid_control_type": "控制型式不正確：{detail}", "eq.err.min_load_pct_range": "最低負載須介於 0~100%", "eq.diag.ui.suggest_vsd": "建議改 VSD", "eq.diag.ui.suggest_fixed_storage": "建議改定頻加卸載 + 儲氣桶", "eq.diag.ui.suggest_unknown": "無 kW 無法建議", "eq.diag.ui.system": "系統", "eq.basis.std": "90.1 {type} {band} {path}", "eq.basis.cooling_kind": "{cooling}{kind}", "eq.basis.with_type": "{base}（{type}）", "eq.basis.pd": "容積式", "eq.basis.band_lt": "<{max}RT", "eq.basis.band_ge": "≥{min}RT", "eq.basis.band_range": "{min}–{max}RT", "eq.basis.path_a": "定頻(Path A)", "eq.basis.path_b": "變頻(Path B)", "eq.basis.manual": "手動門檻", "eq.basis.type_unset": "機型未設定", "eq.basis.rated_missing": "未填額定 RT", "eq.cooling.water": "水冷", "eq.cooling.air": "氣冷", "eq.ctype.centrifugal": "離心", "eq.ctype.screw": "螺旋", "eq.ctype.scroll": "渦卷", "eq.ctype.reciprocating": "往復", "eq.chctrl.fixed": "定頻", "eq.chctrl.vsd": "變頻（VSD）", "eq.thmode.standard": "依標準（ASHRAE 90.1）", "eq.thmode.manual": "手動", "eq.edit.chiller_model": "機型與評級門檻", "eq.edit.cooling_type": "冷卻方式", "eq.edit.chiller_type": "壓縮機形式", "eq.edit.chiller_control": "定頻 / 變頻", "eq.edit.threshold_mode": "門檻模式", "eq.edit.unset": "未設定", "eq.edit.threshold_hint_chiller": "「依標準」時優 / 可門檻由 ASHRAE 90.1-2022 Table 6.8.1-3 依機型與額定 RT 自動帶出（優 ≤ 標準滿載值、可 ≤ 標準值 × 1.15），切「手動」才可自行輸入。額定電力用於停機判定（低於 5% 視為停機）。", "eq.edit.th_preview_std": "90.1 標準滿載值 {fl} kW/RT → 優 ≤ {good}、可 ≤ {fair}、差 > {fair}", "eq.edit.th_preview_manual": "手動門檻：評級使用上方「優」「可」輸入值，不隨機型變動。", "eq.err.invalid_cooling_type": "冷卻方式不正確：{detail}", "eq.err.invalid_chiller_type": "壓縮機形式不正確：{detail}", "eq.err.invalid_threshold_mode": "門檻模式不正確：{detail}", "eqs.title": "設備效率設定", "eqs.btn.scan": "重新掃描", "eqs.btn.add": "手動新增", "eqs.btn.backfill_all": "回填全部", "eqs.btn.cancel": "取消", "eqs.btn.save": "儲存", "eqs.tab.chiller": "冰機", "eqs.tab.compressor": "空壓機", "eqs.loading": "載入中…", "eqs.hint.reload": "設定存檔後 Engine 於下一個整點起依新設定聚合（免重啟）；要補算過去的資料請按「回填歷史」。", "eqs.scan.select_all": "全選可帶入者", "eqs.backfill.title": "回填歷史", "eqs.backfill.target": "對象", "eqs.backfill.from": "起日", "eqs.backfill.to": "迄日（含）", "eqs.backfill.hint": "Engine 會依目前綁定逐小時重算並覆寫，最多 366 天；資料量大時需數分鐘。", "eqs.backfill.run": "開始回填"},t:function(k,a){var v=this._d[k]||k;if(a)for(var i in a)v=v.split("{"+i+"}").join(a[i]);return v;},ready:function(cb){if(cb)setTimeout(cb,0);},getCulture:function(){return "zh-TW";}};</script>
+    <script src="{{WWWROOT}}/js/common/point-grouping.js"></script>
+    <script src="{{WWWROOT}}/js/common/point-picker.js"></script>
+    <script>
+        // 點位清單直接餵帶好設備標籤的點（略過 /Designer/Devices 座標解析）；掃描判定仍走真實 equipment-scan.js
+        var MOCK_POINTS = [{"szSid": "65537-S1", "szName": "有效功率", "szUnit": "kW", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-1", "szDeviceLabel": "冰水主機 CH-1", "isCoordLabel": false}, {"szSid": "65537-S2", "szName": "累計用電", "szUnit": "kWh", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-1", "szDeviceLabel": "冰水主機 CH-1", "isCoordLabel": false}, {"szSid": "65537-S3", "szName": "冰水流量", "szUnit": "m³/h", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-1", "szDeviceLabel": "冰水主機 CH-1", "isCoordLabel": false}, {"szSid": "65537-S4", "szName": "冰水出水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-1", "szDeviceLabel": "冰水主機 CH-1", "isCoordLabel": false}, {"szSid": "65537-S5", "szName": "冰水回水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-1", "szDeviceLabel": "冰水主機 CH-1", "isCoordLabel": false}, {"szSid": "65537-S6", "szName": "冷卻水進水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-1", "szDeviceLabel": "冰水主機 CH-1", "isCoordLabel": false}, {"szSid": "65537-S7", "szName": "冷卻水出水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-1", "szDeviceLabel": "冰水主機 CH-1", "isCoordLabel": false}, {"szSid": "65537-S8", "szName": "負載率", "szUnit": "%", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-1", "szDeviceLabel": "冰水主機 CH-1", "isCoordLabel": false}, {"szSid": "65537-S9", "szName": "運轉狀態", "szUnit": "", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-1", "szDeviceLabel": "冰水主機 CH-1", "isCoordLabel": false}, {"szSid": "65793-S1", "szName": "有效功率", "szUnit": "kW", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-2", "szDeviceLabel": "冰水主機 CH-2", "isCoordLabel": false}, {"szSid": "65793-S2", "szName": "累計用電", "szUnit": "kWh", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-2", "szDeviceLabel": "冰水主機 CH-2", "isCoordLabel": false}, {"szSid": "65793-S3", "szName": "冰水流量", "szUnit": "m³/h", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-2", "szDeviceLabel": "冰水主機 CH-2", "isCoordLabel": false}, {"szSid": "65793-S4", "szName": "冰水出水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-2", "szDeviceLabel": "冰水主機 CH-2", "isCoordLabel": false}, {"szSid": "65793-S5", "szName": "冰水回水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-2", "szDeviceLabel": "冰水主機 CH-2", "isCoordLabel": false}, {"szSid": "65793-S6", "szName": "冷卻水進水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-2", "szDeviceLabel": "冰水主機 CH-2", "isCoordLabel": false}, {"szSid": "65793-S7", "szName": "冷卻水出水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-2", "szDeviceLabel": "冰水主機 CH-2", "isCoordLabel": false}, {"szSid": "65793-S8", "szName": "負載率", "szUnit": "%", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-2", "szDeviceLabel": "冰水主機 CH-2", "isCoordLabel": false}, {"szSid": "65793-S9", "szName": "運轉狀態", "szUnit": "", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-2", "szDeviceLabel": "冰水主機 CH-2", "isCoordLabel": false}, {"szSid": "66049-S1", "szName": "有效功率", "szUnit": "kW", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-3", "szDeviceLabel": "冰水主機 CH-3", "isCoordLabel": false}, {"szSid": "66049-S2", "szName": "累計用電", "szUnit": "kWh", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-3", "szDeviceLabel": "冰水主機 CH-3", "isCoordLabel": false}, {"szSid": "66049-S3", "szName": "冰水出水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-3", "szDeviceLabel": "冰水主機 CH-3", "isCoordLabel": false}, {"szSid": "66049-S4", "szName": "冰水回水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-3", "szDeviceLabel": "冰水主機 CH-3", "isCoordLabel": false}, {"szSid": "66049-S5", "szName": "冷卻水進水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-3", "szDeviceLabel": "冰水主機 CH-3", "isCoordLabel": false}, {"szSid": "66049-S6", "szName": "冷卻水出水溫度", "szUnit": "℃", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-3", "szDeviceLabel": "冰水主機 CH-3", "isCoordLabel": false}, {"szSid": "66049-S7", "szName": "負載率", "szUnit": "%", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-3", "szDeviceLabel": "冰水主機 CH-3", "isCoordLabel": false}, {"szSid": "66049-S8", "szName": "運轉狀態", "szUnit": "", "szGroupName": null, "szDeviceGroup": "冰水主機 CH-3", "szDeviceLabel": "冰水主機 CH-3", "isCoordLabel": false}, {"szSid": "66305-S1", "szName": "有效功率", "szUnit": "kW", "szGroupName": null, "szDeviceGroup": "冰水泵 CHP-1", "szDeviceLabel": "冰水泵 CHP-1", "isCoordLabel": false}, {"szSid": "66305-S2", "szName": "運轉狀態", "szUnit": "", "szGroupName": null, "szDeviceGroup": "冰水泵 CHP-1", "szDeviceLabel": "冰水泵 CHP-1", "isCoordLabel": false}, {"szSid": "66305-S3", "szName": "輸出頻率", "szUnit": "Hz", "szGroupName": null, "szDeviceGroup": "冰水泵 CHP-1", "szDeviceLabel": "冰水泵 CHP-1", "isCoordLabel": false}, {"szSid": "66561-S1", "szName": "有效功率", "szUnit": "kW", "szGroupName": null, "szDeviceGroup": "電表 M-01", "szDeviceLabel": "電表 M-01", "isCoordLabel": false}, {"szSid": "66561-S2", "szName": "累計用電", "szUnit": "kWh", "szGroupName": null, "szDeviceGroup": "電表 M-01", "szDeviceLabel": "電表 M-01", "isCoordLabel": false}, {"szSid": "66561-S3", "szName": "功率因數", "szUnit": "", "szGroupName": null, "szDeviceGroup": "電表 M-01", "szDeviceLabel": "電表 M-01", "isCoordLabel": false}];
+        window.PointPicker.load = function () { return Promise.resolve({ devices: [], points: MOCK_POINTS }); };
+    </script>
+    <script src="{{WWWROOT}}/js/role-aliases.js"></script>
+    <script src="{{WWWROOT}}/js/equipment-scan.js"></script>
+    <script src="{{WWWROOT}}/js/equipment-threshold.js"></script>
+    <script src="{{WWWROOT}}/js/equipment-setting.js"></script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

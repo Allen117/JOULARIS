@@ -19,7 +19,7 @@ DB 來源用於「資料已經由其他系統寫進 SQL Server」的情境：外
 - **左側「DB 通訊」清單**：已載入的 DB 來源，徽章意義同 Modbus（**停用** / **設定檔已移除** / **待 Engine 載入**）
 - **右側「設備詳細資料」**：**Id**、**Name（設備名稱）**、**PollingInterval（輪詢間隔 ms）**、**ConnectTimeout（連線逾時 ms）**、**MonitorEnabled（啟用監控）**、**點位數**，以及點位列表（**SID** / **名稱** / **單位** / **Min** / **Max**）與 **刪除來源** 按鈕
 
-<!-- IMG-TODO: engineer/db-source-01 | DB 來源：左側來源清單與右側點位列表（含 SID 欄） | route=/DbCoordinator -->
+![DB 來源：左側來源清單與右側點位列表（含 SID 欄）](images/db-source-01.png)
 
 ## 建立 DB 來源
 

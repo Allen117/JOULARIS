@@ -17,7 +17,7 @@
 
 ## 畫面說明
 
-<!-- IMG-TODO: ems/refrigeration-ton-01 | 冷凍噸報表：冷量分布長條圖與數據明細 | route=/RefrigerationTonReport -->
+![冷凍噸報表：冷量分布長條圖與數據明細](images/refrigeration-ton-01.png)
 
 - **查詢條件**：**空調水系統迴路**、**單位**（**時** / **日** / **月** / **年**）、起訖時間、**查詢**、**匯出 Excel**
 - **冷量分布**：長條圖，下方顯示 **總計**（RT·h）

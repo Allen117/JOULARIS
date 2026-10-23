@@ -19,7 +19,7 @@
 
 ## 畫面說明
 
-<!-- IMG-TODO: ems/chilled-water-system-01 | 空調水系統迴路設定：左側迴路階層、右側節點詳情 | route=/ChilledWaterSystem -->
+![空調水系統迴路設定：左側迴路階層、右側節點詳情](images/chilled-water-system-01.png)
 
 - **左側「迴路階層」**：樹狀清單，滑鼠移到節點上出現 **新增子節點** / **編輯** / **刪除** 小按鈕
 - **右上「新增迴路」**：建立最上層節點

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<!-- EMS 模式外殼（淡綠主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>空調水系統迴路設定 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/chilledwater.css">
+    <style>*,*::before,*::after{transition:none!important;animation:none!important;}</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            // '/Xxx/api/yyy': function () { return { ... }; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+    <script>(function(){var M={"/ChilledWaterSystem/api/tree": [{"id": 1, "parentId": null, "name": "一號冰水系統", "sortOrder": 0, "sid": null, "sign": 1, "description": null}, {"id": 2, "parentId": 1, "name": "冰水主機 CH-01", "sortOrder": 0, "sid": "65793-S1", "sign": 1, "description": null}, {"id": 3, "parentId": 1, "name": "冰水主機 CH-02", "sortOrder": 1, "sid": "65794-S2", "sign": 1, "description": null}, {"id": 4, "parentId": null, "name": "二號冰水系統", "sortOrder": 1, "sid": null, "sign": 1, "description": null}, {"id": 5, "parentId": 4, "name": "冰水主機 CH-03", "sortOrder": 0, "sid": "65795-S3", "sign": 1, "description": "夜間低載運轉機"}, {"id": 6, "parentId": 4, "name": "冰水主機 CH-04", "sortOrder": 1, "sid": "65796-S4", "sign": 1, "description": null}], "/ChilledWaterSystem/api/sids": [{"sid": "65793-S1", "deviceName": "CH-01", "name": "即時冷凍噸", "unit": "RT", "coordName": "冰水監控盤", "source": "Modbus"}, {"sid": "65794-S2", "deviceName": "CH-02", "name": "即時冷凍噸", "unit": "RT", "coordName": "冰水監控盤", "source": "Modbus"}, {"sid": "65795-S3", "deviceName": "CH-03", "name": "即時冷凍噸", "unit": "RT", "coordName": "冰水監控盤", "source": "Modbus"}, {"sid": "65796-S4", "deviceName": "CH-04", "name": "即時冷凍噸", "unit": "RT", "coordName": "冰水監控盤", "source": "Modbus"}]};var f=window.fetch;window.fetch=function(u,o){var p=String(u).split("?")[0];if(Object.prototype.hasOwnProperty.call(M,p))return Promise.resolve(new Response(JSON.stringify(M[p]),{status:200,headers:{"Content-Type":"application/json"}}));return f.apply(this,arguments);};})();</script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            <i class="fas fa-temperature-arrow-down text-primary me-2"></i>空調水系統迴路設定
+        </h2>
+    </div>
+
+    <div class="row g-3">
+        <!-- 左側樹狀清單 -->
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                    <span><i class="fas fa-folder-tree me-1"></i>迴路階層</span>
+                    <button class="btn btn-sm btn-outline-light py-0" onclick="window._cw.openCreateModal(null)">
+                        <i class="fas fa-plus me-1"></i>新增迴路
+                    </button>
+                </div>
+                <div class="card-body p-2" style="height: calc(100vh - 250px); overflow-y: auto;">
+                    <div id="treeContainer">
+                        <div class="text-center mt-5"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側詳情 -->
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light py-2">
+                    <span id="detailTitle"><i class="fas fa-hand-pointer me-1"></i>請從左側選取迴路</span>
+                </div>
+                <div class="card-body" id="detailArea">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-temperature-arrow-down fa-4x mb-3 d-block" style="opacity:.3"></i>
+                        <p>選取左側的節點即可檢視/編輯詳細資訊</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/編輯 Modal -->
+<div class="modal fade" id="circuitModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-edit me-1"></i><span id="modalTitle">新增迴路</span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cwId">
+                <input type="hidden" id="cwParentId">
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-tag me-1"></i>名稱</label>
+                    <input type="text" class="form-control form-control-sm" id="cwName" placeholder="例如：空調水系統 / 冰機 1">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-cog me-1"></i>節點類型</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <input type="radio" class="btn-check" name="cwType" id="cwTypeVirtual" value="virtual" checked>
+                        <label class="btn btn-outline-primary" for="cwTypeVirtual">
+                            <i class="fas fa-folder me-1"></i>虛擬迴路
+                        </label>
+                        <input type="radio" class="btn-check" name="cwType" id="cwTypePoint" value="point">
+                        <label class="btn btn-outline-primary" for="cwTypePoint">
+                            <i class="fas fa-snowflake me-1"></i>實體點位
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="cwPointFields" style="display:none;">
+                    <label class="form-label fw-semibold"><i class="fas fa-server me-1"></i>通訊設備</label>
+                    <select class="form-select form-select-sm" id="cwDevice">
+                        <option value="">-- 請選擇設備 --</option>
+                    </select>
+
+                    <label class="form-label fw-semibold mt-3"><i class="fas fa-plug me-1"></i>對應點位</label>
+                    <select class="form-select form-select-sm" id="cwSid" disabled>
+                        <option value="">-- 請先選擇設備 --</option>
+                    </select>
+                    <small class="text-muted d-block mt-1">僅列出單位為 RT 系列（RT / USRT / 噸 / 頓 / 冷凍噸）的點位</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-comment me-1"></i>說明</label>
+                    <textarea class="form-control form-control-sm" id="cwDesc" rows="2" placeholder="選填"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="window._cw.saveCircuit()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{WWWROOT}}/css/chilledwater.css" />
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+<script>window.i18n={_d:{"chilledwater.title": "空調水系統迴路設定", "chilledwater.tree.header": "迴路階層", "chilledwater.tree.loading": "載入中...", "chilledwater.tree.empty": "尚無迴路，請點右上角新增", "chilledwater.btn.add_root": "新增迴路", "chilledwater.hint.select_node": "請從左側選取迴路", "chilledwater.hint.select_to_view": "選取左側的節點即可檢視/編輯詳細資訊", "chilledwater.action.add_child": "新增子節點", "chilledwater.action.edit": "編輯", "chilledwater.action.delete": "刪除", "chilledwater.modal.title_create": "新增迴路", "chilledwater.modal.title_create_child": "新增子節點", "chilledwater.modal.title_edit": "編輯", "chilledwater.modal.name_label": "名稱", "chilledwater.modal.name_placeholder": "例如：空調水系統 / 冰機 1", "chilledwater.modal.type_label": "節點類型", "chilledwater.modal.type_virtual": "虛擬迴路", "chilledwater.modal.type_point": "實體點位", "chilledwater.modal.device_label": "通訊設備", "chilledwater.modal.device_placeholder": "-- 請選擇設備 --", "chilledwater.modal.sid_label": "對應點位", "chilledwater.modal.sid_placeholder": "-- 請先選擇設備 --", "chilledwater.modal.sid_select": "-- 請選擇點位 --", "chilledwater.modal.sid_hint": "僅列出單位為 RT 系列（RT / USRT / 噸 / 頓 / 冷凍噸）的點位", "chilledwater.modal.desc_label": "說明", "chilledwater.modal.desc_placeholder": "選填", "chilledwater.modal.cancel": "取消", "chilledwater.modal.save": "儲存", "chilledwater.detail.type": "類型", "chilledwater.detail.name": "名稱", "chilledwater.detail.point": "點位名稱", "chilledwater.detail.unit": "單位", "chilledwater.detail.desc": "說明", "chilledwater.detail.none": "無", "chilledwater.detail.sid_missing": "⚠ 找不到對應的點位", "chilledwater.option.unassigned": "未指定", "chilledwater.confirm.delete": "確定要刪除「{name}」嗎？", "chilledwater.confirm.delete_with_children": "此迴路含有子節點，刪除會一併移除所有子孫，確定繼續？", "chilledwater.error.load_tree": "載入失敗：{msg}", "chilledwater.error.name_required": "請輸入名稱", "chilledwater.error.sid_required": "實體點位必須選擇對應 SID", "chilledwater.error.save_failed": "儲存失敗：{msg}", "chilledwater.error.delete_failed": "刪除失敗：{msg}", "chilledwater.err.sort_cycle": "不能把迴路搬到自己的子迴路底下", "chilledwater.err.sort_missing_node": "節點不存在，請重新整理頁面", "chilledwater.err.sort_missing_parent": "目標迴路不存在，請重新整理頁面", "chilledwater.err.sort_failed": "排序更新失敗", "chilledwater.msg.confirm_move": "確定把「{name}」搬到「{parent}」底下？\n搬動後上層迴路的冷凍噸加總與報表會立即改變。", "chilledwater.msg.confirm_move_root": "確定把「{name}」搬到最上層？\n搬動後上層迴路的冷凍噸加總與報表會立即改變。", "chilledwater.msg.confirm_move_into_point": "⚠ 目標已綁定點位：掛子節點後，該節點會連自身一起加總。", "chilledwater.msg.sort_failed": "搬移失敗：{msg}"},t:function(k,a){var v=this._d[k]||k;if(a)for(var i in a)v=v.split("{"+i+"}").join(a[i]);return v;},ready:function(cb){if(cb)setTimeout(cb,0);},getCulture:function(){return "zh-TW";}};</script>
+    <script src="{{WWWROOT}}/js/common/tree-dnd.js"></script>
+    <script src="{{WWWROOT}}/js/chilledwater.js"></script>
+    <script>
+
+    (function () {
+        var t = setInterval(function () {
+            var el = document.querySelector('#treeContainer .tree-node[data-id="5"]');
+            if (el) { clearInterval(t); setTimeout(function () { el.click();  }, 150); }
+        }, 50);
+    })();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

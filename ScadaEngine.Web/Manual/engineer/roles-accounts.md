@@ -36,7 +36,7 @@
 - **Engineer 可管理所有帳號**：包含建立其他 Engineer 的個人具名帳號、互相重設密碼
 - 建立或修改 Engineer 帳號，操作者本身必須是 Engineer
 
-<!-- IMG-TODO: engineer/roles-accounts-01 | 帳號管理：使用者清單與新增使用者視窗（Engineer 登入時角色下拉含 Engineer） | route=/AccountSetting -->
+![帳號管理：使用者清單與新增使用者視窗（Engineer 登入時角色下拉含 Engineer）](images/roles-accounts-01.png)
 
 ## 裝機到交機的帳號流程
 

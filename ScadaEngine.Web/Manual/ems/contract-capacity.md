@@ -29,7 +29,7 @@
 
 ## 回測條件
 
-<!-- IMG-TODO: ems/contract-capacity-01 | 契約容量最佳化：回測條件與四張 KPI 卡 | route=/ContractCapacity -->
+![契約容量最佳化：回測條件與四張 KPI 卡](images/contract-capacity-01.png)
 
 | 欄位 | 說明 |
 |------|------|

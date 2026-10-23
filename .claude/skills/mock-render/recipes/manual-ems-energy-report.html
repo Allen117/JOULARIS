@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<!-- EnergyReport 月粒度 + YOY 去年同期比較（2026/1~2026/8 總用電）離線模擬渲染 -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>用電報表 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/energyreport.css">
+
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        /* headless 凍結 timeline，一律關動畫/轉場避免卡在起始值 */
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘 ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        // 2026/1~2026/8 vs 2025 同期（去年同期比較）
+        // 自洽：合計 = 各月加總；差異合計 = 本期合計 − 去年合計
+        var MONTHS = [
+            { szLabel: '2026-01', dKwh: 412560, dLastYearKwh: 398220 },
+            { szLabel: '2026-02', dKwh: 358920, dLastYearKwh: 372610 },
+            { szLabel: '2026-03', dKwh: 445180, dLastYearKwh: 421050 },
+            { szLabel: '2026-04', dKwh: 468300, dLastYearKwh: 452880 },
+            { szLabel: '2026-05', dKwh: 512740, dLastYearKwh: 495300 },
+            { szLabel: '2026-06', dKwh: 587920, dLastYearKwh: 548760 },
+            { szLabel: '2026-07', dKwh: 634510, dLastYearKwh: 602140 },
+            { szLabel: '2026-08', dKwh: 621880, dLastYearKwh: 640350 }
+        ];
+        var buckets = MONTHS.map(function (m) {
+            var diff = m.dKwh - m.dLastYearKwh;
+            var pct = m.dLastYearKwh ? diff / Math.abs(m.dLastYearKwh) * 100 : null;
+            return {
+                dtBucketStart: m.szLabel + '-01T00:00:00',
+                szLabel: m.szLabel,
+                dKwh: m.dKwh,
+                isStale: false,
+                dLastYearKwh: m.dLastYearKwh,
+                dDiffKwh: diff,
+                dPctChange: pct
+            };
+        });
+        var dTotal = buckets.reduce(function (s, b) { return s + b.dKwh; }, 0);
+
+        var QUERY_RESULT = {
+            nCircuitId: 1,
+            szCircuitName: '總表',
+            szGranularity: 'month',
+            dtStart: '2026-01-01T00:00:00',
+            dtEnd: '2026-08-31T23:59:59',
+            buckets: buckets,
+            dTotalKwh: dTotal,
+            isHasWarning: false,
+            isYoy: true,
+            children: []
+        };
+
+        var MOCK = {
+            '/EnergyReport/api/circuits': function () {
+                return [
+                    { id: 1, name: '總表', parentId: null, sortOrder: 1, sid: '10001' },
+                    { id: 2, name: '空調系統', parentId: 1, sortOrder: 1, sid: '10002' },
+                    { id: 3, name: '動力設備', parentId: 1, sortOrder: 2, sid: '10003' },
+                    { id: 4, name: '照明插座', parentId: 1, sortOrder: 3, sid: '10004' },
+                    { id: 5, name: '冰水主機群', parentId: 1, sortOrder: 4, sid: '10005' }
+                ];
+            },
+            '/EnergyReport/api/query': function () { return QUERY_RESULT; },
+            '/BillingPeriodSetting/api/current': function () {
+                return { start: '2026-08-01', end: '2026-08-31' };
+            },
+            '/BillingPeriodSetting/api/range': function () {
+                return [
+                    { start: '2026-01-01', end: '2026-01-31' },
+                    { start: '2026-08-01', end: '2026-08-31' }
+                ];
+            }
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT ═══════════ -->
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            <i class="fas fa-chart-bar text-primary me-2"></i>用電報表
+        </h2>
+    </div>
+
+    <!-- 查詢條件 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2">
+            <i class="fas fa-filter me-1"></i>查詢條件
+        </div>
+        <div class="card-body p-3">
+            <div class="er-filter-bar">
+                <div class="er-circuit">
+                    <label class="form-label fw-semibold"><i class="fas fa-sitemap me-1"></i>迴路</label>
+                    <select id="erCircuit" class="form-select form-select-sm">
+                        <option value="">-- 載入中 --</option>
+                    </select>
+                </div>
+                <div class="er-narrow-unit">
+                    <label class="form-label fw-semibold"><i class="fas fa-clock me-1"></i>單位</label>
+                    <select id="erGranularity" class="form-select form-select-sm">
+                        <option value="hour">時</option>
+                        <option value="day" selected>日</option>
+                        <option value="month">月</option>
+                        <option value="year">年</option>
+                        <option value="shift">班別</option>
+                    </select>
+                </div>
+
+                <!-- 時粒度：起訖時（日期 + 0~23 時，無分鐘） -->
+                <div class="er-wide-date er-period er-period-hour">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar-day me-1"></i>起時</label>
+                    <div class="input-group input-group-sm er-hour-group">
+                        <input type="date" id="erHourStartDate" class="form-control form-control-sm">
+                        <select id="erHourStartHour" class="form-select form-select-sm er-hour-select"></select>
+                    </div>
+                </div>
+                <div class="er-wide-date er-period er-period-hour">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar-day me-1"></i>訖時</label>
+                    <div class="input-group input-group-sm er-hour-group">
+                        <input type="date" id="erHourEndDate" class="form-control form-control-sm">
+                        <select id="erHourEndHour" class="form-select form-select-sm er-hour-select"></select>
+                    </div>
+                </div>
+
+                <!-- 日粒度：起訖日 -->
+                <div class="er-narrow-date er-period er-period-day">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar me-1"></i>起日</label>
+                    <input type="date" id="erDayStart" class="form-control form-control-sm">
+                </div>
+                <div class="er-narrow-date er-period er-period-day">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar me-1"></i>訖日</label>
+                    <input type="date" id="erDayEnd" class="form-control form-control-sm">
+                </div>
+
+                <!-- 月粒度：起訖月 -->
+                <div class="er-narrow-date er-period er-period-month">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar-week me-1"></i>起月</label>
+                    <input type="month" id="erMonthStart" class="form-control form-control-sm">
+                </div>
+                <div class="er-narrow-date er-period er-period-month">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar-week me-1"></i>訖月</label>
+                    <input type="month" id="erMonthEnd" class="form-control form-control-sm">
+                </div>
+
+                <!-- 年粒度：起訖年 -->
+                <div class="er-narrow-date er-period er-period-year">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar-alt me-1"></i>起年</label>
+                    <input type="number" id="erYearStart" class="form-control form-control-sm" min="2000" max="2100">
+                </div>
+                <div class="er-narrow-date er-period er-period-year">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar-alt me-1"></i>訖年</label>
+                    <input type="number" id="erYearEnd" class="form-control form-control-sm" min="2000" max="2100">
+                </div>
+
+                <!-- 班別粒度：起訖日（每列 = 日期 × 班別；班別於 /ShiftSetting 定義） -->
+                <div class="er-narrow-date er-period er-period-shift">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar me-1"></i>起日</label>
+                    <input type="date" id="erShiftStart" class="form-control form-control-sm">
+                </div>
+                <div class="er-narrow-date er-period er-period-shift">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar me-1"></i>訖日</label>
+                    <input type="date" id="erShiftEnd" class="form-control form-control-sm">
+                </div>
+
+                <!-- 月粒度：去年同期比較（預設勾選；只月粒度出現） -->
+                <div class="er-period er-period-month er-yoy-check">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="erYoy" checked>
+                        <label class="form-check-label fw-semibold" for="erYoy">
+                            <i class="fas fa-scale-balanced me-1"></i>去年同期比較
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 月粒度：期別實際區間提示（由 /BillingPeriodSetting/api/range 帶出） -->
+                <div class="er-period er-period-month er-period-hint">
+                    <span id="erPeriodHint" class="text-muted small"></span>
+                </div>
+
+                <div class="er-btn">
+                    <button class="btn btn-primary btn-sm" onclick="window._er.query()">
+                        <i class="fas fa-search me-1"></i>查詢
+                    </button>
+                </div>
+                <div class="er-btn">
+                    <button class="btn btn-success btn-sm" onclick="window._er.exportExcel()" id="btnExport" disabled>
+                        <i class="fas fa-file-excel me-1"></i>匯出 Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果區 -->
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-chart-bar me-1"></i>用電量分布</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small" id="erWarnText"></span>
+                        <button type="button" id="btnToggleBreakdown" class="btn btn-sm btn-outline-secondary d-none" onclick="window._er.toggleBreakdown()">
+                            <i class="fas fa-layer-group me-1"></i><span id="btnToggleBreakdownText">顯示明細</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="height:360px;">
+                        <canvas id="erChart"></canvas>
+                    </div>
+                </div>
+                <div class="card-footer bg-light text-muted small">
+                    總計：<span id="erTotal" class="fw-bold text-primary">--</span> kWh
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light py-2">
+                    <i class="fas fa-table me-1"></i>數據明細
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:420px;overflow-y:auto;">
+                        <table class="table table-striped table-hover table-bordered mb-0">
+                            <thead class="table-dark" style="position:sticky;top:0;z-index:30;">
+                                <tr id="erTableHeadRow">
+                                    <th>時段</th>
+                                    <th class="text-end">用電量 (kWh)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="erTableBody">
+                                <tr><td colspan="2" class="text-center text-muted py-4">尚未查詢</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{WWWROOT}}/css/energyreport.css" />
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+
+    <!-- ═══════════ PAGE_SCRIPTS ═══════════ -->
+    <!-- i18n stub：只填 energyreport.js 用到的 key（shell 沒載 i18n.js） -->
+    <script>
+    window.i18n = {
+        _dict: {
+"app.title": "SCADA 監控系統",
+"app.brand": "SCADA 監控系統",
+"lang.zh-TW": "繁體中文",
+"lang.en": "English",
+"lang.switch": "語系",
+"shared.button.save": "儲存",
+"shared.button.cancel": "取消",
+"shared.button.confirm": "確認",
+"shared.button.ok": "確定",
+"shared.button.delete": "刪除",
+"shared.button.add": "新增",
+"shared.button.edit": "編輯",
+"shared.button.query": "查詢",
+"shared.button.export": "匯出",
+"shared.button.import": "匯入",
+"shared.button.refresh": "重新整理",
+"shared.button.close": "關閉",
+"shared.button.search": "搜尋",
+"shared.button.reset": "重設",
+"shared.button.apply": "套用",
+"shared.status.loading": "載入中…",
+"shared.status.connecting": "連線中…",
+"shared.status.connected": "已連線",
+"shared.status.disconnected": "已斷線",
+"shared.status.success": "成功",
+"shared.status.error": "錯誤",
+"shared.status.warning": "警告",
+"shared.status.info": "資訊",
+"shared.status.no_data": "無資料",
+"shared.status.processing": "處理中",
+"shared.label.start_time": "起始時間",
+"shared.label.end_time": "結束時間",
+"shared.label.timestamp": "時間戳記",
+"shared.label.value": "數值",
+"shared.label.unit": "單位",
+"shared.label.quality": "品質",
+"shared.label.name": "名稱",
+"shared.label.description": "說明",
+"shared.label.status": "狀態",
+"shared.label.actions": "操作",
+"shared.label.settings": "設定",
+"shared.quality.good": "良好",
+"shared.quality.bad": "不良",
+"shared.confirm.delete": "確定要刪除嗎？",
+"validation.required": "此欄位為必填",
+"validation.invalid": "輸入內容無效",
+"validation.too_long": "輸入內容過長",
+"validation.range": "數值超出允許範圍",
+"alarm.high_exceed": "{0} 超過上限 {1}",
+"alarm.low_below": "{0} 低於下限 {1}",
+"alarm.di_triggered": "{0} 狀態為 {1} 觸發警報",
+"control.action.button_pressed": "{0} 觸發按鈕「{1}」，控制值={2}",
+"control.action.ao_manual_set": "{0} 手動寫入 AO「{1}」={2}",
+"control.action.ao_switch_auto": "{0} 將 AO「{1}」切換為自動",
+"control.action.do_set_on": "{0} 將 DO「{1}」設為 ON",
+"control.action.do_set_off": "{0} 將 DO「{1}」設為 OFF",
+"control.action.do_switch_auto": "{0} 將 DO「{1}」切換為自動",
+"control.action.pump_start": "{0} 啟動泵浦「{1}」",
+"control.action.pump_stop": "{0} 停止泵浦「{1}」",
+"control.action.pump_freq_set": "{0} 將泵浦「{1}」頻率設為 {2} Hz",
+"control.action.pump_switch_auto": "{0} 將泵浦「{1}」切換為自動",
+"control.action.point_config_changed": "{0} 修改點位「{1}」組態：{2}",
+"energyreport.title": "用電報表",
+"energyreport.filter.title": "查詢條件",
+"energyreport.filter.circuit": "迴路",
+"energyreport.filter.granularity": "單位",
+"energyreport.filter.date": "日期",
+"energyreport.filter.hour_start": "起時",
+"energyreport.filter.hour_end": "訖時",
+"energyreport.filter.month_start": "起月",
+"energyreport.filter.month_end": "訖月",
+"energyreport.filter.day_start": "起日",
+"energyreport.filter.day_end": "訖日",
+"energyreport.filter.year_start": "起年",
+"energyreport.filter.year_end": "訖年",
+"energyreport.filter.yoy": "去年同期比較",
+"energyreport.granularity.hour": "時",
+"energyreport.granularity.day": "日",
+"energyreport.granularity.month": "月",
+"energyreport.granularity.year": "年",
+"energyreport.granularity.shift": "班別",
+"energyreport.button.query": "查詢",
+"energyreport.button.export": "匯出 Excel",
+"energyreport.button.show_breakdown": "顯示明細",
+"energyreport.button.show_total": "顯示合計",
+"energyreport.chart.title": "用電量分布",
+"energyreport.chart.y_axis": "kWh",
+"energyreport.chart.x_axis": "時段",
+"energyreport.chart.dataset_label": "{0} (kWh)",
+"energyreport.chart.lastyear_label": "去年同期 (kWh)",
+"energyreport.chart.dataset_total_label": "{0} 合計 (kWh)",
+"energyreport.chart.breakdown_total_label": "合計：{0} kWh",
+"energyreport.table.title": "數據明細",
+"energyreport.table.col_period": "時段",
+"energyreport.table.col_kwh": "用電量 (kWh)",
+"energyreport.table.col_lastyear": "去年同期 (kWh)",
+"energyreport.table.col_diff": "差異 (kWh)",
+"energyreport.table.col_pct": "增減%",
+"energyreport.table.total": "合計",
+"energyreport.table.empty": "尚未查詢",
+"energyreport.table.no_data": "無資料",
+"energyreport.table.querying": "查詢中…",
+"energyreport.label.total": "總計",
+"energyreport.warning.kwh_overflow": "⚠ 部分電表偵測到累積值倒退但未設 MaxKwh",
+"energyreport.tooltip.stale": "此區間電表資料不完整（可能斷線）",
+"energyreport.tooltip.partial": "此區間邊界缺讀數，僅統計區間內有讀數的區段（電表期中上線或期末斷線）",
+"energyreport.select.loading": "-- 載入中 --",
+"energyreport.select.placeholder": "-- 請選擇迴路 --",
+"energyreport.select.empty": "尚未設定迴路",
+"energyreport.alert.select_circuit": "請選擇迴路",
+"energyreport.alert.month_order": "訖月不可早於起月",
+"energyreport.alert.day_order": "訖日不可早於起日",
+"energyreport.alert.hour_order": "訖時不可早於起時",
+"energyreport.alert.year_order": "訖年不可早於起年",
+"energyreport.alert.query_failed": "查詢失敗：{0}",
+"energyreport.alert.export_failed": "匯出失敗：{0}",
+"energyreport.console.load_circuit_failed": "[EnergyReport] 載入迴路失敗",
+"energyreport.period.hint": "期別實際區間：{0} ～ {1}（依月結週期設定）"
+},
+        t: function (key, args) {
+            var s = this._dict[key] || key;
+            if (args) Object.keys(args).forEach(function (k) { s = s.split('{' + k + '}').join(args[k]); });
+            return s;
+        },
+        ready: function (cb) { cb(); }
+    };
+    </script>
+    <script src="{{WWWROOT}}/js/energyreport.js"></script>
+    <script>
+        window._erInit = { today: '2026-09-09' };
+        // 自動驅動：切月粒度 + 設 2026/01~2026/08 + 選迴路 + 觸發查詢
+        (function () {
+            function drive() {
+                var g = document.getElementById('erGranularity');
+                g.value = 'month';
+                g.dispatchEvent(new Event('change'));
+                document.getElementById('erMonthStart').value = '2026-01';
+                document.getElementById('erMonthEnd').value = '2026-08';
+                var yoy = document.getElementById('erYoy');
+                if (yoy) yoy.checked = true;
+                var sel = document.getElementById('erCircuit');
+                // 等迴路下拉載入完（有真正 value 的 option）
+                var opt = Array.prototype.find.call(sel.options, function (o) { return o.value === '1'; });
+                if (!opt) { setTimeout(drive, 60); return; }
+                sel.value = '1';
+                window._er.query();
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () { setTimeout(drive, 80); });
+            } else {
+                setTimeout(drive, 80);
+            }
+        })();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

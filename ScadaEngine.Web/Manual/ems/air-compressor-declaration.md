@@ -24,7 +24,7 @@
 
 ## 建立申報報表
 
-<!-- IMG-TODO: ems/air-compressor-declaration-01 | 空壓機能源申報：新增申報報表視窗（用電迴路 + 產氣量表迴路） | route=/AirCompressorDeclaration -->
+![空壓機能源申報：新增申報報表視窗（用電迴路 + 產氣量表迴路）](images/air-compressor-declaration-01.png)
 
 1. 在 **申報報表設定** 卡片按 **新增報表**
 2. 填寫：
@@ -43,7 +43,7 @@
 3. 按 **查詢**，固定產出 1～12 月（每月 1 號到月底）
 4. 需要存檔時按 **匯出 Excel**
 
-<!-- IMG-TODO: ems/air-compressor-declaration-02 | 空壓機能源申報：用電量長條與產氣量折線雙軸圖與明細表 | route=/AirCompressorDeclaration -->
+![空壓機能源申報：用電量長條與產氣量折線雙軸圖與明細表](images/air-compressor-declaration-02.png)
 
 ### 結果怎麼看
 

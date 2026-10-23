@@ -51,7 +51,7 @@
 
 ## 效率儀表板
 
-<!-- IMG-TODO: ems/equipment-efficiency-01 | 冰機效率診斷：即時區每台一張小卡，下方累計儀表板 | route=/ChillerEfficiency -->
+![冰機效率診斷：即時區每台一張小卡，下方累計儀表板](images/equipment-efficiency-01.png)
 
 ### 即時區
 
@@ -88,7 +88,7 @@
 
 空壓機效率診斷頁上方有分頁：**效率儀表板**、**系統診斷**，工程師另可看到 **診斷設定**。
 
-<!-- IMG-TODO: ems/equipment-efficiency-02 | 空壓機效率診斷：系統診斷分頁的觸發項目與建議下一步 | route=/CompressorEfficiency -->
+![空壓機效率診斷：系統診斷分頁的觸發項目與建議下一步](images/equipment-efficiency-02.png)
 
 **系統診斷** 每天凌晨 02:00 以最近 7 天的資料自動產生，依固定規則檢查空壓系統常見的節能機會：
 
