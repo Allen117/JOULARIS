@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<!-- SCADA 使用手冊 scada/scada-page-01~04：/ScadaPage 即時監控（SCADA 深藍，Admin 視角）
+     圖面「冰水系統」= 背景 SVG（管路/區塊/標籤）+ 真實 widget（冷卻水塔 / 冷卻水泵 / 冰機 / 冰水泵×2 / 5 個 AI 數值）
+     情境以 URL hash 切換（render_page.py --hash）：無=整頁、ctx-point=點位右鍵選單、ctx-pump=水泵右鍵選單、panel=搭 --selector #activeAlarmPanel
+     MOCK：/Designer/Load（7 頁頁面樹）、/api/realtime/latest、/Realtime/ActiveAlarms（3 筆：2 未確認 + 1 已確認）、
+           /api/alarm-rules（2 上限 + 1 DI，與警報/紅字對齊）、/api/control/manual-values（CHP-01 自動）、其餘空
+     自洽：CHP-02 故障=1 → 水泵紅色 + DI 警報；冷卻水出水溫 35.2 ≥ 35.0、冰水回水溫 12.1 ≥ 12.0 → 紅字 + 警報 -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>即時監控 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/scadapage.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/active-alarm-panel.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/point-picker.css">
+    <style>
+        /* 截圖穩定性：headless 下 document.timeline 凍結於 0，CSS transition 永遠停在起始值，全域關閉 */
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+    <script>
+    // ── 情境切換：URL hash（render_page.py --hash）──
+    //   (無)        整頁：頁面樹 + 冰水系統畫布 + 未恢復警報面板展開（3 筆）
+    //   ctx-point   對「冷卻水出水溫」數值元件按右鍵 → 點位右鍵選單
+    //   ctx-pump    對「冰水泵 CHP-01」按右鍵 → 水泵右鍵選單（展開「啟動停止」子選單）
+    //   panel       同整頁（搭配 --selector #activeAlarmPanel 只截警報面板）
+    window.SCENE = (location.hash || '').replace('#', '');
+    </script>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        // ── 冰水系統示意圖（背景 SVG：標題、管路、區塊標示；設備與數值由 widget 疊上）──
+        //   畫布 1300×680；冷卻水迴路（綠）CT-01 ⇄ CWP-01 ⇄ CH-01 冷凝器；冰水迴路（藍）CH-01 蒸發器 → CHP-01/02 → 空調負載 → 回 CH-01
+        function buildChwSvg() {
+            var CW = '#20a37a', CHS = '#0d6efd', CHR = '#6ea8fe';
+            var s = '<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="680" viewBox="0 0 1300 680">' +
+                '<rect width="1300" height="680" fill="#ffffff"/>' +
+                '<text x="650" y="52" text-anchor="middle" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="30" font-weight="700" fill="#1d3557">冰水系統監控</text>' +
+                '<rect x="610" y="64" width="80" height="4" rx="2" fill="#0d6efd"/>' +
+                // 區塊底
+                '<rect x="40" y="90" width="500" height="560" rx="12" fill="#f1f8f5" stroke="#cfe8dd"/>' +
+                '<text x="60" y="118" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="16" font-weight="600" fill="#20a37a">冷卻水側</text>' +
+                '<rect x="860" y="90" width="410" height="560" rx="12" fill="#f1f5fd" stroke="#d3e0f8"/>' +
+                '<text x="880" y="118" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="16" font-weight="600" fill="#0d6efd">冰水側</text>' +
+                // 冷卻水管：CH-01 上筒 → CT-01 頂（出水）；CT-01 底 → CWP-01 → CH-01 下筒（進水）
+                pipe('M572 309 H430 V150 H180 V166', CW) +
+                pipe('M180 262 V462', CW) +
+                pipe('M215 474 H500 V352 H572', CW) +
+                // 冰水管：CH-01 上筒 → 集管 → CHP-01/02 → 空調負載 → 回水 → CH-01 下筒
+                pipe('M725 309 H900 M900 226 V465 M900 226 H958 M900 465 H958', CHS) +
+                pipe('M1013 203 V175 H1110 M1013 442 V415 H1110 M1110 175 V415 M1110 300 H1150', CHS) +
+                pipe('M1200 370 V610 H780 V352 H725', CHR) +
+                // 空調負載方塊
+                '<rect x="1150" y="260" width="100" height="110" rx="10" fill="#ffffff" stroke="#adb5bd" stroke-width="2"/>' +
+                '<text x="1200" y="308" text-anchor="middle" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="15" fill="#495057">空調負載</text>' +
+                '<text x="1200" y="332" text-anchor="middle" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="13" fill="#6c757d">AHU / FCU</text>' +
+                // 設備名稱
+                nameEnd(128, 205, '冷卻水塔') + nameEnd(128, 226, 'CT-01') + name(180, 552, '冷卻水泵 CWP-01') + name(648, 452, '冰機 CH-01') +
+                name(990, 285, '冰水泵 CHP-01') + name(990, 524, '冰水泵 CHP-02') +
+                // 數值標籤
+                label(250, 136, '冷卻水出水溫') + label(290, 500, '冷卻水進水溫') +
+                label(745, 292, '冰水出水溫') + label(900, 596, '冰水回水溫') +
+                label(575, 488, '電表 M-01 有效功率') +
+                // 圖例
+                '<rect x="40" y="664" width="0" height="0"/>' +
+                '</svg>';
+            function pipe(d, c) {
+                return '<path d="' + d + '" stroke="' + c + '" stroke-width="8" fill="none" stroke-linejoin="round" stroke-linecap="round"/>';
+            }
+            function name(x, y, sz) {
+                return '<text x="' + x + '" y="' + y + '" text-anchor="middle" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="15" font-weight="600" fill="#343a40">' + sz + '</text>';
+            }
+            function nameEnd(x, y, sz) {   // 右對齊（CT-01 下方有管路，名稱放左側）
+                return name(x, y, sz).replace('text-anchor="middle"', 'text-anchor="end"');
+            }
+            function label(x, y, sz) {
+                return '<text x="' + x + '" y="' + y + '" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="14" fill="#6c757d">' + sz + '</text>';
+            }
+            // renderScadaCanvas 以無引號 url(...) 塞 CSS → 括號與單引號要再編碼
+            return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s)
+                .replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/'/g, '%27');
+        }
+
+        function rt(x, y, sid, unit, dec) {
+            return { szType: 'realtimeValue', nX: x, nY: y, nW: 150, nH: 34,
+                     props: { szSid: sid, szUnit: unit, nDecimalPlaces: dec, nFontSize: 24, szFontColor: '#212529', szBgColor: 'transparent' } };
+        }
+        function pump(x, y, title, n) {
+            return { szType: 'pump', nX: x, nY: y, nW: 130, nH: 120,
+                     props: { szTitle: title,
+                              szSidRun: 'MB' + n + '-DI-001', szSidFault: 'MB' + n + '-DI-002', szSidMode: 'MB' + n + '-DI-003', szSidFreq: 'MB' + n + '-AI-001',
+                              szCidStartStop: 'MB' + n + '-DO-001', szCidFreqSet: 'MB' + n + '-AO-001',
+                              nFreqSetMin: 30, nFreqSetMax: 60, nFreqMax: 60, szOutletDir: 'right' } };
+        }
+        function chwWidgets() {
+            return [
+                { szType: 'coolingTower', nX: 130, nY: 140, nW: 150, nH: 150,
+                  props: { szTitle: '冷卻水塔 CT-01', szSidRun: 'MB011-DI-001', szSidFault: 'MB011-DI-002', szSidMode: 'MB011-DI-003', szSidFreq: 'MB011-AI-001',
+                           szCidStartStop: 'MB011-DO-001', szCidFreqSet: 'MB011-AO-001', nFreqSetMin: 20, nFreqSetMax: 60, nFreqMax: 60 } },
+                pump(130, 435, '冷卻水泵 CWP-01', '012'),
+                { szType: 'chiller', nX: 560, nY: 240, nW: 180, nH: 190,
+                  props: { szTitle: '冰機 CH-01', szSidRun: 'MB013-DI-001', szSidFault: 'MB013-DI-002', szSidMode: 'MB013-DI-003', szSidLoad: 'MB013-AI-001',
+                           szSidChwOut: 'MB013-AI-002', szCidStartStop: 'MB013-DO-001', szCidSetTemp: 'MB013-AO-001', nLoadMax: 100 } },
+                pump(935, 170, '冰水泵 CHP-01', '014'),
+                pump(935, 410, '冰水泵 CHP-02', '015'),
+                rt(250, 158, 'MB013-AI-004', '°C', 1),   // 冷卻水出水溫
+                rt(290, 508, 'MB013-AI-003', '°C', 1),   // 冷卻水進水溫
+                rt(745, 316, 'MB013-AI-002', '°C', 1),   // 冰水出水溫
+                rt(900, 618, 'MB013-AI-005', '°C', 1),   // 冰水回水溫
+                rt(575, 496, 'MB016-AI-001', 'kW', 1)    // 電表 M-01 有效功率
+            ];
+        }
+        function emptyPage(sid, name, icon, parent, n) {
+            return { szPageSid: sid, szPageName: name, szPageIcon: icon, szParentPageSid: parent, nSortOrder: n,
+                     nCanvasW: 1300, nCanvasH: 680, szBgDataUrl: null, szWidgetStateJson: '[]' };
+        }
+
+        // 即時值：CH-01 運轉中負載 72%、CHP-01 自動 45.0 Hz 運轉、CHP-02 故障（→ 警報面板 DI 警報）、
+        //         冷卻水出水溫 35.2 ≥ 上限 35.0（→ 紅字 + 警報）、冰水回水溫 12.1 ≥ 上限 12.0（→ 紅字 + 已確認警報）
+        var NOW_TS = '2026-09-09T15:42:10';
+        var RT = [
+            ['MB011-DI-001', '冷卻水塔 CT-01 運轉', '1'], ['MB011-DI-002', '冷卻水塔 CT-01 故障', '0'],
+            ['MB011-DI-003', '冷卻水塔 CT-01 手自動', '1'], ['MB011-AI-001', '冷卻水塔 CT-01 風扇頻率', '42.0', 'Hz'],
+            ['MB012-DI-001', '冷卻水泵 CWP-01 運轉', '1'], ['MB012-DI-002', '冷卻水泵 CWP-01 故障', '0'],
+            ['MB012-DI-003', '冷卻水泵 CWP-01 手自動', '1'], ['MB012-AI-001', '冷卻水泵 CWP-01 頻率', '48.0', 'Hz'],
+            ['MB013-DI-001', '冰機 CH-01 運轉', '1'], ['MB013-DI-002', '冰機 CH-01 故障', '0'],
+            ['MB013-DI-003', '冰機 CH-01 遠端/現場', '1'], ['MB013-AI-001', '冰機 CH-01 負載率', '72.0', '%'],
+            ['MB013-AI-002', '冰水出水溫', '7.2', '°C'], ['MB013-AI-003', '冷卻水進水溫', '30.5', '°C'],
+            ['MB013-AI-004', '冷卻水出水溫', '35.2', '°C'], ['MB013-AI-005', '冰水回水溫', '12.1', '°C'],
+            ['MB014-DI-001', '冰水泵 CHP-01 運轉', '1'], ['MB014-DI-002', '冰水泵 CHP-01 故障', '0'],
+            ['MB014-DI-003', '冰水泵 CHP-01 手自動', '1'], ['MB014-AI-001', '冰水泵 CHP-01 頻率', '45.0', 'Hz'],
+            ['MB015-DI-001', '冰水泵 CHP-02 運轉', '0'], ['MB015-DI-002', '冰水泵 CHP-02 故障', '1'],
+            ['MB015-DI-003', '冰水泵 CHP-02 手自動', '1'], ['MB015-AI-001', '冰水泵 CHP-02 頻率', '0.0', 'Hz'],
+            ['MB016-AI-001', '電表 M-01 有效功率', '286.4', 'kW']
+        ].map(function (r) {
+            return { sid: r[0], name: r[1], value: r[2], unit: r[3] || '', quality: 'GOOD', timestamp: NOW_TS,
+                     isAuto: /-(DO|AO)-/.test(r[0]) ? true : null };
+        });
+
+        var T0 = new Date(2026, 8, 9, 15, 42, 10).getTime();
+        function alarm(minAgo, sid, type, sev, msg, ackBy) {
+            var ms = T0 - minAgo * 60000, d = new Date(ms);
+            function p(n) { return (n < 10 ? '0' : '') + n; }
+            return { sid: sid, type: type, severity: sev,
+                     severityLabel: ['Critical', 'High', 'Medium', 'Low'][sev], severityColor: ['#dc3545', '#fd7e14', '#ffc107', '#6c757d'][sev],
+                     message: msg, occurredAtMs: ms,
+                     occurredAt: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()),
+                     isAcknowledged: !!ackBy, acknowledgedBy: ackBy || null };
+        }
+
+        var MOCK = {
+            '/Designer/Load': function () {
+                return {
+                    hasData: true,
+                    pages: [
+                        { szPageSid: 'PG-CHW', szPageName: '冰水系統', szPageIcon: 'fa-snowflake', szParentPageSid: null, nSortOrder: 1,
+                          nCanvasW: 1300, nCanvasH: 680, szBgDataUrl: buildChwSvg(), szBgFileName: 'chw.svg',
+                          szWidgetStateJson: JSON.stringify(chwWidgets()) },
+                        emptyPage('PG-AHU', '空調箱', 'fa-wind', null, 2),
+                        emptyPage('PG-PWR', '電力系統', 'fa-bolt', null, 3),
+                        emptyPage('PG-PWR-LV', '低壓配電盤', 'fa-plug', 'PG-PWR', 1),
+                        emptyPage('PG-PWR-UPS', 'UPS 不斷電系統', 'fa-car-battery', 'PG-PWR', 2),
+                        emptyPage('PG-WTR', '給排水系統', 'fa-tint', null, 4),
+                        emptyPage('PG-AIR', '空壓系統', 'fa-compress-arrows-alt', null, 5)
+                    ]
+                };
+            },
+            '/api/realtime/latest': function () { return { success: true, data: RT }; },
+            '/api/scadapage/accumulation': function () { return { success: true, results: [] }; },
+            '/api/scadapage/circuit-metric': function () { return { success: true, results: [] }; },
+            '/Realtime/ActiveAlarms': function () {
+                return { success: true, isConnected: true, data: [
+                    alarm(6,  'MB015-DI-002', 'di',   1, '冰水泵 CHP-02 故障 狀態為 ON 觸發警報', null),
+                    alarm(18, 'MB013-AI-004', 'high', 2, '冷卻水出水溫 超過上限 35.0', null),
+                    alarm(47, 'MB013-AI-005', 'high', 2, '冰水回水溫 超過上限 12.0', 'admin')
+                ] };
+            },
+            '/api/alarm-rules': function () {
+                return [
+                    { szSID: 'MB013-AI-004', isEnabled: true, isAlarmHigh: true, dAlarmHighValue: 35.0, isAlarmLow: false },
+                    { szSID: 'MB013-AI-005', isEnabled: true, isAlarmHigh: true, dAlarmHighValue: 12.0, isAlarmLow: false },
+                    { szSID: 'MB015-DI-002', isEnabled: true, isDiAlarm: true, szDiTriggerState: 'ON' }
+                ];
+            },
+            '/api/control/manual-values': function () { return {
+                'MB014-DO-001': { value: 1, isAuto: true }, 'MB014-AO-001': { value: 45, isAuto: true },
+                'MB013-AO-001': { value: 7.0, isAuto: true }   // 冰機 CH-01 冰水設定溫度（畫面右下「設定 7°C」）
+            }; },
+            '/api/schedules': function () { return []; }
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count">3</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：Features/ScadaPage/Views/Index.cshtml（Localizer → zh-TW） ═══════════ -->
+        <div class="container-fluid mt-4">
+            <div class="d-flex gap-3">
+                <div id="scadaTreeSide" class="scada-tree-side">
+                    <div class="scada-tree-panel">
+                        <div class="scada-tree-panel-title">
+                            <i class="fas fa-sitemap me-1"></i>系統總覽
+                        </div>
+                        <div id="scadaPageTree">
+                            <p style="font-size:16px;color:#6c757d;text-align:center;margin-top:24px;">載入中…</p>
+                        </div>
+                    </div>
+                    <button type="button" id="scadaTreeToggle" class="scada-tree-toggle" title="收合系統總覽" aria-expanded="true" aria-controls="scadaPageTree">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </div>
+                <div class="scada-canvas-viewport">
+                    <div id="scadaCanvasWrap">
+                        <div id="scadaCanvas" style="position:relative;background:#fff;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.12);">
+                            <p id="scadaPlaceholder" style="padding:120px 20px;text-align:center;color:#6c757d;font-size:13px;margin:0;">
+                                <i class="fas fa-desktop fa-3x" style="display:block;margin-bottom:12px;opacity:.3;"></i>
+                                尚未建立畫面設計，請至「畫面設計」頁面製作後儲存
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="activeAlarmPanel" class="active-alarm-panel">
+                <div class="alarm-panel-header">
+                    <div class="alarm-panel-title alarm-toggle-trigger" title="點擊折疊/展開">
+                        <i class="fas fa-bell"></i>
+                        <span>未恢復警報</span>
+                        <span class="alarm-count-badge zero">0</span>
+                        <i class="fas fa-chevron-down alarm-toggle-icon ms-2"></i>
+                    </div>
+                    <div class="alarm-panel-controls" onclick="event.stopPropagation();">
+                        <label class="alarm-filter-label">
+                            <i class="fas fa-filter"></i>
+                            <select id="alarmAckFilter" class="alarm-filter-select">
+                                <option value="all">全部</option>
+                                <option value="unacked">僅未確認</option>
+                                <option value="acked">僅已確認</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <div class="alarm-conn-warn" style="display:none;"></div>
+                <div class="alarm-panel-body">
+                    <ul class="alarm-list">
+                        <li class="alarm-empty"><i class="fas fa-check-circle text-success"></i>目前無未恢復警報</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：順序照 Index.cshtml @section Scripts ═══════════ -->
+    <script>
+        // 權限（Controller 注入模擬：Admin 視角）+ i18n 字典（shell 不載 i18n.js；值取自 resx zh-TW，含本頁 JS 用到的全部 key）
+        window._isAdmin = true;
+        window._scadaPagePerms = {};
+        window._canHistory = true;
+        (function () {
+            var D = {
+                "alarm.panel.fetch_failed": "警報資料取得失敗",
+                "alarm.panel.mqtt_disconnected": "警報 MQTT 連線中斷，顯示資料可能不是最新",
+                "alarm.panel.no_connection": "無法連線至伺服器",
+                "alarm.panel.empty.no_active": "目前無未恢復警報",
+                "alarm.panel.empty.no_match": "無符合篩選條件的警報",
+                "alarm.panel.ack.acked": "已確認",
+                "alarm.panel.ack.unack": "未確認",
+                "alarm.panel.ack.title.acked": "已確認 — {0}",
+                "alarm.panel.ack.title.dblclick": "雙擊以確認此警報",
+                "alarm.panel.ack.failed": "確認警報失敗",
+                "alarm.panel.ack.failed_with": "確認警報失敗：無法連線伺服器",
+                "alarm.panel.elapsed.sec": "{0} 秒前",
+                "alarm.panel.elapsed.min": "{0} 分前",
+                "alarm.panel.elapsed.hour": "{0} 小時前",
+                "alarm.panel.elapsed.day": "{0} 天前",
+                "scadapage.tree.empty": "尚無已發布設計",
+                "scadapage.tree.dblclick_expand": "雙擊展開子項 ({0})",
+                "scadapage.tree.dblclick_collapse": "雙擊摺疊",
+                "scadapage.badge.manual_mode_tooltip": "手動模式",
+                "scadapage.di.schedule_not_found": "排程不存在",
+                "scadapage.di.schedule_label": "排程",
+                "scadapage.trend.unbound": "未綁定點位",
+                "scadapage.cmetric.unit_cost": "元",
+                "scadapage.cmetric.estimated": "（估算）",
+                "scadapage.ctx.alarm_setting": "警報設定…",
+                "scadapage.ctx.history_new_tab": "歷史趨勢（開新頁）",
+                "scadapage.ctx.quick_trend": "快速趨勢（1 小時）",
+                "scadapage.ctx.add_trend_queue": "加入趨勢圖清單",
+                "scadapage.alarm_edit.saved": "警報規則已儲存",
+                "scadapage.alarm_edit.deleted": "警報規則已刪除",
+                "scadapage.alarm_edit.save_failed": "儲存失敗",
+                "scadapage.alarm_edit.delete_failed": "刪除失敗",
+                "scadapage.alarm_edit.confirm_delete": "確定要刪除此點位的警報規則？",
+                "scadapage.qt.close": "關閉",
+                "scadapage.qt.loading": "載入中…",
+                "scadapage.qt.no_data": "此區間無資料",
+                "scadapage.qt.load_failed": "歷史資料載入失敗",
+                "designer.picker.title.device": "選擇設備",
+                "designer.picker.title.source": "選擇點位來源",
+                "designer.picker.title.point": "選擇點位",
+                "designer.picker.title.calc_group": "選擇計算點位群組",
+                "designer.picker.title.db_source": "選擇 DB 來源",
+                "designer.picker.source.device": "設備點位",
+                "designer.picker.source.device_desc": "從 Modbus 設備選擇原始點位",
+                "designer.picker.source.calc": "計算點位",
+                "designer.picker.source.calc_desc": "從公式衍生的計算點位",
+                "designer.picker.source.db": "DB 來源點位",
+                "designer.picker.source.db_desc": "從外部資料庫寫入的點位",
+                "designer.picker.back": "返回",
+                "designer.picker.search_placeholder": "搜尋點位名稱…",
+                "designer.picker.device_search_placeholder": "搜尋設備 / 子設備…",
+                "designer.picker.cancel": "取消",
+                "designer.picker.confirm": "確認",
+                "designer.picker.points_count": "{count} 個點位",
+                "designer.picker.ungrouped": "未分組",
+                "designer.picker.db_source_default": "DB 來源",
+                "designer.picker.no_matching_points": "無符合點位",
+                "designer.picker.load_error": "無法載入設備/點位清單，請確認資料庫連線。",
+                "arf.pre_point.not_found": "找不到此點位",
+                "arf.error.select_point": "請選擇點位",
+                "arf.error.delay_range": "延遲秒數需介於 0 ~ 86400",
+                "arf.error.pre_sid_required": "請選擇前置條件點位",
+                "arf.error.pre_sid_self": "前置條件點位不可為本點",
+                "arf.error.pre_sid_virtual": "需量 / 迴路用電虛擬點位不可作為前置條件",
+                "arf.error.pre_sid_unknown": "前置條件點位不存在，請從清單選擇",
+                "arf.error.pre_value_required": "請輸入前置條件比較值",
+                "arf.error.forbidden": "權限不足：僅管理員 / 工程師可修改警報規則",
+                "arf.summary": "前置：{point} {cond} 持續 {sec}s",
+                "arf.pre_point.none": "尚未選擇點位",
+                "pp.source.opc": "OPC UA 點位",
+                "pp.source.opc_desc": "從 OPC UA Server 讀取的點位",
+                "pp.title.opc_source": "選擇 OPC UA 來源"
+            };
+            window.i18n = { t: function (k, a) {
+                var s = D[k] || k;
+                if (a) Object.keys(a).forEach(function (x) { s = s.split('{' + x + '}').join(a[x]); });
+                return s;
+            } };
+        })();
+    </script>
+    <script src="{{WWWROOT}}/js/common/schedule-eval.js"></script>
+    <script src="{{WWWROOT}}/js/common/motor-equip-svg.js"></script>
+    <script src="{{WWWROOT}}/js/common/pipe-svg.js"></script>
+    <script src="{{WWWROOT}}/js/common/image-widget.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/trend-window.js"></script>
+    <script src="{{WWWROOT}}/js/common/point-grouping.js"></script>
+    <script src="{{WWWROOT}}/js/common/point-picker.js"></script>
+    <script src="{{WWWROOT}}/js/common/alarm-rule-form.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/state.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/widget-trend.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/widget-points.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/widget-pump.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/widget-pipe.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/widget-motor.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/widget-table.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/ctx-menus-points.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/ctx-menus-equip.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/alarm-quick-edit.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/quick-trend.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/circuit-metric.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/tree.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/render.js"></script>
+    <script src="{{WWWROOT}}/js/scadapage/index.js"></script>
+    <script src="{{WWWROOT}}/js/active-alarm-panel.js"></script>
+    <script>
+    // ── driver：依 SCENE 觸發右鍵選單（等畫布與第一輪即時值就緒）──
+    (function () {
+        function when(fn, cb, n) {
+            n = n || 0;
+            if (fn()) return cb();
+            if (n < 100) setTimeout(function () { when(fn, cb, n + 1); }, 50);
+        }
+        function ctx(el, dx, dy) {
+            var r = el.getBoundingClientRect();
+            el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true,
+                clientX: r.left + (dx != null ? dx : r.width / 2), clientY: r.top + (dy != null ? dy : r.height / 2) }));
+        }
+        var ready = function () { return lastData.length && document.querySelector('#scadaCanvas [data-type="pump"]'); };
+        if (window.SCENE === 'ctx-point') {
+            when(ready, function () {
+                setTimeout(function () { ctx(document.querySelector('.scada-rt-value[data-sid="MB013-AI-004"]'), 140, 28); }, 200);
+            });
+        } else if (window.SCENE === 'ctx-pump') {
+            when(ready, function () {
+                setTimeout(function () {
+                    var el = Array.prototype.find.call(document.querySelectorAll('.scada-pump'), function (x) { return x.dataset.szTitle === '冰水泵 CHP-01'; });
+                    ctx(el, 90, 60);
+                    // 模擬滑鼠移到「啟動停止」→ 展開子選單
+                    var menu = document.body.lastElementChild;   // 右鍵選單 append 在 body 最後
+                    if (menu && menu.firstElementChild) menu.firstElementChild.dispatchEvent(new MouseEvent('mouseenter'));
+                }, 200);
+            });
+        }
+    })();
+    </script>
+
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

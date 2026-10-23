@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<!-- SCADA 模式外殼（深藍主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>警報設定 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarmsetting.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/point-picker.css">
+    <style>*,*::before,*::after{transition:none!important;animation:none!important;}</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            // '/Xxx/api/yyy': function () { return { ... }; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0"><i class="fas fa-bell me-2"></i>警報設定</h4>
+        <div id="tabActionBar">
+            <button class="btn btn-primary" id="btnAddRule" onclick="window._alarm.showAddModal()">
+                <i class="fas fa-plus me-1"></i>新增規則
+            </button>
+            <button class="btn btn-primary d-none" id="btnAddLineTarget" onclick="window._alarmSetting.showAddLineModal()">
+                <i class="fas fa-plus me-1"></i>新增 Line 群組
+            </button>
+            <button class="btn btn-primary d-none" id="btnAddEmailGroup" onclick="window._alarmEmail.showAddGroupModal()">
+                <i class="fas fa-plus me-1"></i>新增 Email 群組
+            </button>
+            <button class="btn btn-outline-secondary d-none" id="btnEmailConfig" onclick="window._alarmEmail.showConfigModal()">
+                <i class="fas fa-cog me-1"></i>SMTP 設定
+            </button>
+            <button class="btn btn-primary d-none" id="btnAddSmsTarget" onclick="window._alarmSms.showAddModal()">
+                <i class="fas fa-plus me-1"></i>新增號碼
+            </button>
+            <button class="btn btn-outline-secondary d-none" id="btnSmsConfig" onclick="window._alarmSms.showConfigModal()">
+                <i class="fas fa-cog me-1"></i>簡訊盒設定
+            </button>
+        </div>
+    </div>
+
+    <!-- Nav Tabs -->
+    <ul class="nav nav-tabs alarm-tabs mb-3" id="alarmSettingTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-rules-btn" data-bs-toggle="tab"
+                    data-bs-target="#tab-rules" type="button" role="tab">
+                <i class="fas fa-bell me-1"></i>警報規則
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-line-btn" data-bs-toggle="tab"
+                    data-bs-target="#tab-line" type="button" role="tab">
+                <i class="fab fa-line me-1"></i>Line 通知設定
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-email-btn" data-bs-toggle="tab"
+                    data-bs-target="#tab-email" type="button" role="tab">
+                <i class="fas fa-envelope me-1"></i>Email 通知設定
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-sms-btn" data-bs-toggle="tab"
+                    data-bs-target="#tab-sms" type="button" role="tab">
+                <i class="fas fa-sms me-1"></i>簡訊通知
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="alarmSettingTabContent">
+
+        <!-- ── 警報規則 Tab ── -->
+        <div class="tab-pane fade show active" id="tab-rules" role="tabpanel">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="rulesTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width:50px">啟用</th>
+                                    <th>設備 / 點位</th>
+                                    <th>上限警報</th>
+                                    <th>下限警報</th>
+                                    <th>DI 警報</th>
+                                    <th>前置條件 / 延遲</th>
+                                    <th>備註</th>
+                                    <th style="width:120px">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rulesBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="emptyMsg" class="text-center text-muted py-4 d-none">
+                        <i class="fas fa-info-circle me-1"></i>尚無警報規則，請點擊「新增規則」
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Line 通知設定 Tab ── -->
+        <div class="tab-pane fade" id="tab-line" role="tabpanel">
+            <div class="alert alert-info py-2 mb-3 d-flex align-items-center">
+                <i class="fas fa-info-circle me-2"></i>
+                <div class="small">
+                    警報觸發時將推播至下列已啟用的 Line 群組。Critical（緊急）警報永遠單獨送、不受限流影響；其他嚴重度若每群組每分鐘超過 10 則，將自動合併為摘要訊息。
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="lineTargetsTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width:50px">啟用</th>
+                                    <th>標籤</th>
+                                    <th>GroupID</th>
+                                    <th style="width:120px">語系</th>
+                                    <th style="width:160px">接收嚴重度上限</th>
+                                    <th style="width:240px">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lineTargetsBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="lineEmptyMsg" class="text-center text-muted py-4 d-none">
+                        <i class="fab fa-line fa-2x mb-2 d-block"></i>
+                        尚未設定 Line 通知群組，點擊上方「新增 Line 群組」建立第一筆。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Email 通知設定 Tab ── -->
+        <div class="tab-pane fade" id="tab-email" role="tabpanel">
+            <div class="alert alert-info py-2 mb-3 d-flex align-items-center">
+                <i class="fas fa-info-circle me-2"></i>
+                <div class="small">警報觸發時透過 SMTP 寄信給對應群組的啟用收件人。Critical（緊急）警報永遠單獨送、不受限流影響。先設定 SMTP 後再建立群組與收件人。</div>
+            </div>
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="emailGroupsTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width:50px">啟用</th>
+                                    <th>標籤</th>
+                                    <th style="width:140px">收件人數</th>
+                                    <th style="width:120px">語系</th>
+                                    <th style="width:160px">接收嚴重度上限</th>
+                                    <th style="width:340px">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="emailGroupsBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="emailEmptyMsg" class="text-center text-muted py-4 d-none">
+                        <i class="fas fa-envelope fa-2x mb-2 d-block"></i>
+                        尚未設定 Email 通知群組，點擊上方「新增 Email 群組」建立第一筆。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── 簡訊通知設定 Tab ── -->
+        <div class="tab-pane fade" id="tab-sms" role="tabpanel">
+            <div class="alert alert-info py-2 mb-3 d-flex align-items-center">
+                <i class="fas fa-info-circle me-2"></i>
+                <div class="small">無網際網路也能通知：警報經序列埠簡訊盒（GSM/4G Modem + SIM 卡）直接發送簡訊。每個號碼可獨立設定接收嚴重度與語言；簡訊盒需支援標準 AT 指令（3GPP TS 27.005），不限廠牌。中文簡訊單封上限 70 字，超長自動截斷。</div>
+            </div>
+
+            <!-- 簡訊盒即時狀態卡 -->
+            <div class="card mb-3">
+                <div class="card-body py-2 d-flex flex-wrap align-items-center gap-3" id="smsStatusCard">
+                    <span class="fw-semibold"><i class="fas fa-broadcast-tower me-1"></i>簡訊盒狀態</span>
+                    <span id="smsStatusBadge" class="badge bg-secondary">未知（等待 Engine 回報）</span>
+                    <span class="text-muted small" id="smsStatusPort"></span>
+                    <span class="text-muted small" id="smsStatusSignal"></span>
+                    <span class="text-muted small" id="smsStatusSim"></span>
+                    <span class="text-muted small" id="smsStatusQuota"></span>
+                    <span class="text-muted small" id="smsStatusLastTest"></span>
+                    <button class="btn btn-sm btn-outline-secondary ms-auto" id="btnSmsRescan"
+                            onclick="window._alarmSms.rescan(this)">
+                        <i class="fas fa-sync-alt me-1"></i>重新掃描
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="smsTargetsTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width:50px">啟用</th>
+                                    <th>標籤</th>
+                                    <th>手機號碼</th>
+                                    <th style="width:120px">語系</th>
+                                    <th style="width:160px">接收嚴重度上限</th>
+                                    <th style="width:240px">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="smsTargetsBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="smsEmptyMsg" class="text-center text-muted py-4 d-none">
+                        <i class="fas fa-sms fa-2x mb-2 d-block"></i>
+                        尚未設定簡訊號碼，點右上「新增號碼」開始
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/編輯 Modal -->
+<div class="modal fade" id="ruleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ruleModalTitle">新增警報規則</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId" />
+
+                <!-- 點位選擇 -->
+                <input type="hidden" id="txtSid" />
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">設備</label>
+                        <select class="form-select" id="selCoord" onchange="window._alarm.onCoordChange()">
+                            <option value="">-- 請選擇 --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-none" id="subDeviceCol">
+                        <label class="form-label" id="subDeviceLabel">子設備</label>
+                        <select class="form-select" id="selSubDevice" onchange="window._alarm.onSubDeviceChange()">
+                            <option value="">-- 請選擇子設備 --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4" id="pointCol">
+                        <label class="form-label">點位</label>
+                        <select class="form-select" id="selPoint" onchange="window._alarm.onPointChange()">
+                            <option value="">-- 請先選擇設備 --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr />
+
+                
+                
+
+<div id="alarmRuleForm">
+    <!-- 上限警報 -->
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-2">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="chkAlarmHigh"
+                       onchange="window.AlarmRuleForm.toggleSection('high')">
+                <label class="form-check-label fw-bold" for="chkAlarmHigh">上限警報</label>
+            </div>
+        </div>
+        <div class="col-md-3" id="secHighValue">
+            <label class="form-label">閾值</label>
+            <input type="number" class="form-control" id="txtAlarmHighValue" step="any" />
+        </div>
+        <div class="col-md-3" id="secHighDeadband">
+            <label class="form-label">死區</label>
+            <input type="number" class="form-control" id="txtDeadbandHigh" step="any" value="0" />
+        </div>
+        <div class="col-md-3" id="secHighSeverity">
+            <label class="form-label">嚴重程度</label>
+            <select class="form-select" id="selHighSeverity">
+                <option value="0">緊急</option>
+                <option value="1" selected>高</option>
+                <option value="2">中</option>
+                <option value="3">低</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 下限警報 -->
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-2">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="chkAlarmLow"
+                       onchange="window.AlarmRuleForm.toggleSection('low')">
+                <label class="form-check-label fw-bold" for="chkAlarmLow">下限警報</label>
+            </div>
+        </div>
+        <div class="col-md-3" id="secLowValue">
+            <label class="form-label">閾值</label>
+            <input type="number" class="form-control" id="txtAlarmLowValue" step="any" />
+        </div>
+        <div class="col-md-3" id="secLowDeadband">
+            <label class="form-label">死區</label>
+            <input type="number" class="form-control" id="txtDeadbandLow" step="any" value="0" />
+        </div>
+        <div class="col-md-3" id="secLowSeverity">
+            <label class="form-label">嚴重程度</label>
+            <select class="form-select" id="selLowSeverity">
+                <option value="0">緊急</option>
+                <option value="1" selected>高</option>
+                <option value="2">中</option>
+                <option value="3">低</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- DI 警報 -->
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-2">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="chkDiAlarm"
+                       onchange="window.AlarmRuleForm.toggleSection('di')">
+                <label class="form-check-label fw-bold" for="chkDiAlarm">DI 警報</label>
+            </div>
+        </div>
+        <div class="col-md-3" id="secDiTrigger">
+            <label class="form-label">觸發狀態</label>
+            <select class="form-select" id="selDiTrigger">
+                <option value="ON">ON</option>
+                <option value="OFF">OFF</option>
+            </select>
+        </div>
+        <div class="col-md-3" id="secDiSeverity">
+            <label class="form-label">嚴重程度</label>
+            <select class="form-select" id="selDiSeverity">
+                <option value="0">緊急</option>
+                <option value="1" selected>高</option>
+                <option value="2">中</option>
+                <option value="3">低</option>
+            </select>
+        </div>
+    </div>
+    <div class="row mb-3" id="secDiLabels" style="display:none;">
+        <div class="col-md-2"></div>
+        <div class="col-md-3">
+            <label class="form-label">ON 標籤</label>
+            <input type="text" class="form-control" id="txtDiOnLabel" placeholder="ON" maxlength="50" readonly />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">OFF 標籤</label>
+            <input type="text" class="form-control" id="txtDiOffLabel" placeholder="OFF" maxlength="50" readonly />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label d-block">&nbsp;</label>
+            <small class="text-muted"><i class="fas fa-info-circle me-1"></i>由 Designer DI 點位設定自動帶入</small>
+        </div>
+    </div>
+
+    <!-- 本點警報延遲（on-delay） -->
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-2">
+            <label class="form-label fw-bold mb-0" for="txtAlarmDelaySec">警報延遲</label>
+        </div>
+        <div class="col-md-3">
+            <div class="input-group">
+                <input type="number" class="form-control" id="txtAlarmDelaySec" min="0" max="86400" step="1" value="0" />
+                <span class="input-group-text">秒</span>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <small class="text-muted"><i class="fas fa-info-circle me-1"></i>越限須持續滿 N 秒才觸發（高 / 低 / DI 各自計時），0 = 立即；恢復一律立即</small>
+        </div>
+    </div>
+
+    
+        <!-- 恢復通知（各通道；一般恢復與前置條件不成立造成的清除皆適用） -->
+        <div class="row mb-3 align-items-center">
+            <div class="col-md-2">
+                <span class="form-label fw-bold mb-0">恢復通知</span>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="chkRecoveryNotifyLine" checked>
+                    <label class="form-check-label" for="chkRecoveryNotifyLine">Line</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="chkRecoveryNotifyEmail" checked>
+                    <label class="form-check-label" for="chkRecoveryNotifyEmail">Email</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="chkRecoveryNotifySms" checked>
+                    <label class="form-check-label" for="chkRecoveryNotifySms">簡訊</label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <small class="text-muted"><i class="fas fa-info-circle me-1"></i>警報恢復時要發通知的通道（含前置條件不成立造成的清除）；簡訊另需「簡訊設定」的恢復通知開關也開啟</small>
+            </div>
+        </div>
+    
+
+    <hr />
+
+    <!-- 前置條件（連鎖遮蔽） -->
+    <div class="row mb-2 align-items-center">
+        <div class="col-12">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="chkPrecondition"
+                       onchange="window.AlarmRuleForm.toggleSection('pre')">
+                <label class="form-check-label fw-bold" for="chkPrecondition">前置條件</label>
+                <small class="text-muted ms-2">另一點位條件成立並持續 N 秒後，才判斷本點警報</small>
+            </div>
+        </div>
+    </div>
+    <div id="secPrecondition" style="display:none;">
+        <div class="row mb-3">
+            <div class="col-md-5">
+                <label class="form-label" for="btnPickPrePoint">前置點位</label>
+                
+                <input type="hidden" id="txtPreSid" />
+                <div class="input-group">
+                    <span class="form-control text-truncate" id="arfPrePointName"></span>
+                    <button type="button" class="btn btn-outline-primary" id="btnPickPrePoint"
+                            onclick="window.AlarmRuleForm.pickPrePoint()">
+                        <i class="fas fa-crosshairs me-1"></i>選擇點位
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="selPreOperator">條件</label>
+                <select class="form-select" id="selPreOperator" onchange="window.AlarmRuleForm.toggleSection('pre')">
+                    <option value="GE">&ge;</option>
+                    <option value="GT">&gt;</option>
+                    <option value="LE">&le;</option>
+                    <option value="LT">&lt;</option>
+                    <option value="EQ">=</option>
+                    <option value="NE">&ne;</option>
+                    <option value="ON">ON</option>
+                    <option value="OFF">OFF</option>
+                </select>
+            </div>
+            <div class="col-md-2" id="secPreValue">
+                <label class="form-label" for="txtPreValue">比較值</label>
+                <input type="number" class="form-control" id="txtPreValue" step="any" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="txtPreDelaySec">持續</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="txtPreDelaySec" min="0" max="86400" step="1" value="0" />
+                    <span class="input-group-text">秒</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <label class="form-label" for="txtRemarks">備註</label>
+            <input type="text" class="form-control" id="txtRemarks" maxlength="200" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">啟用</label>
+            <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="chkEnabled" checked>
+                <label class="form-check-label" for="chkEnabled">啟用此規則</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._alarm.save()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Line 群組新增/編輯 Modal -->
+<div class="modal fade" id="lineTargetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="lineTargetModalTitle">新增 Line 群組</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="lineTargetEditId" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-tag me-1"></i>標籤</label>
+                    <input type="text" class="form-control" id="txtLineLabel"
+                           maxlength="100" placeholder="例如：主管群、工程值班群" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fab fa-line me-1"></i>Line GroupID</label>
+                    <input type="text" class="form-control" id="txtLineGroupId"
+                           maxlength="64" placeholder="C 開頭 33 字元" />
+                    <div class="form-text">於 Line 群組加入 Bot 後，由 Webhook 取得。</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-filter me-1"></i>接收嚴重度上限</label>
+                    <select class="form-select" id="selLineMaxSeverity">
+                        <option value="0">只收 緊急（Critical）</option>
+                        <option value="1">收 緊急 + 高</option>
+                        <option value="2">收 緊急 + 高 + 中</option>
+                        <option value="3" selected>全收（緊急 / 高 / 中 / 低）</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-language me-1"></i>通知語系</label>
+                    <select class="form-select" id="selLineLanguage">
+                        <option value="zh-TW" selected>繁體中文 (zh-TW)</option>
+                        <option value="en">English (en)</option>
+                    </select>
+                    <div class="form-text">此設定僅影響推播訊息內容的語言，不影響 Web 介面語系。</div>
+                </div>
+
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chkLineEnabled" checked />
+                    <label class="form-check-label" for="chkLineEnabled">啟用此群組</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._alarmSetting.saveLineTarget()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email 群組新增/編輯 Modal -->
+<div class="modal fade" id="emailGroupModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailGroupModalTitle">新增 Email 群組</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="emailGroupEditId" />
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">群組識別名稱</label>
+                        <input type="text" class="form-control" id="txtEmailGroupName" maxlength="100" placeholder="shift_engineers" />
+                        <div class="form-text">系統識別用，建議英數，須唯一</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">群組顯示名稱</label>
+                        <input type="text" class="form-control" id="txtEmailGroupLabel" maxlength="100" placeholder="值班工程師" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold">接收嚴重度上限</label>
+                        <select class="form-select" id="selEmailMaxSeverity">
+                            <option value="0">只收 緊急（Critical）</option>
+                            <option value="1">收 緊急 + 高</option>
+                            <option value="2">收 緊急 + 高 + 中</option>
+                            <option value="3" selected>全收（緊急 / 高 / 中 / 低）</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold">通知語系</label>
+                        <select class="form-select" id="selEmailLanguage">
+                            <option value="zh-TW" selected>繁體中文 (zh-TW)</option>
+                            <option value="en">English (en)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold">啟用</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="chkEmailGroupEnabled" checked />
+                            <label class="form-check-label" for="chkEmailGroupEnabled">啟用此規則</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">備註</label>
+                    <input type="text" class="form-control" id="txtEmailGroupRemarks" maxlength="200" />
+                </div>
+
+                <hr/>
+                <h6 class="mb-2"><i class="fas fa-users me-1"></i>群組收件人</h6>
+                <div id="emailRecipientsSection" class="mb-3">
+                    <small id="emailRecipientsHint" class="text-muted">儲存群組後可新增收件人。</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._alarmEmail.saveGroup()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email 收件人新增/編輯 Modal -->
+<div class="modal fade" id="emailRecipientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailRecipientModalTitle">新增收件人</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="emailRecipientEditId" />
+                <input type="hidden" id="emailRecipientGroupId" />
+                <div class="mb-3">
+                    <label class="form-label">收件 Email</label>
+                    <input type="email" class="form-control" id="txtRecipientEmail" maxlength="200" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">顯示名稱</label>
+                    <input type="text" class="form-control" id="txtRecipientName" maxlength="100" />
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chkRecipientEnabled" checked />
+                    <label class="form-check-label" for="chkRecipientEnabled">啟用此規則</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._alarmEmail.saveRecipient()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SMTP 設定 Modal -->
+<div class="modal fade" id="emailConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">SMTP 設定</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">SMTP 主機</label>
+                        <input type="text" class="form-control" id="txtSmtpHost" maxlength="200" placeholder="smtp.gmail.com" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">連接埠</label>
+                        <input type="number" class="form-control" id="txtSmtpPort" value="587" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label d-block">&nbsp;</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="chkSmtpStartTls" checked />
+                            <label class="form-check-label" for="chkSmtpStartTls">STARTTLS</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="chkSmtpSsl" />
+                            <label class="form-check-label" for="chkSmtpSsl">SSL</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">SMTP 帳號</label>
+                        <input type="text" class="form-control" id="txtSmtpUsername" maxlength="200" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">SMTP 密碼</label>
+                        <input type="password" class="form-control" id="txtSmtpPassword" maxlength="200" placeholder="不變更請留空" />
+                        <div class="form-text" id="smtpPasswordHint"></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">寄件者 Email</label>
+                        <input type="email" class="form-control" id="txtFromAddress" maxlength="200" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">寄件者顯示名稱</label>
+                        <input type="text" class="form-control" id="txtFromDisplayName" maxlength="100" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">每群組每分鐘上限</label>
+                        <input type="number" class="form-control" id="txtEmailRatePerMinute" value="10" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">測試寄送節流（秒）</label>
+                        <input type="number" class="form-control" id="txtEmailTestThrottle" value="10" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label d-block">&nbsp;</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="chkEmailEnableNotification" checked />
+                            <label class="form-check-label" for="chkEmailEnableNotification">啟用 Email 通知</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._alarmEmail.saveConfig()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 警報規則對應 Modal -->
+<div class="modal fade" id="emailRulesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailRulesModalTitle">規則對應</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="emailRulesGroupId" />
+                <div class="alert alert-info py-2">
+                    <i class="fas fa-info-circle me-1"></i>
+                    勾選此群組要收到通知的警報規則；不勾選任何項目視為「全收」（所有規則觸發時都會收到）。
+                </div>
+                <div id="emailRulesList" class="border rounded p-2" style="max-height:60vh;overflow:auto;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._alarmEmail.saveRules()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 簡訊號碼新增/編輯 Modal -->
+<div class="modal fade" id="smsTargetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="smsTargetModalTitle">新增簡訊號碼</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="smsTargetEditId" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-tag me-1"></i>顯示名稱</label>
+                    <input type="text" class="form-control" id="txtSmsLabel"
+                           maxlength="100" placeholder="例：王主任、值班工程師 A" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-mobile-alt me-1"></i>手機號碼</label>
+                    <input type="text" class="form-control" id="txtSmsPhone"
+                           maxlength="32" placeholder="例：+886912345678 或 0912345678" />
+                    <div class="form-text">建議使用國際格式（+886 開頭）；僅允許數字與開頭 +</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-filter me-1"></i>接收嚴重度上限</label>
+                    <select class="form-select" id="selSmsMaxSeverity">
+                        <option value="0">只收 緊急（Critical）</option>
+                        <option value="1">收 緊急 + 高</option>
+                        <option value="2">收 緊急 + 高 + 中</option>
+                        <option value="3" selected>全收（緊急 / 高 / 中 / 低）</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-language me-1"></i>通知語系</label>
+                    <select class="form-select" id="selSmsLanguage">
+                        <option value="zh-TW" selected>繁體中文 (zh-TW)</option>
+                        <option value="en">English (en)</option>
+                    </select>
+                    <div class="form-text">此設定僅影響推播訊息內容的語言，不影響 Web 介面語系。</div>
+                </div>
+
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chkSmsEnabled" checked />
+                    <label class="form-check-label" for="chkSmsEnabled">啟用此號碼</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._alarmSms.saveTarget()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 簡訊盒設定 Modal -->
+<div class="modal fade" id="smsConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">簡訊盒設定</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning py-2">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    簡訊盒設定僅在 Engine 啟動時載入，儲存後需重啟 Engine 才生效（收訊號碼的增刪改約 60 秒內自動生效，不需重啟）。
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">COM 連接埠</label>
+                        <input type="text" class="form-control" id="txtSmsComPort" value="auto" />
+                        <div class="form-text">auto = 自動掃描偵測；或手動指定如 COM3</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Baud Rate</label>
+                        <input type="number" class="form-control" id="txtSmsBaudRate" value="0" min="0" />
+                        <div class="form-text">0 = 自動嘗試（115200 → 9600）</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">SIM PIN 碼</label>
+                        <input type="password" class="form-control" id="txtSmsSimPin" autocomplete="new-password" />
+                        <div class="form-text">SIM 未設 PIN 請留空（建議關閉 PIN）</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">每群組每分鐘上限</label>
+                        <input type="number" class="form-control" id="txtSmsRatePerMinute" value="10" min="1" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">每日發送上限（封）</label>
+                        <input type="number" class="form-control" id="txtSmsDailyQuota" value="100" min="0" />
+                        <div class="form-text">防警報風暴燒簡訊費；0 = 不限制</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">測試寄送節流（秒）</label>
+                        <input type="number" class="form-control" id="txtSmsTestThrottle" value="10" min="1" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="chkSmsSendRecovery" checked />
+                            <label class="form-check-label" for="chkSmsSendRecovery">警報恢復時也發簡訊</label>
+                        </div>
+                        <div class="form-text">簡訊按封計費，關閉可省約一半費用</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="chkSmsEnableNotification" />
+                            <label class="form-check-label" for="chkSmsEnableNotification">啟用簡訊通知</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._alarmSms.saveConfig()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+<script>window.i18n={_d:{"alarm.title": "警報設定", "alarm.button.add_rule": "新增規則", "alarm.button.add_line_group": "新增 Line 群組", "alarm.button.save": "儲存", "alarm.button.cancel": "取消", "alarm.button.edit": "編輯", "alarm.button.delete": "刪除", "alarm.button.test_send": "測試發送", "alarm.button.sending": "發送中", "alarm.tab.rules": "警報規則", "alarm.tab.line": "Line 通知設定", "alarm.col.enabled": "啟用", "alarm.col.device_point": "設備 / 點位", "alarm.col.alarm_high": "上限警報", "alarm.col.alarm_low": "下限警報", "alarm.col.alarm_di": "DI 警報", "alarm.col.remarks": "備註", "alarm.col.actions": "操作", "alarm.col.label": "標籤", "alarm.col.group_id": "GroupID", "alarm.col.max_severity": "接收嚴重度上限", "alarm.empty.no_rules": "尚無警報規則，請點擊「新增規則」", "alarm.empty.no_line_groups": "尚未設定 Line 通知群組，點擊上方「新增 Line 群組」建立第一筆。", "alarm.line.info": "警報觸發時將推播至下列已啟用的 Line 群組。Critical（緊急）警報永遠單獨送、不受限流影響；其他嚴重度若每群組每分鐘超過 10 則，將自動合併為摘要訊息。", "alarm.modal.title_add": "新增警報規則", "alarm.modal.title_edit": "編輯警報規則", "alarm.line_modal.title_add": "新增 Line 群組", "alarm.line_modal.title_edit": "編輯 Line 群組", "alarm.field.device": "設備", "alarm.field.sub_device": "子設備", "alarm.field.point": "點位", "alarm.field.threshold": "閾值", "alarm.field.deadband": "死區", "alarm.field.severity": "嚴重程度", "alarm.field.trigger_state": "觸發狀態", "alarm.field.on_label": "ON 標籤", "alarm.field.off_label": "OFF 標籤", "alarm.field.remarks": "備註", "alarm.field.is_enabled": "啟用此規則", "alarm.field.is_line_enabled": "啟用此群組", "alarm.field.line_label": "標籤", "alarm.field.line_label_placeholder": "例如：主管群、工程值班群", "alarm.field.line_group_id": "Line GroupID", "alarm.field.line_group_id_placeholder": "C 開頭 33 字元", "alarm.field.line_group_id_hint": "於 Line 群組加入 Bot 後，由 Webhook 取得。", "alarm.field.max_severity": "接收嚴重度上限", "alarm.toggle.alarm_high": "上限警報", "alarm.toggle.alarm_low": "下限警報", "alarm.toggle.alarm_di": "DI 警報", "alarm.di_labels.hint": "由 Designer DI 點位設定自動帶入", "alarm.severity.critical": "緊急", "alarm.severity.high": "高", "alarm.severity.medium": "中", "alarm.severity.low": "低", "alarm.max_severity.0": "只收 緊急（Critical）", "alarm.max_severity.1": "收 緊急 + 高", "alarm.max_severity.2": "收 緊急 + 高 + 中", "alarm.max_severity.3": "全收（緊急 / 高 / 中 / 低）", "alarm.max_severity_pill.0": "只收 緊急", "alarm.max_severity_pill.1": "緊急 + 高", "alarm.max_severity_pill.2": "緊急 + 高 + 中", "alarm.max_severity_pill.3": "全收", "alarm.select.placeholder": "-- 請選擇 --", "alarm.select.sub_device_placeholder": "-- 請選擇子設備 --", "alarm.select.point_placeholder": "-- 請先選擇設備 --", "alarm.option.calc_point": "計算點位", "alarm.alert.select_point": "請選擇點位", "alarm.alert.input_label": "請填寫標籤", "alarm.alert.input_group_id": "請填寫 GroupID", "alarm.alert.save_failed": "儲存失敗", "alarm.alert.delete_failed": "刪除失敗", "alarm.alert.toggle_failed": "切換失敗", "alarm.alert.send_failed": "發送失敗", "alarm.alert.send_failed_with_msg": "發送失敗：{message}", "alarm.alert.retry_later": "請稍候再試", "alarm.confirm.delete_rule": "確定要刪除此警報規則？", "alarm.confirm.delete_line_group": "確定要刪除此 Line 群組？", "alarm.confirm.delete_email_group": "確定要刪除此 Email 群組？（同時刪除所有收件人）", "alarm.confirm.delete_recipient": "確定要刪除此收件人？", "alarm.toast.test_sent": "測試訊息已送出，請檢查群組", "alarm.tab.email": "Email 通知設定", "alarm.button.add_email_group": "新增 Email 群組", "alarm.button.add_recipient": "新增收件人", "alarm.button.email_smtp_settings": "SMTP 設定", "alarm.col.language": "語系", "alarm.col.recipients_count": "收件人數", "alarm.empty.no_email_groups": "尚未設定 Email 通知群組，點擊上方「新增 Email 群組」建立第一筆。", "alarm.email.info": "警報觸發時透過 SMTP 寄信給對應群組的啟用收件人。Critical（緊急）警報永遠單獨送、不受限流影響。先設定 SMTP 後再建立群組與收件人。", "alarm.email.recipients_title": "群組收件人", "alarm.email.recipients_hint": "儲存群組後可新增收件人。", "alarm.email.button.rules": "對應規則", "alarm.email.rules_hint": "勾選此群組要收到通知的警報規則；不勾選任何項目視為「全收」（所有規則觸發時都會收到）。", "alarm.email_modal.title_add_group": "新增 Email 群組", "alarm.email_modal.title_edit_group": "編輯 Email 群組", "alarm.email_modal.title_add_recipient": "新增收件人", "alarm.email_modal.title_config": "SMTP 設定", "alarm.email_modal.title_rules": "規則對應", "alarm.field.language": "通知語系", "alarm.field.language_hint": "此設定僅影響推播訊息內容的語言，不影響 Web 介面語系。", "alarm.field.email_group_name": "群組識別名稱", "alarm.field.email_group_name_placeholder": "shift_engineers", "alarm.field.email_group_name_hint": "系統識別用，建議英數，須唯一", "alarm.field.email_group_label": "群組顯示名稱", "alarm.field.email_group_label_placeholder": "值班工程師", "alarm.field.recipient_email": "收件 Email", "alarm.field.recipient_name": "顯示名稱", "alarm.field.smtp_host": "SMTP 主機", "alarm.field.smtp_port": "連接埠", "alarm.field.smtp_username": "SMTP 帳號", "alarm.field.smtp_password": "SMTP 密碼", "alarm.field.smtp_password_placeholder": "不變更請留空", "alarm.field.smtp_password_already_set": "已設定密碼，留空表示不變更。", "alarm.field.smtp_password_not_set": "尚未設定密碼。", "alarm.field.from_address": "寄件者 Email", "alarm.field.from_display_name": "寄件者顯示名稱", "alarm.field.rate_per_minute": "每群組每分鐘上限", "alarm.field.test_throttle_seconds": "測試寄送節流（秒）", "alarm.field.enable_notification": "啟用 Email 通知", "alarm.alert.input_group_name": "請填寫群組識別名稱", "alarm.alert.input_email": "請填寫 Email", "alarm.alert.save_group_first": "請先儲存群組再新增收件人", "alarm.tab.sms": "簡訊通知", "alarm.button.add_sms_target": "新增號碼", "alarm.button.sms_settings": "簡訊盒設定", "alarm.sms.info": "無網際網路也能通知：警報經序列埠簡訊盒（GSM/4G Modem + SIM 卡）直接發送簡訊。每個號碼可獨立設定接收嚴重度與語言；簡訊盒需支援標準 AT 指令（3GPP TS 27.005），不限廠牌。中文簡訊單封上限 70 字，超長自動截斷。", "alarm.sms.status_title": "簡訊盒狀態", "alarm.sms.status_unknown": "未知（等待 Engine 回報）", "alarm.sms.status_disabled": "未啟用", "alarm.sms.status_connected": "已連線", "alarm.sms.status_disconnected": "未連線", "alarm.sms.status_port": "連接埠", "alarm.sms.status_signal": "訊號", "alarm.sms.status_today_sent": "今日已發", "alarm.sms.status_last_test": "最近測試", "alarm.sms.test_ok": "成功", "alarm.sms.test_fail": "失敗", "alarm.sms.button_rescan": "重新掃描", "alarm.sms.button_rescanning": "掃描中", "alarm.sms.config_restart_hint": "簡訊盒設定僅在 Engine 啟動時載入，儲存後需重啟 Engine 才生效（收訊號碼的增刪改約 60 秒內自動生效，不需重啟）。", "alarm.col.phone_number": "手機號碼", "alarm.empty.no_sms_targets": "尚未設定簡訊號碼，點右上「新增號碼」開始", "alarm.sms_modal.title_add": "新增簡訊號碼", "alarm.sms_modal.title_edit": "編輯簡訊號碼", "alarm.sms_modal.title_config": "簡訊盒設定", "alarm.field.sms_label": "顯示名稱", "alarm.field.sms_label_placeholder": "例：王主任、值班工程師 A", "alarm.field.phone_number": "手機號碼", "alarm.field.phone_number_placeholder": "例：+886912345678 或 0912345678", "alarm.field.phone_number_hint": "建議使用國際格式（+886 開頭）；僅允許數字與開頭 +", "alarm.field.is_sms_enabled": "啟用此號碼", "alarm.field.com_port": "COM 連接埠", "alarm.field.com_port_hint": "auto = 自動掃描偵測；或手動指定如 COM3", "alarm.field.baud_rate": "Baud Rate", "alarm.field.baud_rate_hint": "0 = 自動嘗試（115200 → 9600）", "alarm.field.sim_pin": "SIM PIN 碼", "alarm.field.sim_pin_hint": "SIM 未設 PIN 請留空（建議關閉 PIN）", "alarm.field.daily_quota": "每日發送上限（封）", "alarm.field.daily_quota_hint": "防警報風暴燒簡訊費；0 = 不限制", "alarm.field.send_recovery": "警報恢復時也發簡訊", "alarm.field.send_recovery_hint": "簡訊按封計費，關閉可省約一半費用", "alarm.field.enable_sms_notification": "啟用簡訊通知", "alarm.alert.input_phone": "請填寫手機號碼", "alarm.alert.phone_invalid": "手機號碼格式不正確（僅數字與開頭 +，8~15 碼）", "alarm.confirm.delete_sms_target": "確定要刪除此簡訊號碼？", "alarm.toast.saved": "已儲存", "alarm.option.demand_point": "需量點位", "alarm.option.nrg_point": "迴路用電", "alarm.option.ungrouped": "未分組", "alarm.field.calc_group": "群組", "alarm.field.circuit": "迴路", "alarm.select.group_placeholder": "-- 請選擇群組 --", "alarm.select.circuit_placeholder": "-- 請選擇迴路 --", "alarm.col.precondition": "前置條件 / 延遲", "alarm.rule.delay_tag": "延遲 {sec}s", "arf.toggle.alarm_high": "上限警報", "arf.toggle.alarm_low": "下限警報", "arf.toggle.alarm_di": "DI 警報", "arf.field.threshold": "閾值", "arf.field.deadband": "死區", "arf.field.severity": "嚴重程度", "arf.severity.critical": "緊急", "arf.severity.high": "高", "arf.severity.medium": "中", "arf.severity.low": "低", "arf.field.trigger_state": "觸發狀態", "arf.field.on_label": "ON 標籤", "arf.field.off_label": "OFF 標籤", "arf.di_labels.hint": "由 Designer DI 點位設定自動帶入", "arf.field.alarm_delay": "警報延遲", "arf.unit.sec": "秒", "arf.alarm_delay.hint": "越限須持續滿 N 秒才觸發（高 / 低 / DI 各自計時），0 = 立即；恢復一律立即", "arf.toggle.precondition": "前置條件", "arf.precondition.hint": "另一點位條件成立並持續 N 秒後，才判斷本點警報", "arf.field.pre_point": "前置點位", "arf.field.pre_operator": "條件", "arf.field.pre_value": "比較值", "arf.field.pre_delay": "持續", "arf.channel.sms": "簡訊", "arf.field.remarks": "備註", "arf.field.enabled": "啟用", "arf.field.is_enabled": "啟用此規則", "arf.pre_point.not_found": "找不到此點位", "arf.error.select_point": "請選擇點位", "arf.error.delay_range": "延遲秒數需介於 0 ~ 86400", "arf.error.pre_sid_required": "請選擇前置條件點位", "arf.error.pre_sid_self": "前置條件點位不可為本點", "arf.error.pre_sid_virtual": "需量 / 迴路用電虛擬點位不可作為前置條件", "arf.error.pre_sid_unknown": "前置條件點位不存在，請從清單選擇", "arf.error.pre_value_required": "請輸入前置條件比較值", "arf.error.forbidden": "權限不足：僅管理員 / 工程師可修改警報規則", "arf.summary": "前置：{point} {cond} 持續 {sec}s", "arf.summary.missing": "前置點位不存在，警報將一直被遮蔽", "arf.pre_point.pick": "選擇點位", "arf.pre_point.none": "尚未選擇點位", "pp.source.opc": "OPC UA 點位", "pp.source.opc_desc": "從 OPC UA Server 讀取的點位", "pp.title.opc_source": "選擇 OPC UA 來源", "arf.field.recovery_notify": "恢復通知", "arf.recovery_notify.hint": "警報恢復時要發通知的通道（含前置條件不成立造成的清除）；簡訊另需「簡訊設定」的恢復通知開關也開啟"},t:function(k,a){var v=this._d[k]||k;if(a)for(var i in a)v=v.split("{"+i+"}").join(a[i]);return v;},ready:function(cb){if(cb)setTimeout(cb,0);},getCulture:function(){return "zh-TW";}};</script>
+    <script>window._alarmInitData = {"coordinators": [{"id": 1, "name": "冰水泵 P-01", "modbusId": "1", "deviceName": ""}, {"id": 2, "name": "空調箱 AHU-02", "modbusId": "2", "deviceName": ""}, {"id": 3, "name": "電表 M-01", "modbusId": "3", "deviceName": ""}, {"id": 4, "name": "電表 M-02", "modbusId": "4", "deviceName": ""}, {"id": 5, "name": "空壓機 AC-01", "modbusId": "5", "deviceName": ""}, {"id": 6, "name": "水箱 T-01", "modbusId": "6", "deviceName": ""}, {"id": 7, "name": "冷卻水塔 CT-01", "modbusId": "7", "deviceName": ""}], "points": [{"sid": "65537-S1", "name": "出水溫度", "unit": "°C", "dataType": "Float"}, {"sid": "65538-S2", "name": "回水溫度", "unit": "°C", "dataType": "Float"}, {"sid": "65539-S3", "name": "運轉狀態", "unit": "", "dataType": "DI"}, {"sid": "65540-S4", "name": "頻率", "unit": "Hz", "dataType": "Float"}, {"sid": "131073-S1", "name": "回風溫度", "unit": "°C", "dataType": "Float"}, {"sid": "131074-S2", "name": "送風溫度", "unit": "°C", "dataType": "Float"}, {"sid": "131075-S3", "name": "運轉狀態", "unit": "", "dataType": "DI"}, {"sid": "196609-S1", "name": "功率因數", "unit": "", "dataType": "Float"}, {"sid": "196610-S2", "name": "有效功率", "unit": "kW", "dataType": "Float"}, {"sid": "262145-S1", "name": "電流", "unit": "A", "dataType": "Float"}, {"sid": "262146-S2", "name": "有效功率", "unit": "kW", "dataType": "Float"}, {"sid": "327681-S1", "name": "運轉狀態", "unit": "", "dataType": "DI"}, {"sid": "327682-S2", "name": "排氣壓力", "unit": "bar", "dataType": "Float"}, {"sid": "393217-S1", "name": "液位", "unit": "%", "dataType": "Float"}, {"sid": "458753-S1", "name": "出水溫度", "unit": "°C", "dataType": "Float"}], "rules": [{"id": 1, "sid": "65537-S1", "pointName": "出水溫度", "isEnabled": true, "isAlarmHigh": true, "alarmHighValue": 12, "deadbandHigh": 0.5, "alarmHighSeverity": 1, "isAlarmLow": false, "alarmLowValue": null, "deadbandLow": 0, "alarmLowSeverity": 1, "isDiAlarm": false, "diTriggerState": "ON", "diAlarmSeverity": 1, "diOnLabel": "", "diOffLabel": "", "remarks": "停機時不警報", "isPrecondition": true, "preSid": "65539-S3", "preOperator": "ON", "preValue": null, "preDelaySec": 120, "recoveryNotifyLine": true, "recoveryNotifyEmail": true, "recoveryNotifySms": true, "alarmDelaySec": 30}, {"id": 2, "sid": "65539-S3", "pointName": "運轉狀態", "isEnabled": true, "isAlarmHigh": false, "alarmHighValue": null, "deadbandHigh": 0, "alarmHighSeverity": 1, "isAlarmLow": false, "alarmLowValue": null, "deadbandLow": 0, "alarmLowSeverity": 1, "isDiAlarm": true, "diTriggerState": "ON", "diAlarmSeverity": 1, "diOnLabel": "", "diOffLabel": "", "remarks": "跳脫時通知維護組", "isPrecondition": false, "preSid": null, "preOperator": null, "preValue": null, "preDelaySec": 0, "recoveryNotifyLine": true, "recoveryNotifyEmail": true, "recoveryNotifySms": true, "alarmDelaySec": 0}, {"id": 3, "sid": "131073-S1", "pointName": "回風溫度", "isEnabled": true, "isAlarmHigh": true, "alarmHighValue": 28, "deadbandHigh": 1, "alarmHighSeverity": 2, "isAlarmLow": true, "alarmLowValue": 16, "deadbandLow": 1, "alarmLowSeverity": 3, "isDiAlarm": false, "diTriggerState": "ON", "diAlarmSeverity": 1, "diOnLabel": "", "diOffLabel": "", "remarks": "", "isPrecondition": true, "preSid": "131075-S3", "preOperator": "ON", "preValue": null, "preDelaySec": 300, "recoveryNotifyLine": true, "recoveryNotifyEmail": true, "recoveryNotifySms": true, "alarmDelaySec": 0}, {"id": 4, "sid": "196609-S1", "pointName": "功率因數", "isEnabled": true, "isAlarmHigh": false, "alarmHighValue": null, "deadbandHigh": 0, "alarmHighSeverity": 1, "isAlarmLow": true, "alarmLowValue": 0.85, "deadbandLow": 0.02, "alarmLowSeverity": 3, "isDiAlarm": false, "diTriggerState": "ON", "diAlarmSeverity": 1, "diOnLabel": "", "diOffLabel": "", "remarks": "", "isPrecondition": false, "preSid": null, "preOperator": null, "preValue": null, "preDelaySec": 0, "recoveryNotifyLine": true, "recoveryNotifyEmail": true, "recoveryNotifySms": true, "alarmDelaySec": 60}, {"id": 5, "sid": "262145-S1", "pointName": "電流", "isEnabled": true, "isAlarmHigh": true, "alarmHighValue": 180, "deadbandHigh": 5, "alarmHighSeverity": 1, "isAlarmLow": false, "alarmLowValue": null, "deadbandLow": 0, "alarmLowSeverity": 1, "isDiAlarm": false, "diTriggerState": "ON", "diAlarmSeverity": 1, "diOnLabel": "", "diOffLabel": "", "remarks": "", "isPrecondition": false, "preSid": null, "preOperator": null, "preValue": null, "preDelaySec": 0, "recoveryNotifyLine": true, "recoveryNotifyEmail": true, "recoveryNotifySms": true, "alarmDelaySec": 0}, {"id": 6, "sid": "327681-S1", "pointName": "運轉狀態", "isEnabled": true, "isAlarmHigh": false, "alarmHighValue": null, "deadbandHigh": 0, "alarmHighSeverity": 1, "isAlarmLow": false, "alarmLowValue": null, "deadbandLow": 0, "alarmLowSeverity": 1, "isDiAlarm": true, "diTriggerState": "ON", "diAlarmSeverity": 0, "diOnLabel": "", "diOffLabel": "", "remarks": "故障立即處理", "isPrecondition": false, "preSid": null, "preOperator": null, "preValue": null, "preDelaySec": 0, "recoveryNotifyLine": true, "recoveryNotifyEmail": true, "recoveryNotifySms": true, "alarmDelaySec": 0}, {"id": 7, "sid": "393217-S1", "pointName": "液位", "isEnabled": true, "isAlarmHigh": true, "alarmHighValue": 95, "deadbandHigh": 0, "alarmHighSeverity": 2, "isAlarmLow": true, "alarmLowValue": 30, "deadbandLow": 2, "alarmLowSeverity": 2, "isDiAlarm": false, "diTriggerState": "ON", "diAlarmSeverity": 1, "diOnLabel": "", "diOffLabel": "", "remarks": "", "isPrecondition": false, "preSid": null, "preOperator": null, "preValue": null, "preDelaySec": 0, "recoveryNotifyLine": true, "recoveryNotifyEmail": true, "recoveryNotifySms": true, "alarmDelaySec": 60}, {"id": 8, "sid": "458753-S1", "pointName": "出水溫度", "isEnabled": false, "isAlarmHigh": true, "alarmHighValue": 32, "deadbandHigh": 0, "alarmHighSeverity": 3, "isAlarmLow": false, "alarmLowValue": null, "deadbandLow": 0, "alarmLowSeverity": 1, "isDiAlarm": false, "diTriggerState": "ON", "diAlarmSeverity": 1, "diOnLabel": "", "diOffLabel": "", "remarks": "保養期間暫停", "isPrecondition": false, "preSid": null, "preOperator": null, "preValue": null, "preDelaySec": 0, "recoveryNotifyLine": true, "recoveryNotifyEmail": true, "recoveryNotifySms": true, "alarmDelaySec": 0}], "lineTargets": [{"id": 1, "groupId": "C0123456789abcdef", "label": "值班群組", "maxSeverity": 3, "language": "zh-TW", "isEnabled": true}], "emailGroups": [{"id": 1, "name": "on_duty", "label": "值班人員", "language": "zh-TW", "maxSeverity": 3, "isEnabled": true, "recipients": [{"id": 11, "email": "user11@example.com", "displayName": "", "isEnabled": true}, {"id": 12, "email": "user12@example.com", "displayName": "", "isEnabled": true}, {"id": 13, "email": "user13@example.com", "displayName": "", "isEnabled": true}, {"id": 14, "email": "user14@example.com", "displayName": "", "isEnabled": true}]}, {"id": 2, "name": "maintenance", "label": "設備維護組", "language": "zh-TW", "maxSeverity": 2, "isEnabled": true, "recipients": [{"id": 21, "email": "user21@example.com", "displayName": "", "isEnabled": true}, {"id": 22, "email": "user22@example.com", "displayName": "", "isEnabled": true}, {"id": 23, "email": "user23@example.com", "displayName": "", "isEnabled": true}]}, {"id": 3, "name": "managers", "label": "主管", "language": "en", "maxSeverity": 0, "isEnabled": false, "recipients": [{"id": 31, "email": "user31@example.com", "displayName": "", "isEnabled": true}, {"id": 32, "email": "user32@example.com", "displayName": "", "isEnabled": true}]}], "emailSenderConfig": {"smtpHost": "smtp.example.com", "smtpPort": 587, "useStartTls": true, "username": "scada@example.com", "hasPassword": true, "fromAddress": "scada@example.com", "fromDisplayName": "SCADA Engine", "ratePerMinute": 10, "testSendThrottleSeconds": 10, "enableNotification": true}, "smsTargets": [], "smsSenderConfig": {}, "alarmRulesForRouting": [{"id": 1, "sid": "65537-S1", "pointName": "出水溫度"}, {"id": 2, "sid": "65539-S3", "pointName": "運轉狀態"}, {"id": 3, "sid": "131073-S1", "pointName": "回風溫度"}, {"id": 4, "sid": "196609-S1", "pointName": "功率因數"}, {"id": 5, "sid": "262145-S1", "pointName": "電流"}, {"id": 6, "sid": "327681-S1", "pointName": "運轉狀態"}, {"id": 7, "sid": "393217-S1", "pointName": "液位"}, {"id": 8, "sid": "458753-S1", "pointName": "出水溫度"}], "diLabels": {"65539-S3": {"onLabel": "跳脫", "offLabel": "正常"}, "327681-S1": {"onLabel": "故障", "offLabel": "正常"}}, "calcGroups": {}, "circuits": []};</script>
+    <script src="{{WWWROOT}}/js/common/point-grouping.js"></script>
+    <script src="{{WWWROOT}}/js/common/point-picker.js"></script>
+    <script src="{{WWWROOT}}/js/common/alarm-rule-form.js"></script>
+    <script src="{{WWWROOT}}/js/alarmsetting.js"></script>
+    <script>
+    // driver：#add-modal → 開「新增規則」並填一筆示範（冰水泵 P-01 回水溫度上限 + 前置條件）；#tab-email 由頁面自己切分頁
+    window.addEventListener('load', function () {
+        if (location.hash !== '#add-modal') return;
+        setTimeout(function () {
+            window._alarm.showAddModal();
+            var $ = function (id) { return document.getElementById(id); };
+            $('selCoord').value = '1'; window._alarm.onCoordChange();
+            $('selPoint').value = '65538-S2'; window._alarm.onPointChange();
+            window.AlarmRuleForm.fill({ isEnabled: true, isAlarmHigh: true, alarmHighValue: 14, deadbandHigh: 0.5, alarmHighSeverity: 2,
+                isAlarmLow: false, alarmLowSeverity: 1, isDiAlarm: false, diTriggerState: 'ON', diAlarmSeverity: 1, alarmDelaySec: 30,
+                isPrecondition: true, preSid: '65539-S3', preOperator: 'ON', preDelaySec: 120, remarks: '停機時不警報',
+                recoveryNotifyLine: true, recoveryNotifyEmail: true, recoveryNotifySms: true });
+        }, 200);
+    });
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

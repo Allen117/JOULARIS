@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<!-- 使用手冊 scada/schedule-02：新增排程視窗（driver 開 modal 並填範例） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>排程設定 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/flatpickr/flatpickr.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/schedulesetting.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（未恢復警報數：移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>排程設定</h4>
+        <button class="btn btn-primary" onclick="window._schedule.showAddModal()">
+            <i class="fas fa-plus me-1"></i>新增排程
+        </button>
+    </div>
+
+    <!-- 排程列表 -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="scheduleTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width:50px">啟用</th>
+                            <th>排程名稱</th>
+                            <th>模式</th>
+                            <th>日期條件</th>
+                            <th>時段</th>
+                            <th>目前狀態</th>
+                            <th>備註</th>
+                            <th style="width:120px">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleBody"></tbody>
+                </table>
+            </div>
+            <div id="emptyMsg" class="text-center text-muted py-4 d-none">
+                <i class="fas fa-inbox fa-3x mb-2 d-block"></i>
+                <div>尚無排程，請點擊「新增排程」</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body py-2 px-3">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>排程建立後可在「流程圖控制」中的 A 接點選擇排程模式，當系統時間符合排程時段時接點將自動導通。
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/編輯 Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">新增排程</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId" />
+
+                <!-- 名稱 + 模式 -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold"><i class="fas fa-tag me-1"></i>排程名稱</label>
+                        <input type="text" class="form-control" id="txtName" maxlength="100" placeholder="例如：上班時間" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold"><i class="fas fa-sync-alt me-1"></i>重複模式</label>
+                        <select class="form-select" id="selRecurrenceType" onchange="window._schedule.onTypeChange()">
+                            <option value="0">每週</option>
+                            <option value="1">N 週循環</option>
+                            <option value="2">每月</option>
+                            <option value="3">N 月循環</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 週期參數區（type 1,3 時顯示） -->
+                <div class="row mb-3 d-none" id="cycleSection">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-play me-1"></i>跑</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="txtRunLength" min="1" max="52" value="1" />
+                            <span class="input-group-text" id="runUnit">週</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-pause me-1"></i>休</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="txtRestLength" min="1" max="52" value="1" />
+                            <span class="input-group-text" id="restUnit">週</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold"><i class="fas fa-calendar-day me-1"></i>週期起算時間</label>
+                        <input type="text" class="form-control" id="txtAnchorDateTime" autocomplete="off" />
+                        <small class="text-muted">從此時刻開始計算跑/休交替</small>
+                    </div>
+                </div>
+
+                <!-- 星期選擇（type 0,1 時顯示） -->
+                <div class="mb-3" id="daysOfWeekSection">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar-week me-1"></i>星期</label>
+                    <div class="d-flex gap-2 flex-wrap" id="dayCheckboxes">
+                        <label class="day-check"><input type="checkbox" value="1" /><span>一</span></label>
+                        <label class="day-check"><input type="checkbox" value="2" /><span>二</span></label>
+                        <label class="day-check"><input type="checkbox" value="3" /><span>三</span></label>
+                        <label class="day-check"><input type="checkbox" value="4" /><span>四</span></label>
+                        <label class="day-check"><input type="checkbox" value="5" /><span>五</span></label>
+                        <label class="day-check"><input type="checkbox" value="6" /><span>六</span></label>
+                        <label class="day-check"><input type="checkbox" value="7" /><span>日</span></label>
+                    </div>
+                    <div class="mt-1">
+                        <button type="button" class="btn btn-outline-secondary btn-xs" onclick="window._schedule.selectWeekdays()">週一至週五</button>
+                        <button type="button" class="btn btn-outline-secondary btn-xs" onclick="window._schedule.selectAll()">全選</button>
+                        <button type="button" class="btn btn-outline-secondary btn-xs" onclick="window._schedule.clearDays()">清除</button>
+                    </div>
+                </div>
+
+                <!-- 日期選擇（type 2,3 時顯示） -->
+                <div class="mb-3 d-none" id="daysOfMonthSection">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar me-1"></i>每月幾號</label>
+                    <div class="d-flex gap-1 flex-wrap" id="domCheckboxes"></div>
+                    <div class="mt-1">
+                        <button type="button" class="btn btn-outline-secondary btn-xs" onclick="window._schedule.selectAllDom()">全選</button>
+                        <button type="button" class="btn btn-outline-secondary btn-xs" onclick="window._schedule.clearDom()">清除</button>
+                    </div>
+                </div>
+
+                <hr />
+
+                <!-- 時段 -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold"><i class="fas fa-clock me-1"></i>開始時間</label>
+                        <input type="text" class="form-control" id="txtStartTime" value="08:00" autocomplete="off" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-clock me-1"></i>結束時間
+                            <small class="text-muted fw-normal">（可跨日）</small>
+                        </label>
+                        <input type="text" class="form-control" id="txtEndTime" value="17:00" autocomplete="off" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold"><i class="fas fa-comment me-1"></i>備註</label>
+                        <input type="text" class="form-control" id="txtRemarks" maxlength="200" />
+                    </div>
+                </div>
+
+                <hr />
+
+                <!-- 例外日 / 加開日 -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-ban me-1 text-danger"></i>例外日
+                            <small class="text-muted fw-normal">（當天整段不啟動）</small>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-sm" id="txtExcludeDate"
+                                   placeholder="yyyy/MM/dd" maxlength="10" inputmode="numeric" />
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="window._schedule.addExcludeDate()">
+                                <i class="fas fa-plus"></i> 加入
+                            </button>
+                        </div>
+                        <div class="date-chip-list mt-2" id="excludeDateChips"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-calendar-plus me-1 text-success"></i>加開日
+                            <small class="text-muted fw-normal">（當天無視規則強制啟動）</small>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-sm" id="txtIncludeDate"
+                                   placeholder="yyyy/MM/dd" maxlength="10" inputmode="numeric" />
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="window._schedule.addIncludeDate()">
+                                <i class="fas fa-plus"></i> 加入
+                            </button>
+                        </div>
+                        <div class="date-chip-list mt-2" id="includeDateChips"></div>
+                    </div>
+                </div>
+
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chkEnabled" checked>
+                    <label class="form-check-label">啟用此排程</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._schedule.save()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+    // i18n stub（只含本頁用到的 key，取自 Resources/*.resx zh-TW）
+    window.i18n = (function () {
+        var D = {"schedule.error.name_required": "排程名稱不可為空", "schedule.error.time_required": "開始/結束時間不可為空", "schedule.error.select_dayofweek": "請至少選擇一個星期", "schedule.error.select_dayofmonth": "請至少選擇一個日期", "schedule.error.run_invalid": "跑的週/月數必須 >= 1", "schedule.error.rest_invalid": "休的週/月數必須 >= 1", "schedule.error.anchor_required": "請設定週期起算時間", "schedule.error.exclude_invalid": "例外日格式錯誤：{0}", "schedule.error.include_invalid": "加開日格式錯誤：{0}", "schedule.error.date_conflict": "日期 {0} 同時出現在例外日與加開日，請擇一", "schedule.error.invalid_date": "\"{0}\" 不是合法日期（須為 yyyy-MM-dd）", "schedule.error.save_failed": "儲存失敗", "schedule.error.not_found": "排程不存在", "schedule.success.saved": "排程已儲存", "schedule.success.deleted": "已刪除", "schedule.title": "排程設定", "schedule.button.add": "新增排程", "schedule.footer.note": "排程建立後可在「流程圖控制」中的 A 接點選擇排程模式，當系統時間符合排程時段時接點將自動導通。", "schedule.col.enabled": "啟用", "schedule.col.name": "排程名稱", "schedule.col.mode": "模式", "schedule.col.days": "日期條件", "schedule.col.timerange": "時段", "schedule.col.status": "目前狀態", "schedule.col.remarks": "備註", "schedule.col.actions": "操作", "schedule.empty.no_data": "尚無排程，請點擊「新增排程」", "schedule.empty.no_dates": "尚未加入", "schedule.modal.title_add": "新增排程", "schedule.modal.title_edit": "編輯排程", "schedule.field.name": "排程名稱", "schedule.field.name_placeholder": "例如：上班時間", "schedule.field.recurrence_type": "重複模式", "schedule.field.days_of_week": "星期", "schedule.field.days_of_month": "每月幾號", "schedule.field.start_time": "開始時間", "schedule.field.end_time": "結束時間", "schedule.field.end_time_hint": "（可跨日）", "schedule.field.remarks": "備註", "schedule.field.exclude_dates": "例外日", "schedule.field.exclude_hint": "（當天整段不啟動）", "schedule.field.include_dates": "加開日", "schedule.field.include_hint": "（當天無視規則強制啟動）", "schedule.field.is_enabled": "啟用此排程", "schedule.recurrence.weekly": "每週", "schedule.recurrence.n_week_cycle": "N 週循環", "schedule.recurrence.monthly": "每月", "schedule.recurrence.n_month_cycle": "N 月循環", "schedule.cycle.run": "跑", "schedule.cycle.rest": "休", "schedule.cycle.anchor_datetime": "週期起算時間", "schedule.cycle.anchor_hint": "從此時刻開始計算跑/休交替", "schedule.cycle.run_rest_info": "跑 {run}{unit} 休 {rest}{unit}", "schedule.unit.week": "週", "schedule.unit.month": "月", "schedule.dayofweek.mon": "一", "schedule.dayofweek.tue": "二", "schedule.dayofweek.wed": "三", "schedule.dayofweek.thu": "四", "schedule.dayofweek.fri": "五", "schedule.dayofweek.sat": "六", "schedule.dayofweek.sun": "日", "schedule.dom.day_suffix": "{day}號", "schedule.button.weekdays": "週一至週五", "schedule.button.select_all": "全選", "schedule.button.clear": "清除", "schedule.button.add_date": "加入", "schedule.button.save": "儲存", "schedule.button.cancel": "取消", "schedule.button.edit": "編輯", "schedule.button.delete": "刪除", "schedule.tooltip.remove": "移除", "schedule.status.enabled": "啟用", "schedule.status.disabled": "停用", "schedule.status.waiting": "等待中", "schedule.status.not_scheduled": "非排程日", "schedule.status.active": "導通中", "schedule.hint.exclude_count": "例外 {count} 日", "schedule.hint.include_count": "加開 {count} 日", "schedule.label.exclude_date": "例外日", "schedule.label.include_date": "加開日", "schedule.alert.input_name": "請輸入排程名稱", "schedule.alert.select_dayofweek": "請至少選擇一天", "schedule.alert.select_dayofmonth": "請至少選擇一個日期", "schedule.alert.run_invalid": "跑的週/月數必須 ≥ 1", "schedule.alert.rest_invalid": "休的週/月數必須 ≥ 1", "schedule.alert.anchor_required": "請設定週期起算時間", "schedule.alert.time_required": "請設定開始和結束時間", "schedule.alert.time_same": "開始和結束時間不可相同", "schedule.alert.input_date": "請先輸入日期", "schedule.alert.invalid_date_format": "日期格式錯誤，請輸入 yyyy/MM/dd（例如 2026/05/15）", "schedule.alert.date_already_in_list": "{date} 已在{label}清單中", "schedule.confirm.move_date": "此日期已在{other}，是否改為{own}？（會自動從{other}移除）", "schedule.confirm.delete": "確定要刪除此排程？", "schedule.alert.save_failed": "儲存失敗", "schedule.alert.delete_failed": "刪除失敗", "schedule.alert.network_failed": "網路錯誤"};
+        return { t: function (k, a) { var v = D[k] || k; if (a) Object.keys(a).forEach(function (n) { v = v.split("{" + n + "}").join(a[n]); }); return v; },
+                 ready: function (cb) { cb(); }, currentCulture: function () { return "zh-TW"; } };
+    })();
+    </script>
+    <script>window._scheduleInitData = { schedules: [{"id": 1, "name": "空調運轉時段", "recurrenceType": 0, "runLength": null, "restLength": null, "anchorDateTime": null, "daysOfWeek": "1,2,3,4,5", "daysOfMonth": "", "startTime": "08:00", "endTime": "18:00", "excludeDates": "2026-10-09,2026-10-10", "includeDates": "2026-09-26", "isEnabled": true, "remarks": "平日上班時段"}, {"id": 2, "name": "夜間照明", "recurrenceType": 0, "runLength": null, "restLength": null, "anchorDateTime": null, "daysOfWeek": "1,2,3,4,5,6,7", "daysOfMonth": "", "startTime": "18:30", "endTime": "06:00", "excludeDates": "", "includeDates": "", "isEnabled": true, "remarks": "跨日排程"}, {"id": 3, "name": "冰水主機輪替", "recurrenceType": 1, "runLength": 2, "restLength": 1, "anchorDateTime": "2026-08-03 07:30", "daysOfWeek": "1,2,3,4,5", "daysOfMonth": "", "startTime": "07:30", "endTime": "17:30", "excludeDates": "", "includeDates": "", "isEnabled": true, "remarks": "運轉 2 週、休 1 週"}, {"id": 4, "name": "設備定期巡檢", "recurrenceType": 2, "runLength": null, "restLength": null, "anchorDateTime": null, "daysOfWeek": "", "daysOfMonth": "1,15", "startTime": "09:00", "endTime": "11:00", "excludeDates": "", "includeDates": "", "isEnabled": true, "remarks": ""}, {"id": 5, "name": "假日排風", "recurrenceType": 0, "runLength": null, "restLength": null, "anchorDateTime": null, "daysOfWeek": "6,7", "daysOfMonth": "", "startTime": "10:00", "endTime": "16:00", "excludeDates": "", "includeDates": "", "isEnabled": false, "remarks": "暫停使用"}] };</script>
+    <script src="{{WWWROOT}}/lib/flatpickr/flatpickr.min.js"></script>
+    <script src="{{WWWROOT}}/lib/flatpickr/zh-tw.js"></script>
+    <script src="{{WWWROOT}}/js/flatpickr-init.js"></script>
+    <script src="{{WWWROOT}}/js/schedulesetting.js"></script>
+    <script>
+// 開「新增排程」並填一筆範例：平日 08:00-18:00 + 例外日 2 筆 + 加開日 1 筆
+document.addEventListener('DOMContentLoaded', function () { setTimeout(function () {
+    window._schedule.showAddModal();
+    document.getElementById('txtName').value = '空調運轉時段';
+    window._schedule.selectWeekdays();
+    document.getElementById('txtStartTime')._flatpickr.setDate('08:00', true);
+    document.getElementById('txtEndTime')._flatpickr.setDate('18:00', true);
+    document.getElementById('txtRemarks').value = '平日上班時段';
+    ['2026/10/09', '2026/10/10'].forEach(function (d) { document.getElementById('txtExcludeDate').value = d; window._schedule.addExcludeDate(); });
+    document.getElementById('txtIncludeDate').value = '2026/09/26'; window._schedule.addIncludeDate();
+}, 50); });
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

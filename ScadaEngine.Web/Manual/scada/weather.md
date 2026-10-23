@@ -10,7 +10,7 @@
 
 ## 畫面配置
 
-<!-- IMG-TODO: scada/weather-01 | 氣象資料來源設定頁：API 授權碼、測站選擇、抓取設定與執行狀態四張卡片 | route=/WeatherSetting -->
+![氣象資料來源設定頁：API 授權碼、測站選擇、抓取設定與執行狀態四張卡片](images/weather-01.png)
 
 | 區塊 | 用途 |
 |------|------|
@@ -60,7 +60,7 @@
 | Engine 尚未載入 Weather 點位設定 | 系統尚未完成氣象點位的安裝設定，請洽工程師 |
 | 已停用 | 自動抓取未啟用 |
 
-<!-- IMG-TODO: scada/weather-02 | 執行狀態卡片：最近抓取時間、結果與訊息 | route=/WeatherSetting -->
+![執行狀態卡片：最近抓取時間、結果與訊息](images/weather-02.png)
 
 ## 在哪裡看到氣象資料
 

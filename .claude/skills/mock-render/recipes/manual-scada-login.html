@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!-- SCADA 手冊 quick-start-01：登入頁（_LoginLayout + Features/Login/Views/Index.cshtml，無 API） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>系統登入 - JOULARIS</title>
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="{{WWWROOT}}/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+    <link href="{{WWWROOT}}/css/site.css" rel="stylesheet" />
+    <link href="{{WWWROOT}}/css/login.css" rel="stylesheet" />
+    <style>*, *::before, *::after { transition: none !important; animation: none !important; }</style>
+</head>
+<body>
+    <main role="main">
+<div class="login-shell">
+    <div class="login-brand">
+        <h1 class="login-brand-title">
+            <img src="{{WWWROOT}}/images/joularis-logo.png" alt="JOULARIS 智慧能源管理平台" class="login-brand-logo" />
+        </h1>
+        <div class="login-brand-subtitle">智慧能源管理平台</div>
+    </div>
+    <div class="card login-card">
+        <div class="card-body">
+            <div class="login-title-block">
+                <h2 class="login-title fs-3">系統登入</h2>
+                <p class="login-title-hint">請輸入帳號與密碼</p>
+            </div>
+            <form id="frmLogin" onsubmit="return false">
+                <div class="mb-3">
+                    <label class="form-label" for="tbUserName"><i class="fas fa-user"></i> 使用者名稱</label>
+                    <input class="form-control" id="tbUserName" placeholder="請輸入使用者名稱" value="operator01" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="tbPassword"><i class="fas fa-key"></i> 密碼</label>
+                    <input type="password" class="form-control" id="tbPassword" placeholder="請輸入密碼" value="password" />
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="chkRememberMe" />
+                    <label class="form-check-label" for="chkRememberMe">記住我</label>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg btn-login" id="btnLogin">
+                        <i class="fas fa-sign-in-alt"></i> 立即登入
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+    </main>
+    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" class="login-corner-logo" />
+</body>
+</html>
