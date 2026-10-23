@@ -131,9 +131,9 @@
           });
     }
 
-    // 主要電表數值格式：功率因數 3 位小數，其餘（電壓/電流/功率）1 位
+    // 主要電表數值格式：功率因數 2 位小數，其餘（電壓/電流/功率）1 位
     function formatMainMeterValue(szKey, dValue) {
-        return szKey === 'PowerFactor' ? dValue.toFixed(3) : dValue.toFixed(1);
+        return szKey === 'PowerFactor' ? dValue.toFixed(2) : dValue.toFixed(1);
     }
 
     // 虛擬主表：拉後端聚合值（4 個 number|null）
