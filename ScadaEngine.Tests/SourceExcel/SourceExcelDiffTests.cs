@@ -140,12 +140,18 @@ public class SourceExcelDiffTests
     [Theory]
     [InlineData("盤A.xlsx", "盤a")]
     [InlineData("  盤A.XLSM ", "盤a")]
-    [InlineData("C:\\x\\盤A.xlsx", "盤a")]
     [InlineData(null, "")]
     [InlineData("", "")]
     public void NormalizeWorkbookName_Cases(string? szInput, string szExpected)
     {
         Assert.Equal(szExpected, SourceExcelDiffBuilder.NormalizeWorkbookName(szInput));
+    }
+
+    /// <summary>含磁碟機代號的 Windows 完整路徑：Path.GetFileNameWithoutExtension 只在 Windows 認反斜線分隔</summary>
+    [ScadaEngine.Tests.Common.WindowsOnlyFact]
+    public void NormalizeWorkbookName_WindowsFullPath()
+    {
+        Assert.Equal("盤a", SourceExcelDiffBuilder.NormalizeWorkbookName("C:\\x\\盤A.xlsx"));
     }
 
     [Fact]

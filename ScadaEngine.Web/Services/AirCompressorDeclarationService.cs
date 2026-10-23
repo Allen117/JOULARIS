@@ -189,6 +189,7 @@ public class AirCompressorDeclarationService
                 dNm3 = dNm3,
                 dKwhPerNm3 = CalcSpecificEnergy(dKwh, dNm3),
                 isKwhStale = kwhResult.buckets[i].isStale,
+                isKwhPartial = kwhResult.buckets[i].isPartial,
                 isNm3Stale = airResult.buckets[i].isStale,
             });
         }

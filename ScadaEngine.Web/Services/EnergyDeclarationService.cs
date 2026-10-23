@@ -184,6 +184,7 @@ public class EnergyDeclarationService
                 dRtHour = dRtHour,
                 dKwhPerRtHour = dRtHour > 0 ? Math.Round(dKwh / dRtHour, 3) : null,
                 isKwhStale = kwhResult.buckets[i].isStale,
+                isKwhPartial = kwhResult.buckets[i].isPartial,
             });
         }
 

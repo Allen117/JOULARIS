@@ -97,6 +97,7 @@
   <data name="energydeclaration.warning.kwh" xml:space="preserve"><value>⚠ 部分電表偵測到累積值倒退但未設 MaxKwh</value></data>
   <data name="energydeclaration.warning.rt" xml:space="preserve"><value>⚠ 冷凍噸資料覆蓋率不足（每小時聚合尚未完成或缺資料）</value></data>
   <data name="energydeclaration.tooltip.stale" xml:space="preserve"><value>此區間電表資料不完整（可能斷線）</value></data>
+  <data name="energydeclaration.tooltip.partial" xml:space="preserve"><value>此月邊界缺讀數，僅統計月內有讀數的區段（電表期中上線或期末斷線）</value></data>
 
   <data name="energydeclaration.select.loading" xml:space="preserve"><value>-- 載入中 --</value></data>
   <data name="energydeclaration.select.placeholder" xml:space="preserve"><value>-- 請選擇申報報表 --</value></data>

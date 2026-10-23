@@ -265,7 +265,10 @@
     }
 
     function staleMark(isStale, tip) {
-        return isStale ? ` <span class="acd-stale-mark" title="${tip}">⚠</span>` : '';
+        return isStale ? ` <span class="acd-stale-mark" title="${tip}">\u26a0</span>` : '';
+    }
+    function partialMark(isPartial, tip) {
+        return isPartial ? ` <span class="acd-partial-mark" title="${tip}">\u25d0</span>` : '';
     }
 
     function renderTable(data) {
@@ -275,11 +278,12 @@
         } else {
             const totalLabel = escapeHtml(t('airdeclaration.table.total'));
             const kwhTip = escapeHtml(t('airdeclaration.tooltip.kwh_stale'));
+            const kwhPartialTip = escapeHtml(t('airdeclaration.tooltip.kwh_partial'));
             const nm3Tip = escapeHtml(t('airdeclaration.tooltip.nm3_stale'));
             tbody.innerHTML = data.buckets.map(b => `
                 <tr>
                     <td>${escapeHtml(b.szLabel)}</td>
-                    <td class="text-end"${b.isKwhStale ? ` title="${kwhTip}"` : ''}>${fmt1(b.dKwh)}${staleMark(b.isKwhStale, kwhTip)}</td>
+                    <td class="text-end"${b.isKwhStale ? ` title="${kwhTip}"` : b.isKwhPartial ? ` title="${kwhPartialTip}"` : ''}>${fmt1(b.dKwh)}${b.isKwhStale ? staleMark(true, kwhTip) : partialMark(b.isKwhPartial, kwhPartialTip)}</td>
                     <td class="text-end"${b.isNm3Stale ? ` title="${nm3Tip}"` : ''}>${fmt1(b.dNm3)}${staleMark(b.isNm3Stale, nm3Tip)}</td>
                     <td class="text-end">${fmtEff(b.dKwhPerNm3)}</td>
                 </tr>`).join('') +
@@ -381,6 +385,7 @@
                                 if (!b) return undefined;
                                 const notes = [];
                                 if (b.isKwhStale) notes.push(t('airdeclaration.tooltip.kwh_stale'));
+                                else if (b.isKwhPartial) notes.push(t('airdeclaration.tooltip.kwh_partial'));
                                 if (b.isNm3Stale) notes.push(t('airdeclaration.tooltip.nm3_stale'));
                                 return notes.length ? notes : undefined;
                             }

@@ -19,8 +19,19 @@ changed="$(
 )"
 [ -z "$changed" ] && exit 0   # 沒動 .cs → 靜默略過
 
+# 找 dotnet：PATH 優先，其次 macOS / Linux 的 dotnet-install 預設位置 ~/.dotnet（CLAUDE.md §在 macOS 建包）
+DOTNET="$(command -v dotnet 2>/dev/null || true)"
+if [ -z "$DOTNET" ] && [ -x "$HOME/.dotnet/dotnet" ]; then
+  DOTNET="$HOME/.dotnet/dotnet"
+fi
+if [ -z "$DOTNET" ]; then
+  # 找不到 SDK 不算測試紅燈：放行但明講，避免被誤判成測試失敗
+  printf '{"systemMessage":"Stop hook：找不到 dotnet（PATH 與 ~/.dotnet 皆無），本輪未執行 dotnet test，請手動驗證。"}\n'
+  exit 0
+fi
+
 # 跑測試（安靜輸出）
-out="$(dotnet test ScadaEngine.Tests/ScadaEngine.Tests.csproj --nologo -v quiet 2>&1)"
+out="$("$DOTNET" test ScadaEngine.Tests/ScadaEngine.Tests.csproj --nologo -v quiet 2>&1)"
 rc=$?
 
 if [ "$rc" -eq 0 ]; then
@@ -30,6 +41,8 @@ fi
 
 # 紅燈：擋下 stop 並回報 Claude
 summary="$(printf '%s' "$out" | grep -iE 'error|failed|失敗|Passed!' | tail -20)"
+# 沒抓到關鍵字（例如 SDK 版本不符、還原失敗）→ 給最後幾行原始輸出，不留空白
+[ -z "$summary" ] && summary="$(printf '%s' "$out" | tail -15)"
 msg="dotnet test 失敗，請修正後再收尾：
 ${summary}"
 

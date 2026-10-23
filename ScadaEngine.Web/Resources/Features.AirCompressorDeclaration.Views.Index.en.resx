@@ -97,6 +97,7 @@
   <data name="airdeclaration.warning.kwh" xml:space="preserve"><value>⚠ Some meter data incomplete, or rollback detected without MaxKwh configured</value></data>
   <data name="airdeclaration.warning.nm3" xml:space="preserve"><value>⚠ Some air flow meter data incomplete (possible disconnection)</value></data>
   <data name="airdeclaration.tooltip.kwh_stale" xml:space="preserve"><value>Meter data incomplete for this month (possible disconnection)</value></data>
+  <data name="airdeclaration.tooltip.kwh_partial" xml:space="preserve"><value>Meter boundary reading missing; only the sub-range with readings is counted (started mid-month or dropped before month end)</value></data>
   <data name="airdeclaration.tooltip.nm3_stale" xml:space="preserve"><value>Air flow meter data incomplete for this month (possible disconnection)</value></data>
 
   <data name="airdeclaration.select.loading" xml:space="preserve"><value>-- Loading --</value></data>

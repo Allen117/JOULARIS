@@ -100,6 +100,7 @@
   <data name="energyreport.label.total" xml:space="preserve"><value>Total</value></data>
   <data name="energyreport.warning.kwh_overflow" xml:space="preserve"><value>⚠ Some meters detected a counter rollback but no MaxKwh is set</value></data>
   <data name="energyreport.tooltip.stale" xml:space="preserve"><value>Meter data incomplete for this period (possible disconnection)</value></data>
+  <data name="energyreport.tooltip.partial" xml:space="preserve"><value>Boundary reading missing; only the sub-range with readings is counted (meter started mid-period or dropped before period end)</value></data>
 
   <data name="energyreport.select.loading" xml:space="preserve"><value>-- Loading --</value></data>
   <data name="energyreport.select.placeholder" xml:space="preserve"><value>-- Select Circuit --</value></data>

@@ -74,10 +74,10 @@ public class EnergyReportService
         };
 
         using var conn = await GetConnectionAsync();
-        var (bucketSums, bHasWarning, staleFlags) =
+        var (bucketSums, bHasWarning, staleFlags, partialFlags) =
             await ComputeDisplayBucketSumsAsync(nCircuitId, calcRanges, groupOf, labels.Count, conn);
 
-        FillBucketsAndTotal(result, displayRanges, labels, bucketSums, staleFlags);
+        FillBucketsAndTotal(result, displayRanges, labels, bucketSums, staleFlags, partialFlags);
         result.isHasWarning = bHasWarning;
         return result;
     }
@@ -105,9 +105,9 @@ public class EnergyReportService
         };
 
         using var conn = await GetConnectionAsync();
-        var (bucketSums, bHasWarning, staleFlags) =
+        var (bucketSums, bHasWarning, staleFlags, partialFlags) =
             await ComputeDisplayBucketSumsAsync(nCircuitId, calcRanges, groupOf, labels.Count, conn);
-        FillBucketsAndTotal(result, displayRanges, labels, bucketSums, staleFlags);
+        FillBucketsAndTotal(result, displayRanges, labels, bucketSums, staleFlags, partialFlags);
         result.isHasWarning = bHasWarning;
 
         // 自己就是葉子 → 不展開子層（與舊版單錶匯出格式相容）
@@ -119,7 +119,7 @@ public class EnergyReportService
         {
             // 子迴路內部 leaves 的 sign 已由 GetLeavesUnderAsync 累乘（相對於 child），
             // child 自己對父的方向需在這裡額外乘上。
-            var (childSums, childWarning, _) =
+            var (childSums, childWarning, _, _) =
                 await ComputeDisplayBucketSumsAsync(child.nId, calcRanges, groupOf, labels.Count, conn);
             var nChildSign = child.nSign == -1 ? -1 : 1;
             var series = new EnergyReportChildSeries
@@ -187,7 +187,7 @@ public class EnergyReportService
         {
             using var conn = await GetConnectionAsync();
             // 主迴路：ComputeBucketSumsForCircuitAsync 已對內部葉子累乘 sign，無需外加（同 GetReportAsync）
-            (lySums, _, _) = await ComputeBucketSumsForCircuitAsync(nCircuitId, lyRanges, conn);
+            (lySums, _, _, _) = await ComputeBucketSumsForCircuitAsync(nCircuitId, lyRanges, conn);
         }
 
         for (var i = 0; i < result.buckets.Count; i++)
@@ -238,8 +238,8 @@ public class EnergyReportService
         };
 
         using var conn = await GetConnectionAsync();
-        var (bucketSums, bHasWarning, staleFlags) = await ComputeBucketSumsForCircuitAsync(nCircuitId, ranges, conn);
-        FillBucketsAndTotal(result, ranges, labels, bucketSums, staleFlags);
+        var (bucketSums, bHasWarning, staleFlags, partialFlags) = await ComputeBucketSumsForCircuitAsync(nCircuitId, ranges, conn);
+        FillBucketsAndTotal(result, ranges, labels, bucketSums, staleFlags, partialFlags);
         result.isHasWarning = bHasWarning;
         return result;
     }
@@ -270,7 +270,7 @@ public class EnergyReportService
         // 總量 = 各計算區間加總，與是否合併為顯示 bucket 無關 → 直接用 calcRanges
         var (calcRanges, _, _, _) = await BuildBucketRangesAsync(szGranularity, dtStart, dtEnd);
         using var conn = await GetConnectionAsync();
-        var (bucketSums, _, _) = await ComputeBucketSumsForCircuitAsync(nCircuitId, calcRanges, conn);
+        var (bucketSums, _, _, _) = await ComputeBucketSumsForCircuitAsync(nCircuitId, calcRanges, conn);
         return Math.Round(bucketSums.Sum(), 3);
     }
 
@@ -279,13 +279,17 @@ public class EnergyReportService
     /// （曆日/曆月等切法由呼叫端決定，不走本服務的粒度/期別規則）。
     /// 計算核心與 GetReportAsync 完全共用（staleness window / 溢位 / Sign 規則一致）。
     /// 注意：回傳值未套用迴路自身對父層的 Sign，語意同 GetTotalKwhAsync。
+    /// staleFlags 在此路徑 = isStale **或** isPartial（區間邊界缺讀數、改以區間內首/末筆起算）：
+    /// 能源基線取樣與 Widget 狀態採保守語意，不完整區間一律視為不可信樣本。
     /// </summary>
     public async Task<(double[] bucketSums, bool[] staleFlags)> GetBucketKwhForRangesAsync(
         int nCircuitId, List<(DateTime dtStart, DateTime dtEnd)> ranges)
     {
         using var conn = await GetConnectionAsync();
-        var (bucketSums, _, staleFlags) = await ComputeBucketSumsForCircuitAsync(nCircuitId, ranges, conn);
-        return (bucketSums, staleFlags);
+        var (bucketSums, _, staleFlags, partialFlags) = await ComputeBucketSumsForCircuitAsync(nCircuitId, ranges, conn);
+        var flags = new bool[staleFlags.Length];
+        for (var i = 0; i < flags.Length; i++) flags[i] = staleFlags[i] || partialFlags[i];
+        return (bucketSums, flags);
     }
 
     /// <summary>
@@ -322,31 +326,36 @@ public class EnergyReportService
     /// 計算 + （班別粒度時）依 groupOf 合併為顯示 bucket。
     /// groupOf = null（一般粒度）→ 直接回傳計算結果。
     /// </summary>
-    private async Task<(double[] bucketSums, bool isHasWarning, bool[] staleFlags)> ComputeDisplayBucketSumsAsync(
+    private async Task<(double[] bucketSums, bool isHasWarning, bool[] staleFlags, bool[] partialFlags)> ComputeDisplayBucketSumsAsync(
         int nCircuitId, List<(DateTime dtStart, DateTime dtEnd)> calcRanges, List<int>? groupOf,
         int nDisplayBuckets, SqlConnection conn)
     {
-        var (flatSums, bHasWarning, flatStale) = await ComputeBucketSumsForCircuitAsync(nCircuitId, calcRanges, conn);
-        if (groupOf == null) return (flatSums, bHasWarning, flatStale);
+        var (flatSums, bHasWarning, flatStale, flatPartial) = await ComputeBucketSumsForCircuitAsync(nCircuitId, calcRanges, conn);
+        if (groupOf == null) return (flatSums, bHasWarning, flatStale, flatPartial);
         var (sums, stale) = ShiftScheduleService.MergeByGroup(flatSums, flatStale, groupOf, nDisplayBuckets);
-        return (sums, bHasWarning, stale);
+        var (_, partial) = ShiftScheduleService.MergeByGroup(flatSums, flatPartial, groupOf, nDisplayBuckets);
+        return (sums, bHasWarning, stale, partial);
     }
 
     /// <summary>
     /// 對單一迴路（葉子或虛擬皆可）計算每個 bucket 的 kWh 累計。
     /// 共用核心：取葉子 → 對每葉子查邊界值 → 套溢位規則加總。
     /// 邊界時刻去重後一次查詢 — 連續 bucket 共用邊界點時查詢量與舊版相同。
+    /// 邊界缺讀數時的 fallback：期初抓不到 → 改用該 bucket 內**第一筆**有效讀數；期末抓不到 → 改用**最後一筆**
+    /// （電表期中上線 / 期末斷線的月份仍能顯示「自上線起 / 至斷線止」的累計，該 bucket 標 isPartial）。
+    /// 兩邊都補不到（整段無資料）才標 isStale。缺漏那段的用電不會被挪到相鄰 bucket，不會產生巨柱。
     /// </summary>
-    private async Task<(double[] bucketSums, bool isHasWarning, bool[] staleFlags)> ComputeBucketSumsForCircuitAsync(
+    private async Task<(double[] bucketSums, bool isHasWarning, bool[] staleFlags, bool[] partialFlags)> ComputeBucketSumsForCircuitAsync(
         int nCircuitId, List<(DateTime dtStart, DateTime dtEnd)> ranges, SqlConnection conn)
     {
         var nBuckets = ranges.Count;
         var bucketSums = new double[nBuckets];
         var staleFlags = new bool[nBuckets];
+        var partialFlags = new bool[nBuckets];
         var bHasWarning = false;
 
         var leaves = await _circuitService.GetLeavesUnderAsync(nCircuitId);
-        if (leaves.Count == 0) return (bucketSums, bHasWarning, staleFlags);
+        if (leaves.Count == 0) return (bucketSums, bHasWarning, staleFlags, partialFlags);
 
         // 「當期未過完」語意：把每個 bucket 的計算起訖夾到 min(t, 現在)，
         // 讓當期期末（落在未來）改抓「現在的累積值」→ 得到期初到現在的差值；
@@ -370,28 +379,64 @@ public class EnergyReportService
             var leaf = leafWithSign.Leaf;
             var nEffectiveSign = leafWithSign.nEffectiveSign;
             var values = await GetBoundaryValuesAsync(conn, leaf.szSID!, times);
+
+            // 邊界缺讀數的 bucket → 一次查齊區間內首/末筆有效讀數當 fallback
+            var fallbackIdx = new List<int>();
+            for (var i = 0; i < nBuckets; i++)
+            {
+                var (dtCs, dtCe) = clampedRanges[i];
+                if (dtCs >= dtCe) continue;   // 零寬（純未來）bucket 不需 fallback
+                if (values[timeIndex[dtCs]] == null || values[timeIndex[dtCe]] == null)
+                    fallbackIdx.Add(i);
+            }
+            var fallback = fallbackIdx.Count == 0
+                ? new Dictionary<int, (double? dFirst, double? dLast)>()
+                : await GetRangeFirstLastValuesAsync(conn, leaf.szSID!,
+                    fallbackIdx.Select(i => (i, clampedRanges[i].dtStart, clampedRanges[i].dtEnd)).ToList());
+
             for (var i = 0; i < nBuckets; i++)
             {
                 var fStart = values[timeIndex[clampedRanges[i].dtStart]];
                 var fEnd = values[timeIndex[clampedRanges[i].dtEnd]];
-                if (fStart == null || fEnd == null)
+                fallback.TryGetValue(i, out var fb);
+                var (dStart, dEnd, isPartial) = ResolveBucketEndpoints(fStart, fEnd, fb.dFirst, fb.dLast);
+                if (dStart == null || dEnd == null)
                 {
-                    // 邊界值抓不到（staleness window 內無 Quality=1 資料 / 缺資料）→ 標記該 bucket 斷線
+                    // 邊界值與區間內 fallback 都抓不到（整段無 Quality=1 資料）→ 標記該 bucket 斷線
                     staleFlags[i] = true;
                     continue;
                 }
+                if (isPartial) partialFlags[i] = true;
 
                 // 物理 delta 永遠 ≥ 0（含溢位處理），sign 在這裡套用合併方向
-                var (dDelta, isWarn) = CalcDeltaWithRollover(fStart.Value, fEnd.Value, leaf.dMaxKwh, leaf.szSID!, leaf.szName);
+                var (dDelta, isWarn) = CalcDeltaWithRollover(dStart.Value, dEnd.Value, leaf.dMaxKwh, leaf.szSID!, leaf.szName);
                 bucketSums[i] += dDelta * nEffectiveSign;
                 if (isWarn) bHasWarning = true;
             }
         }
-        return (bucketSums, bHasWarning, staleFlags);
+        return (bucketSums, bHasWarning, staleFlags, partialFlags);
+    }
+
+    /// <summary>
+    /// 決定單一 bucket 實際用來相減的起訖讀數（純函式，鎖規則用）。
+    /// 兩邊界都有 → 原值、非 partial；任一邊缺 → 以區間內首筆 / 末筆補位並標 partial；
+    /// 補位後仍缺任一邊 → (null, null, false)，呼叫端標 stale。
+    /// </summary>
+    public static (double? dStart, double? dEnd, bool isPartial) ResolveBucketEndpoints(
+        double? dBoundaryStart, double? dBoundaryEnd, double? dFirstInRange, double? dLastInRange)
+    {
+        if (dBoundaryStart != null && dBoundaryEnd != null)
+            return (dBoundaryStart, dBoundaryEnd, false);
+        var dStart = dBoundaryStart ?? dFirstInRange;
+        var dEnd = dBoundaryEnd ?? dLastInRange;
+        if (dStart == null || dEnd == null)
+            return (null, null, false);
+        return (dStart, dEnd, true);
     }
 
     private static void FillBucketsAndTotal(
-        EnergyReportResult result, List<(DateTime dtStart, DateTime dtEnd)> ranges, List<string> labels, double[] bucketSums, bool[] staleFlags)
+        EnergyReportResult result, List<(DateTime dtStart, DateTime dtEnd)> ranges, List<string> labels,
+        double[] bucketSums, bool[] staleFlags, bool[] partialFlags)
     {
         for (var i = 0; i < labels.Count; i++)
         {
@@ -400,7 +445,8 @@ public class EnergyReportService
                 dtBucketStart = ranges[i].dtStart,
                 szLabel = labels[i],
                 dKwh = Math.Round(bucketSums[i], 3),
-                isStale = staleFlags[i]
+                isStale = staleFlags[i],
+                isPartial = partialFlags[i]
             });
             result.dTotalKwh += bucketSums[i];
         }
@@ -462,6 +508,47 @@ public class EnergyReportService
         var arr = new double?[boundaries.Count];
         foreach (var r in rows) arr[r.idx] = r.Value;
         return arr;
+    }
+
+    /// <summary>
+    /// 邊界缺讀數時的 fallback：一條 SQL 取每個 [起, 訖] 區間內**第一筆**與**最後一筆** Quality=1 的值。
+    /// 只對需要 fallback 的 bucket 呼叫（正常情況零成本）。
+    /// </summary>
+    private static async Task<Dictionary<int, (double? dFirst, double? dLast)>> GetRangeFirstLastValuesAsync(
+        SqlConnection conn, string szSid, List<(int nIdx, DateTime dtStart, DateTime dtEnd)> ranges)
+    {
+        var sb = new System.Text.StringBuilder();
+        var dynParams = new DynamicParameters();
+        dynParams.Add("@sid", szSid);
+
+        sb.Append("SELECT b.idx, fa.FirstValue, la.LastValue FROM (VALUES ");
+        for (var i = 0; i < ranges.Count; i++)
+        {
+            if (i > 0) sb.Append(',');
+            sb.Append($"(@i{i}, @s{i}, @e{i})");
+            dynParams.Add($"@i{i}", ranges[i].nIdx);
+            dynParams.Add($"@s{i}", ranges[i].dtStart);
+            dynParams.Add($"@e{i}", ranges[i].dtEnd);
+        }
+        sb.Append(@") AS b(idx, RangeStart, RangeEnd)
+                   OUTER APPLY (
+                       SELECT TOP 1 Value AS FirstValue FROM HistoryData WITH (NOLOCK)
+                       WHERE  SID = @sid AND Quality = 1
+                          AND Timestamp >= b.RangeStart AND Timestamp <= b.RangeEnd
+                       ORDER BY Timestamp ASC
+                   ) fa
+                   OUTER APPLY (
+                       SELECT TOP 1 Value AS LastValue FROM HistoryData WITH (NOLOCK)
+                       WHERE  SID = @sid AND Quality = 1
+                          AND Timestamp >= b.RangeStart AND Timestamp <= b.RangeEnd
+                       ORDER BY Timestamp DESC
+                   ) la
+                   ORDER BY b.idx");
+
+        var rows = await conn.QueryAsync<(int idx, double? FirstValue, double? LastValue)>(sb.ToString(), dynParams);
+        var dict = new Dictionary<int, (double?, double?)>(ranges.Count);
+        foreach (var r in rows) dict[r.idx] = (r.FirstValue, r.LastValue);
+        return dict;
     }
 
     /// <summary>產生 N+1 個邊界時刻（含起點與終點）</summary>
