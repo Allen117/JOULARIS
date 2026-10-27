@@ -100,7 +100,7 @@
 
 ## 討論過程與成本記錄
 
-<!-- CLAUDE.md §Token / 成本記錄：token 一律取自 session transcript 的 message.usage 或使用者 /cost，禁止估計 -->
+<!-- docs/plans/CLAUDE.md §Token / 成本記錄：token 一律取自 session transcript 的 message.usage 或使用者 /cost，禁止估計 -->
 
 ### 討論過程摘要
 

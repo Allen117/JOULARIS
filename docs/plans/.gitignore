@@ -4,6 +4,7 @@
 *.md
 !README.md
 !_template.md
+!CLAUDE.md
 
 # 封存目錄內容全部忽略，但保留資料夾
 _archive/*
