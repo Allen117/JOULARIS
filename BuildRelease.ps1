@@ -1,6 +1,10 @@
 ﻿# SCADA 一鍵打包腳本 — 在開發機執行，產出可直接部署的資料夾
 # 用法: .\BuildRelease.ps1            （完整包，含 Python 基礎包）
 #       .\BuildRelease.ps1 -NoPython  （app-only 更新包，不含 Python；目標機沿用現有 Python）
+#       macOS / Linux：pwsh ./BuildRelease.ps1 [-NoPython]（或雙擊 BuildRelease.command）
+#         — 跨平台：路徑一律用 / 拼接（Windows 亦接受）、bat 產物強制 CRLF；dotnet publish 交叉產 win-x64。
+#         — Mac 跑不了 Windows python.exe，PythonRuntime 須事先從 Windows 機複製到 ScadaEngine.Engine/PythonRuntime/，
+#           否則只能 -NoPython。見 docs/功能說明書_部署與遠端更新.md §在 macOS 上建包
 # 產出: .\Release\SCADA_Release_yyyyMMdd_HHmm_vYY.A.B\
 #       版號取自 repo 根目錄 Directory.Build.props <Version>（CLAUDE.md §版本號規則）
 param([switch]$NoPython)
@@ -22,7 +26,7 @@ if (-not $AppVersion -or $AppVersion -notmatch '^\d{2}\.\d+\.\d+$') {
     exit 1
 }
 # 包名保留 SCADA_Release_<日期> 前綴（QuickDeployAll.bat 以名稱倒序取最新，日期在前排序才正確），版號接尾
-$ReleasePath = Join-Path $RootPath "Release\SCADA_Release_${DateTag}_v$AppVersion"
+$ReleasePath = Join-Path $RootPath "Release/SCADA_Release_${DateTag}_v$AppVersion"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -41,7 +45,7 @@ New-Item -ItemType Directory -Path $ReleasePath -Force | Out-Null
 # ──────────────────────────────────────
 Write-Host "[1/6] Building Engine (framework-dependent, needs .NET 8 runtime on target)..." -ForegroundColor Yellow
 $engineProject = Join-Path $RootPath "ScadaEngine.Engine"
-dotnet publish $engineProject -c Release --self-contained false --runtime win-x64 -o "$ReleasePath\Engine\App" --nologo -v quiet
+dotnet publish $engineProject -c Release --self-contained false --runtime win-x64 -o "$ReleasePath/Engine/App" --nologo -v quiet
 if ($LASTEXITCODE -ne 0) { Write-Host "Engine build FAILED" -ForegroundColor Red; exit 1 }
 
 # 移除 Engine\App 內未使用的 HASP 原生 dll（~40MB）。
@@ -51,7 +55,7 @@ if ($LASTEXITCODE -ne 0) { Write-Host "Engine build FAILED" -ForegroundColor Red
 # 樣式 hasp_windows* 不會誤刪 hasp_net_windows.dll（此處本就沒有），LicenseBridge\App 的那份不受影響。
 $engHaspRemoved = 0
 foreach ($pat in @("hasp_windows*.dll", "haspvlib*.dll", "apidsp_windows*.dll")) {
-    Get-ChildItem "$ReleasePath\Engine\App" -Filter $pat -File -ErrorAction SilentlyContinue | ForEach-Object {
+    Get-ChildItem "$ReleasePath/Engine/App" -Filter $pat -File -ErrorAction SilentlyContinue | ForEach-Object {
         $engHaspRemoved += $_.Length
         Remove-Item $_.FullName -Force
     }
@@ -66,9 +70,9 @@ $engineConfigs = @("Setting", "MqttSetting", "DatabaseSchema", "Algorithms")
 foreach ($dir in $engineConfigs) {
     $src = Join-Path $engineProject $dir
     if (Test-Path $src) {
-        $dst = "$ReleasePath\Engine\App\$dir"
+        $dst = "$ReleasePath/Engine/App/$dir"
         if (-not (Test-Path $dst)) { New-Item -ItemType Directory -Path $dst -Force | Out-Null }
-        Copy-Item -Path "$src\*" -Destination $dst -Recurse -Force
+        Copy-Item -Path "$src/*" -Destination $dst -Recurse -Force
     }
 }
 
@@ -78,25 +82,25 @@ foreach ($dir in $engineConfigs) {
 # 見 docs/架構.md §共用設定檔解析順序
 #   dbSetting / EmailSetting / SmsSetting：repo 的 Engine\Setting 正本（無機密、進 git）
 #   LineSetting：正式檔含 token 不進 git，repo 無則用 example 補（placeholder token 會被程式視為未設定、安全停用）
-$sharedDir = "$ReleasePath\Shared"
+$sharedDir = "$ReleasePath/Shared"
 if (-not (Test-Path $sharedDir)) { New-Item -ItemType Directory -Path $sharedDir -Force | Out-Null }
 foreach ($sharedName in @("dbSetting.json", "EmailSetting.json", "SmsSetting.json")) {
-    $sharedSrc = Join-Path $engineProject "Setting\$sharedName"
+    $sharedSrc = Join-Path $engineProject "Setting/$sharedName"
     if (-not (Test-Path $sharedSrc)) { Write-Host "Engine Setting\$sharedName missing (needed as Shared template)" -ForegroundColor Red; exit 1 }
-    Copy-Item $sharedSrc -Destination "$sharedDir\$sharedName" -Force
+    Copy-Item $sharedSrc -Destination "$sharedDir/$sharedName" -Force
 }
-$lineSettingSrc = Join-Path $engineProject "Setting\LineSetting.json"
-$lineSettingExample = Join-Path $engineProject "Setting\LineSetting.example.json"
+$lineSettingSrc = Join-Path $engineProject "Setting/LineSetting.json"
+$lineSettingExample = Join-Path $engineProject "Setting/LineSetting.example.json"
 if (Test-Path $lineSettingSrc) {
-    Copy-Item $lineSettingSrc -Destination "$sharedDir\LineSetting.json" -Force
+    Copy-Item $lineSettingSrc -Destination "$sharedDir/LineSetting.json" -Force
 } elseif (Test-Path $lineSettingExample) {
-    Copy-Item $lineSettingExample -Destination "$sharedDir\LineSetting.json" -Force
+    Copy-Item $lineSettingExample -Destination "$sharedDir/LineSetting.json" -Force
     Write-Host "  LineSetting.json created from example (fill token on-site to enable Line notify)" -ForegroundColor Gray
 } else {
     Write-Host "Engine Setting\LineSetting.example.json missing (needed as Shared template)" -ForegroundColor Red; exit 1
 }
 foreach ($sharedName in @("dbSetting.json", "EmailSetting.json", "SmsSetting.json", "LineSetting.json")) {
-    Remove-Item "$ReleasePath\Engine\App\Setting\$sharedName" -Force -ErrorAction SilentlyContinue
+    Remove-Item "$ReleasePath/Engine/App/Setting/$sharedName" -Force -ErrorAction SilentlyContinue
 }
 Write-Host "  dbSetting / EmailSetting / SmsSetting / LineSetting -> package root Shared\ (installs to C:\JOULARIS\Shared, shared by Engine/Web)" -ForegroundColor Gray
 
@@ -109,12 +113,12 @@ Write-Host "  dbSetting / EmailSetting / SmsSetting / LineSetting -> package roo
 # 升級時現場既有設定也照樣被備份/還原。
 $siteToolPatterns = @{ "Modbus" = "*.xlsx"; "DBPoint" = "*.xlsx"; "OpcUaPoint" = "*.xlsx" }
 foreach ($siteDir in @("Modbus", "DBPoint", "OpcUaPoint")) {
-    $sitePath = "$ReleasePath\Engine\App\$siteDir"
+    $sitePath = "$ReleasePath/Engine/App/$siteDir"
     if (Test-Path $sitePath) { Remove-Item $sitePath -Recurse -Force }
     New-Item -ItemType Directory -Path $sitePath -Force | Out-Null
     # 只回填範本 / 產生工具，不帶任何 dev 裝置 json / 範例 / 測試檔
     $pattern = $siteToolPatterns[$siteDir]
-    $toolSrc = Join-Path $engineProject "$siteDir\$pattern"
+    $toolSrc = Join-Path $engineProject "$siteDir/$pattern"
     if (Test-Path $toolSrc) {
         Copy-Item -Path $toolSrc -Destination $sitePath -Force
         Write-Host "  $siteDir : kept template/tool ($pattern), stripped dev data" -ForegroundColor Gray
@@ -124,14 +128,14 @@ foreach ($siteDir in @("Modbus", "DBPoint", "OpcUaPoint")) {
 }
 
 # Copy Engine scripts
-Copy-Item -Path (Join-Path $engineProject "Scripts\DeployService.ps1") -Destination "$ReleasePath\Engine\" -Force
-Copy-Item -Path (Join-Path $engineProject "Scripts\QuickDeploy.bat") -Destination "$ReleasePath\Engine\" -Force
+Copy-Item -Path (Join-Path $engineProject "Scripts/DeployService.ps1") -Destination "$ReleasePath/Engine/" -Force
+Copy-Item -Path (Join-Path $engineProject "Scripts/QuickDeploy.bat") -Destination "$ReleasePath/Engine/" -Force
 
 # Copy Python setup files (get-pip.py + SetupPythonRuntime.ps1)
-$getPip = Join-Path $engineProject "Scripts\get-pip.py"
-if (Test-Path $getPip) { Copy-Item $getPip -Destination "$ReleasePath\Engine\" -Force }
-$setupPy = Join-Path $engineProject "Scripts\SetupPythonRuntime.ps1"
-if (Test-Path $setupPy) { Copy-Item $setupPy -Destination "$ReleasePath\Engine\" -Force }
+$getPip = Join-Path $engineProject "Scripts/get-pip.py"
+if (Test-Path $getPip) { Copy-Item $getPip -Destination "$ReleasePath/Engine/" -Force }
+$setupPy = Join-Path $engineProject "Scripts/SetupPythonRuntime.ps1"
+if (Test-Path $setupPy) { Copy-Item $setupPy -Destination "$ReleasePath/Engine/" -Force }
 
 # PythonRuntime → 獨立「基礎包」（放 package 根目錄，非 Engine\App），帶 VERSION 版號。
 # 理由：Python 62MB 幾乎不變，抽出後 Install.bat 依 VERSION 比對，只在缺或版本變更才鋪，
@@ -142,26 +146,40 @@ if ($NoPython) {
 } else {
     $pythonRuntime = Join-Path $engineProject "PythonRuntime"
     if (-not (Test-Path (Join-Path $pythonRuntime "python.exe"))) {
+        # SetupPythonRuntime.ps1 要執行 Windows python.exe 裝 pip，非 Windows 主機做不到：
+        # 改要求使用者從任一 Windows 建機 / 生產機把 PythonRuntime 整包複製過來，或改產 -NoPython 小包。
+        if (-not $IsWindows -and $null -ne $IsWindows) {
+            Write-Host "PythonRuntime not found and cannot be generated on this OS (needs Windows python.exe)." -ForegroundColor Red
+            Write-Host "  Either copy <WindowsMachine>\C:\JOULARIS\Engine\App\PythonRuntime\ to $pythonRuntime" -ForegroundColor Red
+            Write-Host "  or run with -NoPython (target must already have a Python bundle)." -ForegroundColor Red
+            exit 1
+        }
         Write-Host "  PythonRuntime not found - running SetupPythonRuntime.ps1 (requires internet)..." -ForegroundColor Yellow
-        & (Join-Path $engineProject "Scripts\SetupPythonRuntime.ps1")
+        & (Join-Path $engineProject "Scripts/SetupPythonRuntime.ps1")
         if (-not (Test-Path (Join-Path $pythonRuntime "python.exe"))) {
             Write-Host "PythonRuntime setup FAILED - LogicFlow algorithm nodes will not work on target machines" -ForegroundColor Red
             exit 1
         }
     }
     Write-Host "  Copying PythonRuntime as base bundle (package root)..." -ForegroundColor Gray
-    $pyDst = "$ReleasePath\PythonRuntime"
+    $pyDst = "$ReleasePath/PythonRuntime"
     if (-not (Test-Path $pyDst)) { New-Item -ItemType Directory -Path $pyDst -Force | Out-Null }
-    Copy-Item -Path "$pythonRuntime\*" -Destination $pyDst -Recurse -Force
+    Copy-Item -Path "$pythonRuntime/*" -Destination $pyDst -Recurse -Force
     # 版號檔（VERSION）：pyver + 檔數 + 總位元組。改 Python 或 pip 套件 → 三者任一變 → 版號變，
     # Install.bat 觸發重鋪；否則升級時跳過那 62MB copy。VERSION 於計數後才寫入，故不計入自身。
     $pyExe = Join-Path $pyDst "python.exe"
     $pyVer = (Get-Item $pyExe).VersionInfo.ProductVersion
+    if (-not $pyVer) {
+        # 非 Windows 讀不到 PE 版本資源（VersionInfo 為空）→ 退而由 python3XY.dll 檔名推 3.XY，
+        # 讓 Mac 與 Windows 產的 VERSION 字串一致，避免 Install.bat 誤判版本變更而多鋪一次 62MB。
+        $pyDll = Get-ChildItem $pyDst -Filter "python3*.dll" -File | Where-Object { $_.Name -match '^python3\d+\.dll$' } | Select-Object -First 1
+        $pyVer = if ($pyDll -and $pyDll.Name -match '^python3(\d+)\.dll$') { "3." + $Matches[1] } else { "unknown" }
+    }
     $pyFiles = Get-ChildItem $pyDst -Recurse -File
     $pyCount = $pyFiles.Count
     $pyBytes = ($pyFiles | Measure-Object -Property Length -Sum).Sum
     $pyVerStr = "$pyVer" + "_" + $pyCount + "_" + $pyBytes
-    $pyVerStr | Set-Content -Path "$pyDst\VERSION" -Encoding ASCII -NoNewline
+    $pyVerStr | Set-Content -Path "$pyDst/VERSION" -Encoding ASCII -NoNewline
     Write-Host "  PythonRuntime base bundle OK (VERSION=$pyVerStr)" -ForegroundColor Green
 }
 
@@ -172,7 +190,7 @@ Write-Host "  Engine OK" -ForegroundColor Green
 # ──────────────────────────────────────
 Write-Host "[2/6] Building Web (framework-dependent, needs ASP.NET Core 8 runtime on target)..." -ForegroundColor Yellow
 $webProject = Join-Path $RootPath "ScadaEngine.Web"
-dotnet publish $webProject -c Release --self-contained false --runtime win-x64 -o "$ReleasePath\Web\App" --nologo -v quiet
+dotnet publish $webProject -c Release --self-contained false --runtime win-x64 -o "$ReleasePath/Web/App" --nologo -v quiet
 if ($LASTEXITCODE -ne 0) { Write-Host "Web build FAILED" -ForegroundColor Red; exit 1 }
 
 # 移除 Web publish 遞移帶入的 Engine 設定資料夾（死檔，避免工程師誤改）
@@ -181,7 +199,7 @@ if ($LASTEXITCODE -ne 0) { Write-Host "Web build FAILED" -ForegroundColor Red; e
 # appsettings.json 的 WatchedFolder（= ../../Engine/App/...，相對 Web\App 解析到 <安裝根目錄>\Engine\App），Web\App 下這幾份是死的，
 # 留著只會讓現場工程師誤以為要改這裡。刪掉，保持 Web\App 乾淨。
 foreach ($deadDir in @("Modbus", "DBPoint", "OpcUaPoint")) {
-    $deadPath = "$ReleasePath\Web\App\$deadDir"
+    $deadPath = "$ReleasePath/Web/App/$deadDir"
     if (Test-Path $deadPath) {
         Remove-Item $deadPath -Recurse -Force
         Write-Host "  Removed dead $deadDir folder from Web\App (Engine owns it)" -ForegroundColor Gray
@@ -193,7 +211,7 @@ foreach ($deadDir in @("Modbus", "DBPoint", "OpcUaPoint")) {
 # 對 Web 是純死重、且是原生 dll（只被 Engine license 路徑的 P/Invoke 載入，Web 從不呼叫），安全可刪。
 $webHaspRemoved = 0
 foreach ($pat in @("hasp_windows*.dll", "haspvlib*.dll", "apidsp_windows*.dll")) {
-    Get-ChildItem "$ReleasePath\Web\App" -Filter $pat -File -ErrorAction SilentlyContinue | ForEach-Object {
+    Get-ChildItem "$ReleasePath/Web/App" -Filter $pat -File -ErrorAction SilentlyContinue | ForEach-Object {
         $webHaspRemoved += $_.Length
         Remove-Item $_.FullName -Force
     }
@@ -203,44 +221,44 @@ if ($webHaspRemoved -gt 0) {
 }
 
 # Copy Web configs
-$webMqtt = Join-Path $webProject "MqttSetting\MqttSetting.json"
-$webMqttDst = "$ReleasePath\Web\App\MqttSetting"
+$webMqtt = Join-Path $webProject "MqttSetting/MqttSetting.json"
+$webMqttDst = "$ReleasePath/Web/App/MqttSetting"
 if (-not (Test-Path $webMqttDst)) { New-Item -ItemType Directory -Path $webMqttDst -Force | Out-Null }
-if (Test-Path $webMqtt) { Copy-Item $webMqtt -Destination "$webMqttDst\MqttSetting.json" -Force }
+if (Test-Path $webMqtt) { Copy-Item $webMqtt -Destination "$webMqttDst/MqttSetting.json" -Force }
 
 # dbSetting / EmailSetting / SmsSetting / LineSetting 不進 Web\App\Setting — Web 改讀寫 C:\JOULARIS\Shared\（與 Engine 同一份，見上方 Engine 段）。
 # 以前這裡從 Engine 複製一份給 Web，升級時兩份各自備份/還原，一旦分家就永久分家（2026-10-06 現場即如此）；
 # 通知三檔更糟：Web UI 存 SMTP 寫進 Web 複本，Engine 永遠看不到。
 foreach ($sharedName in @("dbSetting.json", "EmailSetting.json", "SmsSetting.json", "LineSetting.json")) {
-    Remove-Item "$ReleasePath\Web\App\Setting\$sharedName" -Force -ErrorAction SilentlyContinue
+    Remove-Item "$ReleasePath/Web/App/Setting/$sharedName" -Force -ErrorAction SilentlyContinue
 }
 
 # Copy DatabaseSchema from Engine
-$schemaFile = Join-Path $engineProject "DatabaseSchema\DatabaseSchema.json"
-$webSchemaDir = "$ReleasePath\Web\App\DatabaseSchema"
+$schemaFile = Join-Path $engineProject "DatabaseSchema/DatabaseSchema.json"
+$webSchemaDir = "$ReleasePath/Web/App/DatabaseSchema"
 if (-not (Test-Path $webSchemaDir)) { New-Item -ItemType Directory -Path $webSchemaDir -Force | Out-Null }
-if (Test-Path $schemaFile) { Copy-Item $schemaFile -Destination "$webSchemaDir\DatabaseSchema.json" -Force }
+if (Test-Path $schemaFile) { Copy-Item $schemaFile -Destination "$webSchemaDir/DatabaseSchema.json" -Force }
 
 # Copy Algorithms from Engine（Web LogicFlow 需要讀取演算法清單）
 $algoSrc = Join-Path $engineProject "Algorithms"
 if (Test-Path $algoSrc) {
-    $algoDst = "$ReleasePath\Web\App\Algorithms"
+    $algoDst = "$ReleasePath/Web/App/Algorithms"
     if (-not (Test-Path $algoDst)) { New-Item -ItemType Directory -Path $algoDst -Force | Out-Null }
-    Copy-Item -Path "$algoSrc\*" -Destination $algoDst -Recurse -Force
+    Copy-Item -Path "$algoSrc/*" -Destination $algoDst -Recurse -Force
     Write-Host "  Algorithms copied to Web" -ForegroundColor Gray
 }
 
 # Copy Web scripts
-Copy-Item -Path (Join-Path $webProject "Scripts\DeployWebService.ps1") -Destination "$ReleasePath\Web\" -Force
-Copy-Item -Path (Join-Path $webProject "Scripts\QuickDeploy.bat") -Destination "$ReleasePath\Web\" -Force
+Copy-Item -Path (Join-Path $webProject "Scripts/DeployWebService.ps1") -Destination "$ReleasePath/Web/" -Force
+Copy-Item -Path (Join-Path $webProject "Scripts/QuickDeploy.bat") -Destination "$ReleasePath/Web/" -Force
 
 # 內網 HTTPS 憑證腳本 → Web\App\certs\（Program.cs 由 ContentRoot\certs 讀 pfx，故腳本須落在 App\certs）
 # 只帶「腳本」，不帶任何 pfx/crt（憑證由部署機現產；升級時 xcopy 不刪除既有憑證故保留）。詳見 docs/功能說明書_內網HTTPS部署.md
 $certScriptSrc = Join-Path $webProject "certs"
-$certScriptDst = "$ReleasePath\Web\App\certs"
+$certScriptDst = "$ReleasePath/Web/App/certs"
 if (Test-Path $certScriptSrc) {
     if (-not (Test-Path $certScriptDst)) { New-Item -ItemType Directory -Path $certScriptDst -Force | Out-Null }
-    Copy-Item -Path "$certScriptSrc\*.ps1" -Destination $certScriptDst -Force
+    Copy-Item -Path "$certScriptSrc/*.ps1" -Destination $certScriptDst -Force
     Write-Host "  HTTPS cert scripts copied to Web\App\certs (no pfx/crt bundled)" -ForegroundColor Gray
 }
 
@@ -248,9 +266,9 @@ Write-Host "  Web OK" -ForegroundColor Green
 
 # 工程師工具不落地客戶伺服器：reset-engineer-password.ps1 移到包根目錄（隨工程師 USB 攜帶使用），
 # 並自兩個 App\Setting 移除 — 留在伺服器上等於任何能碰檔案系統的人一鍵重設 engineer 密碼
-$resetTool = "$ReleasePath\Engine\App\Setting\reset-engineer-password.ps1"
-if (Test-Path $resetTool) { Copy-Item $resetTool -Destination "$ReleasePath\reset-engineer-password.ps1" -Force }
-Remove-Item "$ReleasePath\Engine\App\Setting\reset-engineer-password.ps1", "$ReleasePath\Web\App\Setting\reset-engineer-password.ps1" -Force -ErrorAction SilentlyContinue
+$resetTool = "$ReleasePath/Engine/App/Setting/reset-engineer-password.ps1"
+if (Test-Path $resetTool) { Copy-Item $resetTool -Destination "$ReleasePath/reset-engineer-password.ps1" -Force }
+Remove-Item "$ReleasePath/Engine/App/Setting/reset-engineer-password.ps1", "$ReleasePath/Web/App/Setting/reset-engineer-password.ps1" -Force -ErrorAction SilentlyContinue
 Write-Host "  reset-engineer-password.ps1 moved to package root (engineer tool, not installed on server)" -ForegroundColor Gray
 
 # ──────────────────────────────────────
@@ -258,25 +276,25 @@ Write-Host "  reset-engineer-password.ps1 moved to package root (engineer tool, 
 # ──────────────────────────────────────
 Write-Host "[3/6] Building ModbusServer gateway (framework-dependent, needs ASP.NET Core 8 runtime on target)..." -ForegroundColor Yellow
 $modbusProject = Join-Path $RootPath "ScadaEngine.ModbusServer"
-dotnet publish $modbusProject -c Release --self-contained false --runtime win-x64 -o "$ReleasePath\ModbusServer\App" --nologo -v quiet
+dotnet publish $modbusProject -c Release --self-contained false --runtime win-x64 -o "$ReleasePath/ModbusServer/App" --nologo -v quiet
 if ($LASTEXITCODE -ne 0) { Write-Host "ModbusServer build FAILED" -ForegroundColor Red; exit 1 }
 
 # Copy ModbusServer configs (publish already carries them, copy again to be explicit like Engine)
 foreach ($dir in @("Setting", "MqttSetting", "Web")) {
     $src = Join-Path $modbusProject $dir
     if (Test-Path $src) {
-        $dst = "$ReleasePath\ModbusServer\App\$dir"
+        $dst = "$ReleasePath/ModbusServer/App/$dir"
         if (-not (Test-Path $dst)) { New-Item -ItemType Directory -Path $dst -Force | Out-Null }
-        Copy-Item -Path "$src\*" -Destination $dst -Recurse -Force
+        Copy-Item -Path "$src/*" -Destination $dst -Recurse -Force
     }
 }
 
 # Gateway 包內只帶 dbSetting.example.json：同機安裝讀 C:\JOULARIS\Shared\，異機安裝由 InstallModbusServer.bat 從 example 鋪本機 Setting\dbSetting.json
-Remove-Item "$ReleasePath\ModbusServer\App\Setting\dbSetting.json" -Force -ErrorAction SilentlyContinue
+Remove-Item "$ReleasePath/ModbusServer/App/Setting/dbSetting.json" -Force -ErrorAction SilentlyContinue
 
 # Copy ModbusServer scripts
-Copy-Item -Path (Join-Path $modbusProject "Scripts\DeployModbusServer.ps1") -Destination "$ReleasePath\ModbusServer\" -Force
-Copy-Item -Path (Join-Path $modbusProject "Scripts\QuickDeploy.bat") -Destination "$ReleasePath\ModbusServer\" -Force
+Copy-Item -Path (Join-Path $modbusProject "Scripts/DeployModbusServer.ps1") -Destination "$ReleasePath/ModbusServer/" -Force
+Copy-Item -Path (Join-Path $modbusProject "Scripts/QuickDeploy.bat") -Destination "$ReleasePath/ModbusServer/" -Force
 
 Write-Host "  ModbusServer OK" -ForegroundColor Green
 
@@ -287,11 +305,11 @@ Write-Host "  ModbusServer OK" -ForegroundColor Green
 # HASP runtime dll 由 csproj 的 CopyToOutputDirectory 帶入輸出目錄，無需外網。
 Write-Host "[4/6] Building LicenseBridge (net48 HASP bridge)..." -ForegroundColor Yellow
 $bridgeProject = Join-Path $RootPath "ScadaEngine.LicenseBridge"
-dotnet publish $bridgeProject -c Release -o "$ReleasePath\LicenseBridge\App" --nologo -v quiet
+dotnet publish $bridgeProject -c Release -o "$ReleasePath/LicenseBridge/App" --nologo -v quiet
 if ($LASTEXITCODE -ne 0) { Write-Host "LicenseBridge build FAILED" -ForegroundColor Red; exit 1 }
 
 # 驗證 HASP runtime dll 確實落在輸出（少了狗就驗不了證）
-$haspProbe = "$ReleasePath\LicenseBridge\App\hasp_net_windows.dll"
+$haspProbe = "$ReleasePath/LicenseBridge/App/hasp_net_windows.dll"
 if (-not (Test-Path $haspProbe)) { Write-Host "LicenseBridge missing HASP runtime dll" -ForegroundColor Red; exit 1 }
 Write-Host "  LicenseBridge OK (net48 + HASP runtime)" -ForegroundColor Green
 
@@ -739,7 +757,7 @@ echo This window stays open so you can read the result above.
 echo Press any key to close it.
 echo ----------------------------------------
 pause
-"@ | Set-Content -Path "$ReleasePath\Install.bat" -Encoding ASCII
+"@ -replace "`r?`n", "`r`n" | ForEach-Object { $_ + "`r`n" } | Set-Content -Path "$ReleasePath/Install.bat" -Encoding ASCII -NoNewline
 
 Write-Host "  Install.bat created" -ForegroundColor Green
 
@@ -926,7 +944,7 @@ for /f "usebackq tokens=*" %%o in (`powershell -NoProfile -Command "$c=Get-NetTC
     set "PORT_OWNER=%%o"
 )
 exit /b
-'@ -replace '__APPVERSION__', $AppVersion -replace '__BUILDDATE__', $BuildDate | Set-Content -Path "$ReleasePath\InstallModbusServer.bat" -Encoding ASCII
+'@ -replace '__APPVERSION__', $AppVersion -replace '__BUILDDATE__', $BuildDate -replace "`r?`n", "`r`n" | ForEach-Object { $_ + "`r`n" } | Set-Content -Path "$ReleasePath/InstallModbusServer.bat" -Encoding ASCII -NoNewline
 
 Write-Host "  InstallModbusServer.bat created (standalone gateway installer)" -ForegroundColor Green
 
@@ -934,7 +952,7 @@ Write-Host "  InstallModbusServer.bat created (standalone gateway installer)" -F
 # 6. Summary
 # ──────────────────────────────────────
 Write-Host "[6/6] Calculating size..." -ForegroundColor Yellow
-$totalSize = [math]::Round(((Get-ChildItem $ReleasePath -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB), 1)
+$totalSize = [math]::Round(((Get-ChildItem $ReleasePath -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1MB), 1)
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green

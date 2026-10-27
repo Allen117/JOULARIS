@@ -62,6 +62,12 @@ public class EnergyReportBucket
     public bool isStale { get; set; }
 
     /// <summary>
+    /// 該 bucket 任一葉子的期初 / 期末邊界缺讀數，改以區間內第一筆 / 最後一筆有效讀數相減（電表期中上線或期末斷線）→ true。
+    /// 數值為「自首筆讀數起、至末筆讀數止」的累計，前端提示「資料不完整，僅統計有讀數的區段」。與 isStale 互斥。
+    /// </summary>
+    public bool isPartial { get; set; }
+
+    /// <summary>
     /// 去年同期（去年同月的帳單期別）該 bucket 的 kWh；
     /// 去年該期未設定/無資料時為 null（View / Excel 顯示 "--"）。僅 YOY 模式填值。
     /// </summary>

@@ -1128,6 +1128,7 @@ function confirmPointPick() {
             cell.szPointName = szFullName;
             // 互斥清空：改綁一般點位時清掉迴路指標鍵
             _clearCellCircuitKeys(cell);
+            _applyAutoColDecimals(props, nSelectedCellCol, cell, szFullName, point.szUnit);
             // 表格 DI Cell 綁定 SID 時，繼承同 SID 已存在的 ON/OFF 標籤
             if (cell.szPointType === 'DI') {
                 const diLabelsCell = _findDiLabelsForSid(point.szSid);
@@ -1180,6 +1181,7 @@ function confirmPointPick() {
             selectedEl.widgetProps.szPointName = szFullName;
             selectedEl.widgetProps.szTitle     = szFullName;
             selectedEl.widgetProps.szUnit      = point.szUnit || '';
+            _applyAutoDecimals(selectedEl.widgetProps, szFullName, point.szUnit);
             // 互斥清空：改綁一般點位時清掉迴路指標鍵
             _clearRtValueCircuitKeys(selectedEl.widgetProps);
             // 選到迴路 kWh 點位且累積(meter)模式溢位上限空白 → 自動帶 MaxKwh
@@ -1204,6 +1206,7 @@ function confirmPointPick() {
             selectedEl.widgetProps.szUnit      = point.szUnit || '';
             selectedEl.widgetProps.fMin        = point.fMin ?? 0;
             selectedEl.widgetProps.fMax        = point.fMax ?? 100;
+            _applyAutoDecimals(selectedEl.widgetProps, szFullName, point.szUnit);
         } else if (szType === 'doPoint') {
             selectedEl.widgetProps.szCid       = point.szSid;
             selectedEl.widgetProps.szPointName = szFullName;
@@ -1765,6 +1768,8 @@ function _applyCircuitFillItems(props, nRowIdx, circuit, arrSelectedItems) {
             cell.szSid       = item.szSid;
             cell.szPointName = item.szPointName;
             cell.szPointType = 'AI';
+            const pt = (arrAllPoints || []).find(p => p.szSid === item.szSid);
+            _applyAutoColDecimals(props, item.nCol, cell, item.szPointName, pt ? pt.szUnit : '');
             nRealtime++;
         } else if (item.szKind === 'metric') {
             _bindCellToCircuitMetric(cell, circuit, item.szMetric);

@@ -104,3 +104,10 @@
         right: auto;
     }
 }
+
+/* 使用手冊斜書本圖示（Views/Shared/_ManualIcon.cshtml）— navbar 入口與手冊頁標題共用，放全站載入的這支檔 */
+.manual-icon {
+    width: 1.15em;
+    height: 1.15em;
+    vertical-align: -0.2em;
+}

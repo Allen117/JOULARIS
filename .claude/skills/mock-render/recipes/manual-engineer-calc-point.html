@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<!-- 工程師手冊 calc-point-01：/CalcPoint（Engineer 視角）。清單走 window._calcPointData；driver 開新增視窗填冷凍噸範例（3 變數，pointName 直接帶顯示名）並呼叫 previewFormula，mock /CalcPoint/Preview 回 151.77（=1500×(12.3−7.2)×4.186/211） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>計算點位 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/calcpoint.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/CalcPoint/Preview': function () { return { success: true, result: 151.7651 }; },
+            '/Designer/Devices': function () { return []; },
+            '/Designer/Points': function () { return []; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-hard-hat me-1"></i>工程師模式</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>engineer</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<link rel="stylesheet" href="{{WWWROOT}}/css/calcpoint.css" />
+
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>計算點位設定</h5>
+        <button class="btn btn-primary btn-sm" onclick="window._calcPoint.openCreateModal()">
+            <i class="fas fa-plus me-1"></i>新增公式
+        </button>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white py-2">
+            <h6 class="mb-0"><i class="fas fa-list me-2"></i>已設定的計算點位</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-bordered mb-0" id="calcPointTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>名稱</th>
+                            <th>公式</th>
+                            <th style="width: 80px;">單位</th>
+                            <th style="width: 120px;">群組</th>
+                            <th style="width: 80px;">狀態</th>
+                            <th style="width: 100px;">建立時間</th>
+                            <th style="width: 120px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calcPointTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div id="emptyState" class="text-center text-muted py-4" style="display:none;">
+                <i class="fas fa-inbox fa-3x mb-2 d-block"></i>
+                <div>尚無計算點位，點擊「新增公式」開始設定</div>
+            </div>
+        </div>
+        <div class="card-footer bg-light text-muted small">
+            <span id="calcPointCount"></span>
+            <span class="ms-3">Engine 每 60 秒自動重載設定</span>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/編輯 Modal -->
+<div class="modal fade" id="calcPointModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="calcPointModalTitle">新增計算點位</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editSID" />
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-magic me-1"></i>公式範本</label>
+                    <select id="selTemplate" class="form-select form-select-sm" onchange="window._calcPoint.applyTemplate(this.value)">
+                        <option value="">自訂公式</option>
+                        <option value="wetbulb">濕球溫度（Stull 經驗式）</option>
+                        <option value="enthalpy">焓值（濕空氣比焓）</option>
+                        <option value="dewpoint">露點溫度（Magnus 式）</option>
+                    </select>
+                    <div class="form-text" id="templateHint" style="display:none;"></div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold"><i class="fas fa-tag me-1"></i>名稱</label>
+                        <input type="text" class="form-control form-control-sm" id="inputName" placeholder="例: 冷凍噸">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-ruler me-1"></i>單位</label>
+                        <input type="text" class="form-control form-control-sm" id="inputUnit" placeholder="例: RT">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-layer-group me-1"></i>群組名稱</label>
+                        <input type="text" class="form-control form-control-sm" id="inputGroupName" placeholder="例: ChillerPlant">
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-semibold mb-0"><i class="fas fa-link me-1"></i>輸入變數對應</label>
+                        <button class="btn btn-outline-primary btn-sm" onclick="window._calcPoint.addVariableRow()">
+                            <i class="fas fa-plus me-1"></i>新增變數
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 180px;">變數名稱</th>
+                                    <th>對應點位</th>
+                                    <th style="width: 60px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="variableTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-square-root-alt me-1"></i>計算公式</label>
+                    <input type="text" class="form-control form-control-sm font-monospace" id="inputFormula"
+                           placeholder="例: Flow * (ReturnT - SupplyT) * 4.186 / 211"
+                           data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                           title="&lt;b&gt;運算子&lt;/b&gt;: +、-、*、/、%&lt;br&gt;&lt;b&gt;比較&lt;/b&gt;: &amp;gt;、&amp;lt;、&amp;gt;=、&amp;lt;=、==、!=&lt;br&gt;&lt;b&gt;邏輯&lt;/b&gt;: &amp;amp;&amp;amp;、||、!&lt;br&gt;&lt;b&gt;條件&lt;/b&gt;: if(條件, 真值, 假值)&lt;br&gt;&lt;b&gt;數學&lt;/b&gt;: Pow(x,y)、Sqrt(x)、Abs(x)、Log(x)、Round(x,d)、Min(x,y)、Max(x,y)&lt;br&gt;&lt;b&gt;專業&lt;/b&gt;: WetBulb(T,RH) 濕球溫度、Enthalpy(T,RH) 焓值、DewPoint(T,RH) 露點溫度&lt;br&gt;&lt;b&gt;變數&lt;/b&gt;: 使用上方定義的變數名稱">
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-info btn-sm" onclick="window._calcPoint.previewFormula()">
+                        <i class="fas fa-bolt me-1"></i>即時預覽
+                    </button>
+                    <span id="previewResult" class="fw-semibold"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="window._calcPoint.saveCalcPoint()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 刪除確認 Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">確認刪除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteMessage"></p>
+                <p class="text-danger small mb-0">此操作無法復原，相關歷史資料仍會保留。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="window._calcPoint.confirmDelete()">
+                    <i class="fas fa-trash-alt me-1"></i>確認刪除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 點位選擇器 Modal -->
+<div class="modal fade" id="cpPointPickerModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:460px;">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" style="font-size:13px;display:flex;align-items:center;gap:4px;">
+                    <i class="fas fa-tachometer-alt text-warning"></i>
+                    <span id="cpPkTitle">選擇點位來源</span>
+                </h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:12px 16px;">
+
+                <!-- Step 0: 來源類型 -->
+                <div id="cpPkStep0">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div class="cpPk-list-item cpPk-source-item" onclick="window._calcPoint.pkShowDeviceStep()">
+                            <i class="fas fa-server" style="font-size:18px;color:#0d6efd;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="cpPk-item-name" style="font-size:14px;">設備點位</div>
+                                <div class="cpPk-item-sub">從 Modbus 設備選擇原始點位</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#999;font-size:12px;"></i>
+                        </div>
+                        <div class="cpPk-list-item cpPk-source-item" onclick="window._calcPoint.pkShowCalcStep()">
+                            <i class="fas fa-calculator" style="font-size:18px;color:#ffc107;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="cpPk-item-name" style="font-size:14px;">計算點位</div>
+                                <div class="cpPk-item-sub">從公式衍生的計算點位</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#999;font-size:12px;"></i>
+                        </div>
+                        <div class="cpPk-list-item cpPk-source-item" onclick="window._calcPoint.pkShowExtStep('db')">
+                            <i class="fas fa-database" style="font-size:18px;color:#198754;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="cpPk-item-name" style="font-size:14px;">DB 來源點位</div>
+                                <div class="cpPk-item-sub">外部系統寫入的點位（含氣象 Weather）</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#999;font-size:12px;"></i>
+                        </div>
+                        <div class="cpPk-list-item cpPk-source-item" onclick="window._calcPoint.pkShowExtStep('opc')">
+                            <i class="fas fa-network-wired" style="font-size:18px;color:#6f42c1;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="cpPk-item-name" style="font-size:14px;">OPC UA 點位</div>
+                                <div class="cpPk-item-sub">從 OPC UA Server 匯入的點位</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#999;font-size:12px;"></i>
+                        </div>
+                        <div class="cpPk-list-item cpPk-source-item" onclick="window._calcPoint.pkShowExtStep('dmd')">
+                            <i class="fas fa-bolt" style="font-size:18px;color:#dc3545;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="cpPk-item-name" style="font-size:14px;">需量點位</div>
+                                <div class="cpPk-item-sub">電表迴路 15 分鐘需量（kW）</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#999;font-size:12px;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: 設備 / 群組清單 -->
+                <div id="cpPkStep1" style="display:none;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <button class="btn btn-link btn-sm text-decoration-none p-0" onclick="window._calcPoint.pkBackToStep0()">
+                            <i class="fas fa-arrow-left me-1"></i>返回
+                        </button>
+                    </div>
+                    <div id="cpPkDeviceList" style="max-height:290px;overflow-y:auto;"></div>
+                </div>
+
+                <!-- Step 2: 點位清單 -->
+                <div id="cpPkStep2" style="display:none;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <button class="btn btn-link btn-sm text-decoration-none p-0" onclick="window._calcPoint.pkGoBack()">
+                            <i class="fas fa-arrow-left me-1"></i>返回
+                        </button>
+                        <span class="badge bg-light text-dark border">
+                            <i class="fas fa-server me-1" id="cpPkDevIcon"></i><span id="cpPkDevName"></span>
+                        </span>
+                    </div>
+                    <input type="text" id="cpPkSearch"
+                           class="form-control form-control-sm mb-2"
+                           placeholder="搜尋點位名稱…"
+                           oninput="window._calcPoint.pkFilterPoints(this.value)">
+                    <div id="cpPkPointList" style="max-height:270px;overflow-y:auto;"></div>
+                </div>
+
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary btn-sm" id="cpPkBtnConfirm" disabled onclick="window._calcPoint.pkConfirm()">
+                    <i class="fas fa-check me-1"></i>確認選擇
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+    // i18n stub（只含本頁用到的 key，取自 Resources/*.resx zh-TW）
+    window.i18n = (function () {
+        var D = {"calcpoint.title": "計算點位", "calcpoint.subtitle": "計算點位設定", "calcpoint.btn.add": "新增公式", "calcpoint.btn.add_variable": "新增變數", "calcpoint.btn.preview": "即時預覽", "calcpoint.btn.cancel": "取消", "calcpoint.btn.save": "儲存", "calcpoint.btn.edit": "編輯", "calcpoint.btn.delete": "刪除", "calcpoint.btn.select": "選擇", "calcpoint.btn.confirm_delete": "確認刪除", "calcpoint.card.list_title": "已設定的計算點位", "calcpoint.col.name": "名稱", "calcpoint.col.formula": "公式", "calcpoint.col.unit": "單位", "calcpoint.col.group": "群組", "calcpoint.col.status": "狀態", "calcpoint.col.created_at": "建立時間", "calcpoint.col.actions": "操作", "calcpoint.col.var_name": "變數名稱", "calcpoint.col.var_point": "對應點位", "calcpoint.empty.hint": "尚無計算點位，點擊「新增公式」開始設定", "calcpoint.footer.engine_reload_hint": "Engine 每 60 秒自動重載設定", "calcpoint.count.total": "共 {n} 筆", "calcpoint.modal.add_title": "新增計算點位", "calcpoint.modal.edit_title": "編輯計算點位", "calcpoint.modal.delete_title": "確認刪除", "calcpoint.modal.delete_message": "確定要刪除計算點位 <strong>{sid}</strong> 嗎？", "calcpoint.modal.delete_warning": "此操作無法復原，相關歷史資料仍會保留。", "calcpoint.label.template": "公式範本", "calcpoint.tpl.custom": "自訂公式", "calcpoint.tpl.wetbulb": "濕球溫度（Stull 經驗式）", "calcpoint.tpl.wetbulb.point_name": "外氣濕球溫度", "calcpoint.tpl.wetbulb.hint": "由乾球溫度 T 與相對濕度 RH 推導濕球溫度。適用 T 0~50°C、RH 5~100%，超出範圍時品質標為 Bad。請為變數 T 選擇溫度點位、RH 選擇濕度點位（任何來源皆可）。", "calcpoint.tpl.enthalpy": "焓值（濕空氣比焓）", "calcpoint.tpl.enthalpy.point_name": "外氣焓值", "calcpoint.tpl.enthalpy.hint": "由乾球溫度 T 與相對濕度 RH 推導濕空氣比焓（kJ/kg 乾空氣，近海平面定壓）。適用 T 0~50°C、RH 0~100%，超出範圍時品質標為 Bad。請為變數 T 選擇溫度點位、RH 選擇濕度點位（任何來源皆可）。", "calcpoint.tpl.dewpoint": "露點溫度（Magnus 式）", "calcpoint.tpl.dewpoint.point_name": "外氣露點溫度", "calcpoint.tpl.dewpoint.hint": "由乾球溫度 T 與相對濕度 RH 推導露點溫度。適用 T 0~50°C、RH 1~100%，超出範圍時品質標為 Bad。請為變數 T 選擇溫度點位、RH 選擇濕度點位（任何來源皆可）。", "calcpoint.label.name": "名稱", "calcpoint.label.unit": "單位", "calcpoint.label.group_name": "群組名稱", "calcpoint.label.input_mapping": "輸入變數對應", "calcpoint.label.formula": "計算公式", "calcpoint.placeholder.name": "例: 冷凍噸", "calcpoint.placeholder.unit": "例: RT", "calcpoint.placeholder.group": "例: ChillerPlant", "calcpoint.placeholder.var_name": "例: Flow", "calcpoint.placeholder.formula": "例: Flow * (ReturnT - SupplyT) * 4.186 / 211", "calcpoint.tooltip.formula": "<b>運算子</b>: +、-、*、/、%<br><b>比較</b>: &gt;、&lt;、&gt;=、&lt;=、==、!=<br><b>邏輯</b>: &amp;&amp;、||、!<br><b>條件</b>: if(條件, 真值, 假值)<br><b>數學</b>: Pow(x,y)、Sqrt(x)、Abs(x)、Log(x)、Round(x,d)、Min(x,y)、Max(x,y)<br><b>專業</b>: WetBulb(T,RH) 濕球溫度、Enthalpy(T,RH) 焓值、DewPoint(T,RH) 露點溫度<br><b>變數</b>: 使用上方定義的變數名稱", "calcpoint.status.enabled": "啟用", "calcpoint.status.disabled": "停用", "calcpoint.pk.title_source": "選擇點位來源", "calcpoint.pk.title_select_device": "選擇設備", "calcpoint.pk.title_select_calc_group": "選擇計算點位群組", "calcpoint.pk.title_select_point": "選擇點位", "calcpoint.pk.title_select_calc_point": "選擇計算點位", "calcpoint.pk.source.device": "設備點位", "calcpoint.pk.source.device_sub": "從 Modbus 設備選擇原始點位", "calcpoint.pk.source.calc": "計算點位", "calcpoint.pk.source.calc_sub": "從公式衍生的計算點位", "calcpoint.pk.source.db": "DB 來源點位", "calcpoint.pk.source.db_sub": "外部系統寫入的點位（含氣象 Weather）", "calcpoint.pk.source.opcua": "OPC UA 點位", "calcpoint.pk.source.opcua_sub": "從 OPC UA Server 匯入的點位", "calcpoint.pk.back": "返回", "calcpoint.pk.search_placeholder": "搜尋點位名稱…", "calcpoint.pk.btn.confirm": "確認選擇", "calcpoint.pk.no_devices": "尚無設備", "calcpoint.pk.no_points": "無符合點位", "calcpoint.pk.ungrouped": "未分組", "calcpoint.pk.calc_points_label": "計算點位", "calcpoint.pk.points_count": "{n} 個點位", "calcpoint.pk.unset": "— 未選擇 —", "calcpoint.pk.load_failed": "無法載入設備/點位清單", "calcpoint.msg.enter_name": "請輸入名稱", "calcpoint.msg.enter_formula": "請輸入公式", "calcpoint.msg.enter_formula_first": "請先輸入公式", "calcpoint.msg.need_variable": "至少需要一個輸入變數", "calcpoint.msg.operation_failed": "操作失敗", "calcpoint.msg.delete_failed_default": "刪除失敗", "calcpoint.msg.network_error": "網路錯誤", "calcpoint.msg.calculating": "計算中…", "calcpoint.pk.source.demand": "需量點位", "calcpoint.pk.source.demand_sub": "電表迴路 15 分鐘需量（kW）", "calcpoint.svc.name_empty": "名稱不可為空", "calcpoint.svc.formula_empty": "公式不可為空", "calcpoint.svc.no_variables": "至少需要一個輸入變數", "calcpoint.svc.input_format_error": "輸入變數對應格式錯誤", "calcpoint.svc.sid_empty": "SID 不可為空", "calcpoint.svc.add_success": "新增成功", "calcpoint.svc.add_failed": "新增失敗", "calcpoint.svc.update_success": "更新成功", "calcpoint.svc.update_failed": "更新失敗", "calcpoint.svc.delete_success": "刪除成功", "calcpoint.svc.delete_failed": "刪除失敗", "calcpoint.svc.calc_success": "計算成功", "calcpoint.svc.calc_invalid": "計算結果無效 (NaN/Infinity)", "calcpoint.svc.calc_failed_with": "公式計算失敗: {0}", "calcpoint.svc.reserved_var": "變數名稱「{0}」為內建函數保留字，請改用其他名稱"};
+        return { t: function (k, a) { var v = D[k] || k; if (a) Object.keys(a).forEach(function (n) { v = v.split("{" + n + "}").join(a[n]); }); return v; },
+                 ready: function (cb) { cb(); }, currentCulture: function () { return "zh-TW"; } };
+    })();
+    </script>
+    <script>
+        window._calcPointData = [{"szSID": "CALC-S1", "szName": "冷凍噸", "szUnit": "RT", "szGroupName": "ChillerPlant", "szFormula": "Flow * (ReturnT - SupplyT) * 4.186 / 211", "szInputMappings": "{\"Flow\": \"2-S4\", \"ReturnT\": \"2-S2\", \"SupplyT\": \"2-S1\"}", "isEnabled": true, "szCreatedAt": "2026-05-12 10:20", "szUpdatedAt": ""}, {"szSID": "CALC-S2", "szName": "外氣濕球溫度", "szUnit": "°C", "szGroupName": "Weather", "szFormula": "WetBulb(T, RH)", "szInputMappings": "{\"T\": \"DB1-S8\", \"RH\": \"DB1-S9\"}", "isEnabled": true, "szCreatedAt": "2026-05-12 10:35", "szUpdatedAt": ""}, {"szSID": "CALC-S3", "szName": "空調總用電", "szUnit": "kW", "szGroupName": "Power", "szFormula": "M01 + M02", "szInputMappings": "{\"M01\": \"1-S3\", \"M02\": \"4-S3\"}", "isEnabled": true, "szCreatedAt": "2026-06-03 14:02", "szUpdatedAt": ""}, {"szSID": "CALC-S4", "szName": "冰水主機效率", "szUnit": "kW/RT", "szGroupName": "ChillerPlant", "szFormula": "kW / RT", "szInputMappings": "{\"kW\": \"3-S5\", \"RT\": \"CALC-S1\"}", "isEnabled": false, "szCreatedAt": "2026-06-20 09:15", "szUpdatedAt": ""}];
+    </script>
+    <script src="{{WWWROOT}}/js/common/point-grouping.js"></script>
+    <script src="{{WWWROOT}}/js/calcpoint.js"></script>
+    <script>
+    // 開「新增公式」視窗並填一筆冷凍噸範例 → 按即時預覽
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            window._calcPoint.openCreateModal();
+            document.getElementById('inputName').value = '冷凍噸';
+            document.getElementById('inputUnit').value = 'RT';
+            document.getElementById('inputGroupName').value = 'ChillerPlant';
+            document.getElementById('variableTableBody').innerHTML = '';
+            [['Flow', '2-S4', '冰水主機 CH-01 / 冰水流量'],
+             ['ReturnT', '2-S2', '冰水主機 CH-01 / 冰水回水溫度'],
+             ['SupplyT', '2-S1', '冰水主機 CH-01 / 冰水出水溫度']].forEach(function (v) {
+                window._calcPoint.addVariableRow();
+                var tr = document.querySelector('#variableTableBody tr:last-child');
+                tr.querySelector('.var-name').value = v[0];
+                tr.querySelector('.var-sid').value = v[1];
+                var lb = tr.querySelector('.var-point-label');
+                lb.textContent = v[2]; lb.classList.remove('text-muted');
+            });
+            document.getElementById('inputFormula').value = 'Flow * (ReturnT - SupplyT) * 4.186 / 211';
+            window._calcPoint.previewFormula();
+        }, 100);
+    });
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

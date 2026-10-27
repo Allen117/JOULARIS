@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<!-- 手冊 ems/tariff-01：/TariffSetting 採用「高壓二段式」+ 採用時間軸 2 段 + 契約容量歷史 2 段 + 方案編輯區（台電 seed 取自 Setting/tariff-taipower-defaults.json）。mock /TariffSetting/api/{config,cost-summary} -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>電費設定 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/flatpickr/flatpickr.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/tariffsetting.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/TariffSetting/api/config': function () { return {"szActivePlanId": "hv_tou2", "plans": [{"szPlanId": "lighting_res_prog", "szCategory": "lighting", "szType": "progressive", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": null, "tiers": [{"nFrom": 0, "nTo": 120, "dSummer": 1.78, "dNonSummer": 1.78}, {"nFrom": 121, "nTo": 330, "dSummer": 2.55, "dNonSummer": 2.26}, {"nFrom": 331, "nTo": 500, "dSummer": 3.8, "dNonSummer": 3.13}, {"nFrom": 501, "nTo": 700, "dSummer": 5.14, "dNonSummer": 4.24}, {"nFrom": 701, "nTo": 1000, "dSummer": 6.44, "dNonSummer": 5.27}, {"nFrom": 1001, "nTo": null, "dSummer": 8.86, "dNonSummer": 7.03}], "flatRate": null, "baseFees": [], "flowRates": [], "surcharge": null}, {"szPlanId": "lighting_nonbiz_prog", "szCategory": "lighting", "szType": "progressive", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": null, "tiers": [{"nFrom": 0, "nTo": 120, "dSummer": 1.78, "dNonSummer": 1.78}, {"nFrom": 121, "nTo": 330, "dSummer": 2.55, "dNonSummer": 2.26}, {"nFrom": 331, "nTo": 500, "dSummer": 3.8, "dNonSummer": 3.13}, {"nFrom": 501, "nTo": 700, "dSummer": 5.14, "dNonSummer": 4.24}, {"nFrom": 701, "nTo": 1000, "dSummer": 6.44, "dNonSummer": 5.27}, {"nFrom": 1001, "nTo": null, "dSummer": 8.86, "dNonSummer": 7.03}], "flatRate": null, "baseFees": [], "flowRates": [], "surcharge": null}, {"szPlanId": "lighting_biz_prog", "szCategory": "lighting", "szType": "progressive", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": null, "tiers": [{"nFrom": 0, "nTo": 330, "dSummer": 2.71, "dNonSummer": 2.28}, {"nFrom": 331, "nTo": 700, "dSummer": 3.76, "dNonSummer": 3.1}, {"nFrom": 701, "nTo": 1500, "dSummer": 4.46, "dNonSummer": 3.61}, {"nFrom": 1501, "nTo": 3000, "dSummer": 7.08, "dNonSummer": 5.56}, {"nFrom": 3001, "nTo": null, "dSummer": 7.43, "dNonSummer": 5.83}], "flatRate": null, "baseFees": [], "flowRates": [], "surcharge": null}, {"szPlanId": "lighting_simple_tou2", "szCategory": "lighting", "szType": "tou", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": null, "tiers": [], "flatRate": null, "baseFees": [{"szKey": "per_household", "szUnit": "household", "dSummer": 75.0, "dNonSummer": 75.0}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 5.16}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.06}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "peak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 4.93}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 1.99}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.06}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 1.99}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.06}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 1.99}], "surcharge": {"nOverKwh": 2000, "dPrice": 1.04}}, {"szPlanId": "lighting_simple_tou3", "szCategory": "lighting", "szType": "tou", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": null, "tiers": [], "flatRate": null, "baseFees": [{"szKey": "per_household", "szUnit": "household", "dSummer": 75.0, "dNonSummer": 75.0}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["16:00-22:00"], "dPrice": 7.13}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-16:00", "22:00-24:00"], "dPrice": 4.69}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.06}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 4.48}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 1.99}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.06}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 1.99}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.06}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 1.99}], "surcharge": {"nOverKwh": 2000, "dPrice": 1.04}}, {"szPlanId": "lighting_std_tou2", "szCategory": "lighting", "szType": "tou", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": null, "tiers": [], "flatRate": null, "baseFees": [{"szKey": "per_household_1p", "szUnit": "household", "dSummer": 129.1, "dNonSummer": 129.1}, {"szKey": "per_household_3p", "szUnit": "household", "dSummer": 262.5, "dNonSummer": 262.5}, {"szKey": "regular_kw", "szUnit": "kw", "dSummer": 236.2, "dNonSummer": 173.2}, {"szKey": "nonsummer_kw", "szUnit": "kw", "dSummer": null, "dNonSummer": 173.2}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 5.54}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.27}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "peak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 5.39}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.15}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.76}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.27}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.65}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.15}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.27}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.15}], "surcharge": null}, {"szPlanId": "lighting_std_tou3", "szCategory": "lighting", "szType": "tou", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": null, "tiers": [], "flatRate": null, "baseFees": [{"szKey": "per_household_1p", "szUnit": "household", "dSummer": 129.1, "dNonSummer": 129.1}, {"szKey": "per_household_3p", "szUnit": "household", "dSummer": 262.5, "dNonSummer": 262.5}, {"szKey": "regular_kw", "szUnit": "kw", "dSummer": 236.2, "dNonSummer": 173.2}, {"szKey": "semipeak_kw", "szUnit": "kw", "dSummer": 173.2, "dNonSummer": 173.2}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["16:00-22:00"], "dPrice": 8.12}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-16:00", "22:00-24:00"], "dPrice": 5.02}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.23}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 4.86}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.12}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.5}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.23}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.4}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.12}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.23}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.12}], "surcharge": null}, {"szPlanId": "lv_nontou", "szCategory": "lv", "szType": "flat", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": "tariff.note.lv_nontou", "tiers": [], "flatRate": {"dSummer": 4.08, "dNonSummer": 3.87}, "baseFees": [{"szKey": "device_kw", "szUnit": "kw", "dSummer": 137.5, "dNonSummer": 137.5}, {"szKey": "regular_kw", "szUnit": "kw", "dSummer": 236.2, "dNonSummer": 173.2}, {"szKey": "nonsummer_kw", "szUnit": "kw", "dSummer": null, "dNonSummer": 173.2}], "flowRates": [], "surcharge": null}, {"szPlanId": "lv_tou2", "szCategory": "lv", "szType": "tou", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": "tariff.note.lv_nontou", "tiers": [], "flatRate": null, "baseFees": [{"szKey": "device_household", "szUnit": "household", "dSummer": 105.0, "dNonSummer": 105.0}, {"szKey": "device_kw", "szUnit": "kw", "dSummer": 137.5, "dNonSummer": 137.5}, {"szKey": "demand_household", "szUnit": "household", "dSummer": 262.5, "dNonSummer": 262.5}, {"szKey": "regular_kw", "szUnit": "kw", "dSummer": 236.2, "dNonSummer": 173.2}, {"szKey": "nonsummer_kw", "szUnit": "kw", "dSummer": null, "dNonSummer": 173.2}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 5.54}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.27}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "peak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 5.39}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.15}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.76}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.27}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.65}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.15}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.27}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.15}], "surcharge": null}, {"szPlanId": "lv_tou3", "szCategory": "lv", "szType": "tou", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": null, "tiers": [], "flatRate": null, "baseFees": [{"szKey": "per_household", "szUnit": "household", "dSummer": 262.5, "dNonSummer": 262.5}, {"szKey": "regular_kw", "szUnit": "kw", "dSummer": 236.2, "dNonSummer": 173.2}, {"szKey": "semipeak_kw", "szUnit": "kw", "dSummer": 173.2, "dNonSummer": 173.2}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["16:00-22:00"], "dPrice": 8.12}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-16:00", "22:00-24:00"], "dPrice": 5.02}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.23}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 4.86}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.12}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.5}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.23}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.4}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.12}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.23}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.12}], "surcharge": null}, {"szPlanId": "lv_ev", "szCategory": "lv", "szType": "tou", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": "tariff.note.ev", "tiers": [], "flatRate": null, "baseFees": [{"szKey": "per_household", "szUnit": "household", "dSummer": 262.5, "dNonSummer": 262.5}, {"szKey": "regular_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["16:00-22:00"], "dPrice": 12.47}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-16:00", "22:00-24:00"], "dPrice": 3.05}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "peak", "szName": null, "ranges": ["15:00-21:00"], "dPrice": 12.14}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:00", "21:00-24:00"], "dPrice": 2.9}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 3.05}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.9}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 3.05}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.9}], "surcharge": null}, {"szPlanId": "hv_tou2", "szCategory": "hv", "szType": "tou", "szSummerStart": "05-16", "szSummerEnd": "10-15", "szNoteKey": null, "tiers": [], "flatRate": null, "baseFees": [{"szKey": "regular_kw", "szUnit": "kw", "dSummer": 223.6, "dNonSummer": 166.9}, {"szKey": "nonsummer_kw", "szUnit": "kw", "dSummer": null, "dNonSummer": 166.9}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 44.7, "dNonSummer": 33.3}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 44.7, "dNonSummer": 33.3}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 6.75}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.71}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "peak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 6.37}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.46}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.77}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.71}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.54}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.46}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.71}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.46}], "surcharge": null}, {"szPlanId": "hv_tou3_fixed", "szCategory": "hv", "szType": "tou", "szSummerStart": "05-16", "szSummerEnd": "10-15", "szNoteKey": null, "tiers": [], "flatRate": null, "baseFees": [{"szKey": "regular_kw", "szUnit": "kw", "dSummer": 223.6, "dNonSummer": 166.9}, {"szKey": "semipeak_kw", "szUnit": "kw", "dSummer": 166.9, "dNonSummer": 166.9}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 44.7, "dNonSummer": 33.3}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 44.7, "dNonSummer": 33.3}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["16:00-22:00"], "dPrice": 9.39}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-16:00", "22:00-24:00"], "dPrice": 5.85}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.53}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 5.47}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.32}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.6}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.53}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.41}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.32}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.53}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.32}], "surcharge": null}, {"szPlanId": "hv_tou3_var", "szCategory": "hv", "szType": "tou", "szSummerStart": "05-16", "szSummerEnd": "10-15", "szNoteKey": "tariff.note.variable_peak", "tiers": [], "flatRate": null, "baseFees": [{"szKey": "regular_kw", "szUnit": "kw", "dSummer": 223.6, "dNonSummer": 166.9}, {"szKey": "semipeak_kw", "szUnit": "kw", "dSummer": 166.9, "dNonSummer": 166.9}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 44.7, "dNonSummer": 33.3}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 44.7, "dNonSummer": 33.3}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["16:00-22:00"], "dPrice": 18.33}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-16:00", "22:00-24:00"], "dPrice": 5.85}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.53}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 5.47}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.32}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.6}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.53}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.41}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.32}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.53}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.32}], "surcharge": null}, {"szPlanId": "hv_batch", "szCategory": "hv", "szType": "tou", "szSummerStart": "05-16", "szSummerEnd": "10-15", "szNoteKey": "tariff.note.batch", "tiers": [], "flatRate": null, "baseFees": [{"szKey": "regular_kw", "szUnit": "kw", "dSummer": 223.6, "dNonSummer": 166.9}, {"szKey": "nonsummer_kw", "szUnit": "kw", "dSummer": null, "dNonSummer": 166.9}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 44.7, "dNonSummer": 33.3}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 44.7, "dNonSummer": 33.3}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["15:30-21:30"], "dPrice": 12.47}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:30", "21:30-24:00"], "dPrice": 3.18}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "peak", "szName": null, "ranges": ["15:30-21:30"], "dPrice": 11.79}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:30", "21:30-24:00"], "dPrice": 2.88}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["15:30-21:30"], "dPrice": 3.26}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:30", "21:30-24:00"], "dPrice": 3.18}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["15:30-21:30"], "dPrice": 3.0}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:30", "21:30-24:00"], "dPrice": 2.88}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 3.18}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.88}], "surcharge": null}, {"szPlanId": "hv_ev", "szCategory": "hv", "szType": "tou", "szSummerStart": "06-01", "szSummerEnd": "09-30", "szNoteKey": "tariff.note.hv_ev", "tiers": [], "flatRate": null, "baseFees": [{"szKey": "per_household", "szUnit": "household", "dSummer": 262.5, "dNonSummer": 262.5}, {"szKey": "regular_kw", "szUnit": "kw", "dSummer": 47.2, "dNonSummer": 34.6}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["16:00-22:00"], "dPrice": 12.47}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-16:00", "22:00-24:00"], "dPrice": 3.05}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "peak", "szName": null, "ranges": ["15:00-21:00"], "dPrice": 12.14}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:00", "21:00-24:00"], "dPrice": 2.9}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 3.05}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.9}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 3.05}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.9}], "surcharge": null}, {"szPlanId": "ehv_tou2", "szCategory": "ehv", "szType": "tou", "szSummerStart": "05-16", "szSummerEnd": "10-15", "szNoteKey": null, "tiers": [], "flatRate": null, "baseFees": [{"szKey": "regular_kw", "szUnit": "kw", "dSummer": 217.3, "dNonSummer": 160.6}, {"szKey": "nonsummer_kw", "szUnit": "kw", "dSummer": null, "dNonSummer": 160.6}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 43.4, "dNonSummer": 32.1}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 43.4, "dNonSummer": 32.1}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 6.17}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.55}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "peak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 5.79}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.28}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.73}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.55}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.48}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.28}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.55}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.28}], "surcharge": null}, {"szPlanId": "ehv_tou3_fixed", "szCategory": "ehv", "szType": "tou", "szSummerStart": "05-16", "szSummerEnd": "10-15", "szNoteKey": null, "tiers": [], "flatRate": null, "baseFees": [{"szKey": "regular_kw", "szUnit": "kw", "dSummer": 217.3, "dNonSummer": 160.6}, {"szKey": "semipeak_kw", "szUnit": "kw", "dSummer": 160.6, "dNonSummer": 160.6}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 43.4, "dNonSummer": 32.1}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 43.4, "dNonSummer": 32.1}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["16:00-22:00"], "dPrice": 8.69}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-16:00", "22:00-24:00"], "dPrice": 5.38}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.4}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 5.03}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.18}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.5}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.4}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.31}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.18}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.4}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.18}], "surcharge": null}, {"szPlanId": "ehv_tou3_var", "szCategory": "ehv", "szType": "tou", "szSummerStart": "05-16", "szSummerEnd": "10-15", "szNoteKey": "tariff.note.variable_peak", "tiers": [], "flatRate": null, "baseFees": [{"szKey": "regular_kw", "szUnit": "kw", "dSummer": 217.3, "dNonSummer": 160.6}, {"szKey": "semipeak_kw", "szUnit": "kw", "dSummer": 160.6, "dNonSummer": 160.6}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 43.4, "dNonSummer": 32.1}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 43.4, "dNonSummer": 32.1}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["16:00-22:00"], "dPrice": 17.05}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-16:00", "22:00-24:00"], "dPrice": 5.38}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.4}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 5.03}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.18}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["09:00-24:00"], "dPrice": 2.5}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-09:00"], "dPrice": 2.4}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["06:00-11:00", "14:00-24:00"], "dPrice": 2.31}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-06:00", "11:00-14:00"], "dPrice": 2.18}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.4}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.18}], "surcharge": null}, {"szPlanId": "ehv_batch", "szCategory": "ehv", "szType": "tou", "szSummerStart": "05-16", "szSummerEnd": "10-15", "szNoteKey": "tariff.note.batch", "tiers": [], "flatRate": null, "baseFees": [{"szKey": "regular_kw", "szUnit": "kw", "dSummer": 217.3, "dNonSummer": 160.6}, {"szKey": "nonsummer_kw", "szUnit": "kw", "dSummer": null, "dNonSummer": 160.6}, {"szKey": "sat_semipeak_kw", "szUnit": "kw", "dSummer": 43.4, "dNonSummer": 32.1}, {"szKey": "offpeak_kw", "szUnit": "kw", "dSummer": 43.4, "dNonSummer": 32.1}], "flowRates": [{"szDayType": "weekday", "szSeason": "summer", "szPeriod": "peak", "szName": null, "ranges": ["15:30-21:30"], "dPrice": 11.44}, {"szDayType": "weekday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:30", "21:30-24:00"], "dPrice": 2.99}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "peak", "szName": null, "ranges": ["15:30-21:30"], "dPrice": 10.8}, {"szDayType": "weekday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:30", "21:30-24:00"], "dPrice": 2.67}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "semipeak", "szName": null, "ranges": ["15:30-21:30"], "dPrice": 3.2}, {"szDayType": "sat", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:30", "21:30-24:00"], "dPrice": 2.99}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "semipeak", "szName": null, "ranges": ["15:30-21:30"], "dPrice": 2.89}, {"szDayType": "sat", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-15:30", "21:30-24:00"], "dPrice": 2.67}, {"szDayType": "sun_offday", "szSeason": "summer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.99}, {"szDayType": "sun_offday", "szSeason": "nonsummer", "szPeriod": "offpeak", "szName": null, "ranges": ["00:00-24:00"], "dPrice": 2.67}], "surcharge": null}], "adoptions": [{"szEffectiveDate": "2024-01-01", "szPlanId": "hv_tou3_fixed"}, {"szEffectiveDate": "2025-10-01", "szPlanId": "hv_tou2"}], "contracts": [{"szEffectiveDate": "2024-01-01", "kw": {"regular_kw": 1600}}, {"szEffectiveDate": "2025-10-01", "kw": {"regular_kw": 1500}}]}; },
+            // 本期（2026-09，截至 09-09 15:42）主要電表累計：約 8.65 天 × 平均 800 kW；高壓二段式夏月平均約 4.08 元/度
+            '/TariffSetting/api/cost-summary': function () { return { hasPlan: true, hasCircuit: true, totalKwh: 166284.5, totalCost: 678441, periodLabel: '2026-09', circuitName: '主要電表' }; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path](String(url), opts || {})), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            <i class="fas fa-file-invoice-dollar text-primary me-2"></i>電費設定
+        </h2>
+    </div>
+
+    <!-- 頂部資訊卡：採用方案 + 累計度數/金額（本版不計算，顯示 --） -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body py-2 d-flex align-items-center">
+                    <i class="fas fa-check-circle fa-2x text-primary me-3"></i>
+                    <div>
+                        <div class="text-muted small">目前採用方案</div>
+                        <div class="fw-bold ts-card-value" id="tsActivePlanName">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body py-2 d-flex align-items-center">
+                    <i class="fas fa-bolt fa-2x text-primary me-3"></i>
+                    <div>
+                        <div class="text-muted small">目前累計用電度數</div>
+                        <div class="fw-bold ts-card-value"><span id="tsAccKwh">--</span> kWh</div>
+                        <div class="text-muted ts-card-hint" id="tsAccKwhHint">選擇採用方案後自動計算</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body py-2 d-flex align-items-center">
+                    <i class="fas fa-dollar-sign fa-2x text-primary me-3"></i>
+                    <div class="flex-grow-1">
+                        <div class="text-muted small">目前累計電費</div>
+                        <div class="fw-bold ts-card-value"><span id="tsAccCost">--</span> 元</div>
+                        <div class="text-muted ts-card-hint" id="tsAccCostHint">選擇採用方案後自動計算</div>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm text-nowrap" id="btnTsRecalc" onclick="window._ts.openRecalc()">
+                        <i class="fas fa-sync-alt me-1"></i>重新計算電費
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方案選擇 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2">
+            <i class="fas fa-list-ul me-1"></i>電價方案選擇
+        </div>
+        <div class="card-body p-3">
+            <div class="ts-select-bar">
+                <div>
+                    <label class="form-label fw-semibold">用電類別</label>
+                    <select id="tsCategory" class="form-select form-select-sm"></select>
+                </div>
+                <div class="ts-plan-select">
+                    <label class="form-label fw-semibold">電價方案</label>
+                    <select id="tsPlan" class="form-select form-select-sm"></select>
+                </div>
+                <div class="ts-active-btn">
+                    <button class="btn btn-primary btn-sm" id="btnTsSetActive" onclick="window._ts.setActive()">
+                        <i class="fas fa-check me-1"></i>設為採用方案
+                    </button>
+                    <span class="badge bg-success d-none" id="tsActiveBadge">
+                        <i class="fas fa-check me-1"></i>採用中
+                    </span>
+                </div>
+                <div class="ts-plan-btns">
+                    <button class="btn btn-outline-primary btn-sm" onclick="window._ts.addPlan()">
+                        <i class="fas fa-plus me-1"></i>新增方案
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="window._ts.copyPlan()">
+                        <i class="fas fa-copy me-1"></i>複製方案
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" id="btnTsDelPlan" onclick="window._ts.deletePlan()">
+                        <i class="fas fa-trash-alt me-1"></i>刪除方案
+                    </button>
+                </div>
+            </div>
+            <div class="text-muted small mt-2" id="tsCategoryDesc"></div>
+        </div>
+    </div>
+
+    <!-- 採用時間軸：哪天起改用哪個方案（唯一真相；歷史電費依此逐日選版，不被改費率追溯改寫） -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-history me-1"></i>採用時間軸</span>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window._ts.addAdoption()">
+                <i class="fas fa-plus me-1"></i>新增採用
+            </button>
+        </div>
+        <div class="card-body p-3">
+            <div class="text-muted small mb-2">
+                <i class="fas fa-info-circle me-1"></i>指定「哪天起改用哪個方案」，電費逐日依此選版計算 — 之後修改費率或換方案不會追溯改寫更早的歷史電費。改動後請按「儲存採用時間軸」，再用「重新計算電費」回溯受影響區間。
+            </div>
+            <div id="tsAdoptionList"></div>
+        </div>
+        <div class="card-footer bg-light py-2 d-flex justify-content-end">
+            <button class="btn btn-primary btn-sm" onclick="window._ts.saveAdoptions()">
+                <i class="fas fa-save me-1"></i>儲存採用時間軸
+            </button>
+        </div>
+    </div>
+
+    <!-- 契約容量歷史：哪天起各契約別訂多少 kW（契約容量最佳化回測逐月取當時有效值） -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-file-contract me-1"></i>契約容量歷史</span>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window._ts.addContract()">
+                <i class="fas fa-plus me-1"></i>新增契約紀錄
+            </button>
+        </div>
+        <div class="card-body p-3">
+            <div class="text-muted small mb-2">
+                <i class="fas fa-info-circle me-1"></i>依台電電費單填寫各契約別 kW（需量契約，15 分鐘平均）。「契約容量最佳化」回測時，每個計費月取當時有效的紀錄；只有採用方案有的契約別才會計費。
+            </div>
+            <div id="tsContractList"></div>
+        </div>
+        <div class="card-footer bg-light py-2 d-flex justify-content-end">
+            <button class="btn btn-primary btn-sm" onclick="window._ts.saveContracts()">
+                <i class="fas fa-save me-1"></i>儲存契約容量
+            </button>
+        </div>
+    </div>
+
+    <!-- 方案內容（JS 依方案型態渲染） -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-edit me-1"></i><span id="tsPlanTitle">載入中…</span></span>
+            <span id="tsTypeBadge"></span>
+        </div>
+        <div class="card-body p-3" id="tsPlanContainer">
+            <div class="text-center text-muted py-4">載入中…</div>
+        </div>
+        <div class="card-footer bg-light py-2 d-flex justify-content-between">
+            <button class="btn btn-outline-secondary btn-sm" onclick="window._ts.resetPlan()">
+                <i class="fas fa-undo me-1"></i>還原台電預設
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="window._ts.savePlan()">
+                <i class="fas fa-save me-1"></i>儲存
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 重新計算電費 Modal（date-only 用原生 input type=date，無 AM/PM 問題不需 flatpickr） -->
+<div class="modal fade" id="tsRecalcModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title"><i class="fas fa-sync-alt me-2"></i>重新計算電費</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning py-2 small">
+                    <i class="fas fa-exclamation-triangle me-1"></i>將以「目前採用方案」的費率覆蓋重算所選區間的電費資料（換方案或修改費率後回溯用）。
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="tsRecalcFull" onchange="window._ts.toggleFullRecalc()" />
+                    <label class="form-check-label small" for="tsRecalcFull">
+                        全量重算（自最早生效日至今日）
+                    </label>
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label small mb-1" for="tsRecalcStart">起日（含）</label>
+                        <input type="date" id="tsRecalcStart" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small mb-1" for="tsRecalcEnd">訖日（含）</label>
+                        <input type="date" id="tsRecalcEnd" class="form-control form-control-sm" />
+                    </div>
+                </div>
+                <div class="text-muted small mt-2">區間上限 366 天。自動計價每小時執行一次，僅覆蓋近 48 小時；更早的歷史請用此功能回溯。</div>
+                <div class="text-muted small mt-1 d-none" id="tsRecalcFullHint">全量重算會自動切成多段依序執行（每段最多 365 天），期間請勿關閉此視窗。</div>
+                <div id="tsRecalcResult" class="small mt-2"></div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">關閉</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnTsRecalcRun" onclick="window._ts.runRecalc()">
+                    <i class="fas fa-play me-1"></i>執行重算
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+    // i18n stub（只含本頁用到的 key，取自 Resources/*.resx zh-TW）
+    window.i18n = (function () {
+        var D = {"tariffsetting.title": "電費設定", "tariffsetting.card.active_plan": "目前採用方案", "tariffsetting.card.no_active": "尚未選擇", "tariffsetting.card.acc_kwh": "目前累計用電度數", "tariffsetting.card.acc_cost": "目前累計電費", "tariffsetting.card.acc_hint": "選擇採用方案後自動計算", "tariffsetting.card.acc_period_hint": "本期 {0}・{1}（不含基本電費）", "tariffsetting.unit.ntd": "元", "tariffsetting.select.title": "電價方案選擇", "tariffsetting.select.category": "用電類別", "tariffsetting.select.plan": "電價方案", "tariffsetting.select.empty": "（此類別尚無方案）", "tariffsetting.button.set_active": "設為採用方案", "tariffsetting.badge.active": "採用中", "tariffsetting.editor.loading": "載入中…", "tariffsetting.editor.no_plan": "尚未選擇方案", "tariffsetting.editor.no_plan_hint": "此類別尚無方案，請按「新增方案」建立，或切換到台電類別後按「複製方案」修改。", "tariffsetting.button.save": "儲存", "tariffsetting.button.reset": "還原台電預設", "tariffsetting.button.add_range": "加時段", "tariffsetting.button.del_range": "刪除此時段", "tariffsetting.button.add_tier": "加級距", "tariffsetting.button.del_tier": "刪除此級距", "tariffsetting.button.recalculate": "重新計算電費", "tariffsetting.button.add_plan": "新增方案", "tariffsetting.button.copy_plan": "複製方案", "tariffsetting.button.del_plan": "刪除方案", "tariffsetting.adoption.title": "採用時間軸", "tariffsetting.adoption.hint": "指定「哪天起改用哪個方案」，電費逐日依此選版計算 — 之後修改費率或換方案不會追溯改寫更早的歷史電費。改動後請按「儲存採用時間軸」，再用「重新計算電費」回溯受影響區間。", "tariffsetting.adoption.add": "新增採用", "tariffsetting.adoption.del": "刪除此採用紀錄", "tariffsetting.adoption.save": "儲存採用時間軸", "tariffsetting.adoption.empty": "尚未採用任何方案 — 此狀態不計算電費。請按「新增採用」或到上方選擇方案後按「設為採用方案」。", "tariffsetting.adoption.effective_date": "生效日（含當日）", "tariffsetting.adoption.plan": "採用方案", "tariffsetting.plan.new_name": "自訂方案", "tariffsetting.plan.copy_name": "{0} 複本", "tariffsetting.recalc.title": "重新計算電費", "tariffsetting.recalc.warning": "將以「目前採用方案」的費率覆蓋重算所選區間的電費資料（換方案或修改費率後回溯用）。", "tariffsetting.recalc.start": "起日（含）", "tariffsetting.recalc.end": "訖日（含）", "tariffsetting.recalc.hint": "區間上限 366 天。自動計價每小時執行一次，僅覆蓋近 48 小時；更早的歷史請用此功能回溯。", "tariffsetting.recalc.run": "執行重算", "tariffsetting.recalc.close": "關閉", "tariffsetting.recalc.running": "重算中，請稍候…", "tariffsetting.recalc.done": "重算完成：{0} ~ {1}，處理 {2} 個小時、寫入 {3} 列。", "tariffsetting.recalc.fail": "重算失敗：{0}", "tariffsetting.recalc.no_active": "尚未選擇採用方案，請先設定採用方案再執行重算。", "tariffsetting.recalc.err_range": "請選擇正確的起訖日期（起日不可晚於訖日）。", "tariffsetting.recalc.err_too_large": "重算區間不可超過 366 天。", "tariffsetting.recalc.full": "全量重算（自最早生效日至今日）", "tariffsetting.recalc.full_hint": "全量重算會自動切成多段依序執行（每段最多 365 天），期間請勿關閉此視窗。", "tariffsetting.recalc.progress": "重算中：第 {0} 段 / 共 {1} 段（{2} ~ {3}）…", "tariffsetting.label.summer_range": "夏月期間", "tariffsetting.label.month": "月", "tariffsetting.label.day": "日", "tariffsetting.label.plan_name": "方案名稱", "tariffsetting.label.plan_type": "計價型態", "tariffsetting.section.tiers": "累進級距（流動電費）", "tariffsetting.section.base_fees": "基本電費", "tariffsetting.section.flat": "流動電費（每度）", "tariffsetting.section.flow": "流動電費時段", "tariffsetting.section.surcharge": "每月總度數超額加價", "tariffsetting.col.tier_range": "每月用電度數分段", "tariffsetting.col.summer": "夏月", "tariffsetting.col.nonsummer": "非夏月", "tariffsetting.col.base_item": "項目", "tariffsetting.col.base_unit": "單位", "tariffsetting.col.season": "季節", "tariffsetting.col.period_name": "區間名稱", "tariffsetting.col.time_ranges": "時間區間", "tariffsetting.col.price": "每度單價（元）", "tariffsetting.col.actions": "操作", "tariffsetting.unit.per_kwh": "元/度", "tariffsetting.na": "—", "tariffsetting.tier.kwh": "度", "tariffsetting.tier.kwh_below": "度以下部分", "tariffsetting.tier.kwh_above": "度以上部分", "tariffsetting.daytype.weekday": "週一至週五", "tariffsetting.daytype.sat": "週六", "tariffsetting.daytype.sun_offday": "週日及離峰日", "tariffsetting.season.summer": "夏月", "tariffsetting.season.nonsummer": "非夏月", "tariffsetting.surcharge.over": "超過門檻（度）", "tariffsetting.surcharge.price": "每度加價（元）", "tariffsetting.hint.midnight": "訖時選 00:00 代表 24:00（當日結束）；起時晚於訖時代表跨午夜時段。每組「日別 × 季節」的時段須覆蓋 24 小時且不重疊。", "tariffsetting.confirm.reset": "確定要將「{0}」還原為台電預設值？此方案的所有修改將被覆蓋。", "tariffsetting.confirm.switch_dirty": "尚有未儲存的修改，切換方案將放棄修改，確定繼續？", "tariffsetting.confirm.del_plan": "確定要刪除自建方案「{0}」？此動作無法復原。", "tariffsetting.msg.saved": "已儲存", "tariffsetting.msg.save_fail": "儲存失敗：{0}", "tariffsetting.msg.reset_fail": "還原失敗：{0}", "tariffsetting.msg.active_fail": "切換採用方案失敗：{0}", "tariffsetting.msg.load_fail": "設定載入失敗，請重新整理頁面", "tariffsetting.msg.del_plan_fail": "刪除方案失敗：{0}", "tariffsetting.msg.seed_undeletable": "台電預設方案不可刪除（僅自建方案可刪）", "tariffsetting.msg.plan_in_use": "此方案仍被採用時間軸引用，請先刪除相關採用紀錄再刪除方案。", "tariffsetting.msg.save_plan_first": "此方案尚未儲存，請先按「儲存」再設為採用方案。", "tariffsetting.msg.custom_no_reset": "自建方案無台電預設可還原。", "tariffsetting.err.tier_order": "級距上限必須大於下限且逐級遞增", "tariffsetting.err.price_negative": "單價不可為負數", "tariffsetting.err.name_empty": "自建方案名稱不可為空", "tariffsetting.err.flat_missing": "單一費率不可為空", "tariffsetting.err.range_format": "「{0}」時間區間格式不正確（起訖不可相同）", "tariffsetting.err.group_overlap": "「{0}」時段重疊（{1} 附近）", "tariffsetting.err.group_gap": "「{0}」時段未覆蓋 24 小時（{1} 有空隙）", "tariffsetting.err.adopt_date_format": "採用生效日格式不正確（應為 yyyy-MM-dd）", "tariffsetting.err.adopt_plan_missing": "生效日 {0} 未選擇有效方案", "tariffsetting.err.adopt_date_dup": "採用生效日重複：{0}", "tariffsetting.contract.title": "契約容量歷史", "tariffsetting.contract.hint": "依台電電費單填寫各契約別 kW（需量契約，15 分鐘平均）。「契約容量最佳化」回測時，每個計費月取當時有效的紀錄；只有採用方案有的契約別才會計費。", "tariffsetting.contract.add": "新增契約紀錄", "tariffsetting.contract.del": "刪除此契約紀錄", "tariffsetting.contract.save": "儲存契約容量", "tariffsetting.contract.empty": "尚未設定契約容量 — 契約容量最佳化頁仍可算建議值，但無法計算現行費用與節省金額。", "tariffsetting.contract.effective_date": "生效日（含當日）", "tariffsetting.err.contract_date_format": "契約容量生效日格式不正確（應為 yyyy-MM-dd）", "tariffsetting.err.contract_date_dup": "契約容量生效日重複：{0}", "tariffsetting.err.contract_kw_invalid": "契約容量生效日 {0} 的 kW 須為 0 以上的數字", "tariffsetting.err.contract_kw_empty": "契約容量生效日 {0} 至少須填一個契約別的 kW", "tariff.type.progressive": "非時間電價（累進）", "tariff.type.flat": "非時間電價（單一費率）", "tariff.type.tou": "時間電價", "tariff.category.lighting": "表燈（住商）", "tariff.category.lv": "低壓電力", "tariff.category.hv": "高壓電力", "tariff.category.ehv": "特高壓電力", "tariff.category.custom": "自訂", "tariff.category_desc.lighting": "適用一般住家、機關學校、小型營業場所（夏月 6/1～9/30）", "tariff.category_desc.lv": "適用契約容量未滿 100 瓩之用電場所（夏月 6/1～9/30）", "tariff.category_desc.hv": "適用契約容量 100 瓩以上、以 11.4kV 或 22.8kV 供電（夏月 5/16～10/15）", "tariff.category_desc.ehv": "適用契約容量 1,000 瓩以上、以 69kV 以上供電（夏月 5/16～10/15）", "tariff.category_desc.custom": "使用者自建方案（如轉供、分租計價）— 可從空白建立或複製台電方案再改", "tariff.plan.lighting_res_prog": "非時間電價（累進）住宅用", "tariff.plan.lighting_nonbiz_prog": "非時間電價（累進）非營業用", "tariff.plan.lighting_biz_prog": "非時間電價（累進）營業用", "tariff.plan.lighting_simple_tou2": "簡易型時間電價（二段式）", "tariff.plan.lighting_simple_tou3": "簡易型時間電價（三段式）", "tariff.plan.lighting_std_tou2": "標準型時間電價（二段式）", "tariff.plan.lighting_std_tou3": "標準型時間電價（三段式）", "tariff.plan.lv_nontou": "非時間電價", "tariff.plan.lv_tou2": "時間電價（二段式）", "tariff.plan.lv_tou3": "時間電價（三段式）", "tariff.plan.lv_ev": "電動車充換電設施電價", "tariff.plan.hv_tou2": "二段式時間電價", "tariff.plan.hv_tou3_fixed": "三段式時間電價（尖峰時間固定）", "tariff.plan.hv_tou3_var": "三段式時間電價（尖峰時間可變動）", "tariff.plan.hv_batch": "批次生產時間電價", "tariff.plan.hv_ev": "電動車充換電設施電價", "tariff.plan.ehv_tou2": "二段式時間電價", "tariff.plan.ehv_tou3_fixed": "三段式時間電價（尖峰時間固定）", "tariff.plan.ehv_tou3_var": "三段式時間電價（尖峰時間可變動）", "tariff.plan.ehv_batch": "批次生產時間電價", "tariff.period.peak": "尖峰", "tariff.period.semipeak": "半尖峰", "tariff.period.offpeak": "離峰", "tariff.unit.household": "每戶每月", "tariff.unit.kw": "每瓩每月", "tariff.basefee.per_household": "按戶計收", "tariff.basefee.per_household_1p": "按戶計收（單相）", "tariff.basefee.per_household_3p": "按戶計收（三相）", "tariff.basefee.device_household": "裝置契約－按戶計收", "tariff.basefee.device_kw": "裝置契約", "tariff.basefee.demand_household": "需量契約－按戶計收", "tariff.basefee.regular_kw": "經常契約", "tariff.basefee.nonsummer_kw": "非夏月契約", "tariff.basefee.semipeak_kw": "半尖峰契約", "tariff.basefee.sat_semipeak_kw": "週六半尖峰契約", "tariff.basefee.offpeak_kw": "離峰契約", "tariff.note.lv_nontou": "裝置契約：依用戶設置之用電器具總容量訂定契約容量（台電已不再受理新設申請）；需量契約：依雙方約定最高需量（15 分鐘平均）為契約容量。", "tariff.note.variable_peak": "尖峰時間為夏月經台電指定 30 日（180 小時）之 16:00~22:00（於執行前一日下午 4 時前通知）；指定以外日期之 09:00~24:00 併入半尖峰計價。", "tariff.note.batch": "適用生產性質用電場所。", "tariff.note.ev": "專供電動車充換電及附屬設備之用電。", "tariff.note.hv_ev": "專供電動車充換電及附屬設備之用電；以高壓供電者，按本表單價 95% 計算。"};
+        return { t: function (k, a) { var v = D[k] != null ? D[k] : k; if (a) Object.keys(a).forEach(function (n) { v = v.split("{" + n + "}").join(a[n]); }); return v; },
+                 ready: function (cb) { setTimeout(cb, 0); }, currentCulture: function () { return "zh-TW"; } };
+    })();
+    </script>
+    <script src="{{WWWROOT}}/lib/flatpickr/flatpickr.min.js"></script>
+    <script src="{{WWWROOT}}/lib/flatpickr/zh-tw.js"></script>
+    <script src="{{WWWROOT}}/js/flatpickr-init.js"></script>
+    <script src="{{WWWROOT}}/js/tariffsetting.js"></script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

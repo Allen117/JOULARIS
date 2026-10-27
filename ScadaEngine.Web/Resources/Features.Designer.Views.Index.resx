@@ -565,4 +565,53 @@
   <data name="designer.equip.toast_applied" xml:space="preserve"><value>已帶入 {n} / {m} 個槽位</value></data>
   <data name="designer.page.move_cycle" xml:space="preserve"><value>不能把頁面搬到自己的子頁面底下</value></data>
   <data name="designer.page.home_changed" xml:space="preserve"><value>首頁已變更為「{name}」（監控頁預設開啟第一個根頁面），按「儲存」後生效</value></data>
+  <data name="designer.ctx.import_page" xml:space="preserve"><value>匯入頁面檔…</value></data>
+  <data name="designer.import.modal_title" xml:space="preserve"><value>匯入頁面檔</value></data>
+  <data name="designer.import.summary" xml:space="preserve"><value>「{name}」：{groups} 台設備、{placeholders} 個未綁定佔位，畫布 {w} × {h}</value></data>
+  <data name="designer.import.col_equip" xml:space="preserve"><value>設備</value></data>
+  <data name="designer.import.col_type" xml:space="preserve"><value>型別</value></data>
+  <data name="designer.import.col_device" xml:space="preserve"><value>對應 Device</value></data>
+  <data name="designer.import.col_hits" xml:space="preserve"><value>命中</value></data>
+  <data name="designer.import.details" xml:space="preserve"><value>展開角色明細</value></data>
+  <data name="designer.import.device_none" xml:space="preserve"><value>（未指定）</value></data>
+  <data name="designer.import.no_groups" xml:space="preserve"><value>此頁面檔沒有設備群組，只會建立底圖與佔位元件</value></data>
+  <data name="designer.import.total_hits" xml:space="preserve"><value>合計命中 {n} / {m} 個角色</value></data>
+  <data name="designer.import.keep_missing" xml:space="preserve"><value>保留未命中的座位（之後手動綁點）</value></data>
+  <data name="designer.import.hint" xml:space="preserve"><value>未命中的座位不建立元件，整欄都未命中時收掉該欄；感測器與面板的佔位元件不綁點，需手動綁定。按「儲存」後才寫入資料庫。</value></data>
+  <data name="designer.import.confirm" xml:space="preserve"><value>建立頁面</value></data>
+  <data name="designer.import.cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="designer.import.done" xml:space="preserve"><value>已匯入「{name}」：帶入 {n} / {m} 個角色，確認後請按「儲存」</value></data>
+  <data name="designer.import.too_large" xml:space="preserve"><value>檔案超過 {mb} MB，無法匯入</value></data>
+  <data name="designer.import.invalid" xml:space="preserve"><value>不是有效的頁面檔：{reason}</value></data>
+  <data name="designer.import.reason.json" xml:space="preserve"><value>JSON 格式錯誤</value></data>
+  <data name="designer.import.reason.format" xml:space="preserve"><value>格式名稱不是 {format}</value></data>
+  <data name="designer.import.reason.version" xml:space="preserve"><value>版本 {v} 不支援（最高 {max}）</value></data>
+  <data name="designer.import.reason.field" xml:space="preserve"><value>缺少或錯誤的欄位 {field}</value></data>
+  <data name="designer.import.reason.widget_type" xml:space="preserve"><value>未知的元件型別 {type}</value></data>
+  <data name="designer.import.reason.group" xml:space="preserve"><value>元件引用了不存在的設備群組 {group}</value></data>
+  <data name="designer.import.type.pump" xml:space="preserve"><value>泵</value></data>
+  <data name="designer.import.type.chiller" xml:space="preserve"><value>冰機</value></data>
+  <data name="designer.import.type.coolingTower" xml:space="preserve"><value>冷卻水塔</value></data>
+  <data name="designer.import.role.FAULT" xml:space="preserve"><value>故障</value></data>
+  <data name="designer.import.role.MODE" xml:space="preserve"><value>手自動</value></data>
+  <data name="designer.import.role.MODE_REMOTE" xml:space="preserve"><value>遠端/現場</value></data>
+  <data name="designer.import.role.RUN" xml:space="preserve"><value>運轉</value></data>
+  <data name="designer.import.role.FREQ" xml:space="preserve"><value>頻率</value></data>
+  <data name="designer.import.role.LOAD" xml:space="preserve"><value>負載</value></data>
+  <data name="designer.import.role.CHWOUT" xml:space="preserve"><value>冰水出水溫</value></data>
+  <data name="designer.import.role.WATERTEMP" xml:space="preserve"><value>出水溫</value></data>
+  <data name="designer.import.role.STARTSTOP" xml:space="preserve"><value>啟停</value></data>
+  <data name="designer.import.role.FREQSET" xml:space="preserve"><value>頻率設定</value></data>
+  <data name="designer.import.role.SETTEMP" xml:space="preserve"><value>溫度設定</value></data>
+  <data name="designer.import.label.FAULT" xml:space="preserve"><value>故障</value></data>
+  <data name="designer.import.label.MODE" xml:space="preserve"><value>模式</value></data>
+  <data name="designer.import.label.MODE_REMOTE" xml:space="preserve"><value>遠端</value></data>
+  <data name="designer.import.label.RUN" xml:space="preserve"><value>運轉</value></data>
+  <data name="designer.import.label.FREQ" xml:space="preserve"><value>頻率</value></data>
+  <data name="designer.import.label.LOAD" xml:space="preserve"><value>負載</value></data>
+  <data name="designer.import.label.CHWOUT" xml:space="preserve"><value>水溫</value></data>
+  <data name="designer.import.label.WATERTEMP" xml:space="preserve"><value>水溫</value></data>
+  <data name="designer.import.label.STARTSTOP" xml:space="preserve"><value>啟停</value></data>
+  <data name="designer.import.label.FREQSET" xml:space="preserve"><value>頻設</value></data>
+  <data name="designer.import.label.SETTEMP" xml:space="preserve"><value>溫設</value></data>
 </root>

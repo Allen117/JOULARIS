@@ -1,0 +1,110 @@
+[
+  {
+    "slug": "quick-start",
+    "title": "快速開始",
+    "titleEn": "Quick Start",
+    "group": "入門",
+    "groupEn": "Getting Started"
+  },
+  {
+    "slug": "scada-page",
+    "title": "即時監控",
+    "titleEn": "Live Monitoring",
+    "group": "監控",
+    "groupEn": "Monitoring",
+    "routes": [
+      "/ScadaPage"
+    ]
+  },
+  {
+    "slug": "realtime",
+    "title": "即時數據",
+    "titleEn": "Realtime Data",
+    "group": "監控",
+    "groupEn": "Monitoring",
+    "routes": [
+      "/RealTime"
+    ]
+  },
+  {
+    "slug": "condition-ctrl",
+    "title": "條件控制",
+    "titleEn": "Conditional Control",
+    "group": "控制邏輯",
+    "groupEn": "Control",
+    "routes": [
+      "/ConditionCtrl"
+    ]
+  },
+  {
+    "slug": "schedule",
+    "title": "排程設定",
+    "titleEn": "Schedules",
+    "group": "控制邏輯",
+    "groupEn": "Control",
+    "routes": [
+      "/ScheduleSetting"
+    ]
+  },
+  {
+    "slug": "history",
+    "title": "趨勢圖",
+    "titleEn": "Trend Chart",
+    "group": "歷史資料",
+    "groupEn": "History",
+    "routes": [
+      "/HistoryData"
+    ]
+  },
+  {
+    "slug": "event-log",
+    "title": "事件記錄",
+    "titleEn": "Event Log",
+    "group": "歷史資料",
+    "groupEn": "History",
+    "routes": [
+      "/EventLog"
+    ]
+  },
+  {
+    "slug": "alarm-setting",
+    "title": "警報設定與通知",
+    "titleEn": "Alarms & Notifications",
+    "group": "系統設定",
+    "groupEn": "System",
+    "routes": [
+      "/AlarmSetting"
+    ]
+  },
+  {
+    "slug": "weather",
+    "title": "氣象資料",
+    "titleEn": "Weather Data",
+    "group": "系統設定",
+    "groupEn": "System",
+    "routes": [
+      "/WeatherSetting"
+    ]
+  },
+  {
+    "slug": "account",
+    "title": "帳號管理",
+    "titleEn": "Account Management",
+    "group": "系統設定",
+    "groupEn": "System",
+    "routes": [
+      "/AccountSetting"
+    ],
+    "roles": [
+      "Admin",
+      "Engineer"
+    ]
+  },
+  {
+    "slug": "faq",
+    "title": "常見問題",
+    "titleEn": "FAQ",
+    "group": "其他",
+    "groupEn": "More"
+  }
+]

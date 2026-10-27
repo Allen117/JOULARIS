@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<!-- SCADA 模式外殼（深藍主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCADA 手冊 · 版面（導覽列 / 全站搜尋 / 403）</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <!-- 頁面自己的 css 加在這裡：<link rel="stylesheet" href="{{WWWROOT}}/css/xxx.css"> -->
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+        /* 情境切換：body[data-scene] = nav | search | denied（由 URL hash 決定） */
+        body[data-scene="nav"] main, body[data-scene="nav"] footer { display: none !important; }
+        body[data-scene="nav"] { min-height: 0; background: #fff; }
+        body[data-scene="nav"] .navbar { position: relative; }
+        .anno { position: absolute; border: 3px solid #dc3545; border-radius: 8px; pointer-events: none; }
+        .anno-label { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+            background: #dc3545; color: #fff; font-weight: 700; font-size: 15px; padding: 3px 12px; border-radius: 12px; white-space: nowrap; }
+        .nav-stage { padding: 0 0 56px; background: #fff; }
+        body:not([data-scene="denied"]) .scene-denied { display: none !important; }
+        body:not([data-scene="search"]) .scene-search { display: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        function E(route, zh, en, icon, kw) { return { szRoute: route, szTitleZh: zh, szTitleEn: en, szIcon: icon, szKeywords: kw, isEms: EMS.indexOf(route) >= 0 }; }
+        var EMS = ['/EnergyReport', '/ElectricityCostReport', '/WaterUsageReport', '/DailyReport', '/EnergyDeclaration'];
+        // 形狀同 GlobalSearchController.GetIndex → { entries: [...] }；標題取自 _Layout resx
+        var INDEX = [
+            E('/ScadaPage', '即時監控', 'SCADA Page', 'fas fa-desktop', '圖控 監控 首頁 畫面 mimic dashboard monitor'),
+            E('/RealTime', '即時數據', 'Realtime Data', 'fas fa-tachometer-alt', '即時 數據 點位 realtime data point'),
+            E('/ConditionCtrl', '條件控制', 'Condition Control', 'fas fa-code-branch', '條件 控制 邏輯 condition control'),
+            E('/ScheduleSetting', '排程設定', 'Schedule', 'fas fa-calendar-alt', '排程 時程 控制 schedule timer'),
+            E('/HistoryData', '趨勢圖', 'Trend', 'fas fa-chart-area', '歷史 趨勢 曲線 history trend chart'),
+            E('/EventLog', '事件記錄', 'Event Log', 'fas fa-clipboard-list', '事件 記錄 日誌 警報歷史 event log'),
+            E('/AlarmSetting', '警報設定', 'Alarm Settings', 'fas fa-bell', '警報 通知 line email 推播 alarm notify'),
+            E('/WeatherSetting', '氣象資料', 'Weather Data', 'fas fa-cloud-sun', '氣象 天氣 溫度 weather'),
+            E('/AccountSetting', '帳號管理', 'Account Management', 'fas fa-users-cog', '帳號 使用者 權限 密碼 account user permission'),
+            E('/EnergyReport', '用電報表', 'Energy Report', 'fas fa-chart-bar', '報表 用電 電力 度數 kwh power electricity usage report'),
+            E('/ElectricityCostReport', '電費報表', 'Electricity Cost Report', 'fas fa-file-invoice-dollar', '報表 電費 帳單 金額 bill cost report'),
+            E('/WaterUsageReport', '用水報表', 'Water Usage Report', 'fas fa-water', '報表 用水 水量 water usage report'),
+            E('/DailyReport', '能源日報', 'Daily Energy Report', 'fas fa-newspaper', '日報 能源 每日 摘要 daily report summary email'),
+            E('/EnergyDeclaration', '能源申報', 'Energy Declaration', 'fas fa-file-signature', '能源 申報 報表 declaration')
+        ];
+        var MOCK = {
+            '/api/globalsearch/index': function () { return { entries: INDEX }; }
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（未恢復警報數：移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown as-has-pending" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell" id="alarmSoundIcon"></i><span class="as-count">3</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+        <!-- ═══ 情境 denied：Features/Login/Views/AccessDenied.cshtml ═══ -->
+        <div class="scene-denied container d-flex justify-content-center align-items-center" style="min-height:60vh;">
+            <div class="text-center">
+                <i class="fas fa-ban fa-5x text-danger mb-4 d-block"></i>
+                <h3 class="mb-3">403 - 無權限存取</h3>
+                <p class="text-muted mb-4">您的帳號沒有存取此頁面的權限，請聯繫系統管理員。</p>
+                <a href="#" class="btn btn-primary"><i class="fas fa-home me-1"></i>回到首頁</a>
+            </div>
+        </div>
+        <!-- ═══ 情境 search：背景放一張淡色即時監控示意（被 Modal 遮罩蓋住） ═══ -->
+        <div class="scene-search container-fluid py-4">
+            <div class="row g-3">
+                <div class="col-2"><div class="card p-3" style="height:760px;"><div class="fw-bold text-secondary"><i class="fas fa-sitemap me-1"></i>系統總覽</div></div></div>
+                <div class="col-10"><div class="card" style="height:760px;background:#fff;"></div></div>
+            </div>
+        </div>
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- 全站搜尋 Modal（同 _Layout.cshtml #globalSearchModal） -->
+    <div class="modal fade" id="globalSearchModal" tabindex="-1" aria-label="全站搜尋" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="gs-input-wrap">
+                    <i class="fas fa-search text-primary"></i>
+                    <input id="globalSearchInput" type="text" class="form-control" placeholder="搜尋頁面名稱…" aria-label="全站搜尋" autocomplete="off" />
+                    <kbd>Esc</kbd>
+                </div>
+                <div id="globalSearchResults" class="gs-results"></div>
+                <div class="gs-footer text-muted">↑↓ 選擇 · Enter 前往 · Esc 關閉</div>
+            </div>
+        </div>
+    </div>
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+        window.i18n = { currentCulture: function () { return 'zh-TW'; }, t: function (k) { return ({
+            'layout.search.no_result': '找不到符合的頁面', 'layout.search.recent': '最近使用',
+            'layout.search.error': '搜尋索引載入失敗，請重新整理頁面' })[k] || k; } };
+        try { localStorage.removeItem('scadaGlobalSearchFreq'); } catch (e) {}
+        var SCENE = (location.hash || '#nav').substring(1);   // nav / search / denied（render_page.py --hash search / denied 切換）
+        document.body.setAttribute('data-scene', SCENE);
+    </script>
+    <script src="{{WWWROOT}}/js/global-search.js"></script>
+    <script>
+        // 情境 nav：導覽列兩組紅框標註
+        function annotate() {
+            var nav = document.querySelector('.navbar');
+            var wrap = document.createElement('div'); wrap.className = 'nav-stage';
+            nav.parentNode.insertBefore(wrap, nav); wrap.appendChild(nav);
+            var nr = nav.getBoundingClientRect();
+            function box(elA, elB, label) {
+                var a = elA.getBoundingClientRect(), b = elB.getBoundingClientRect();
+                var d = document.createElement('div'); d.className = 'anno';
+                d.style.left = (a.left - 6) + 'px'; d.style.top = (nr.top + 6) + 'px';
+                d.style.width = (b.right - a.left + 12) + 'px'; d.style.height = (nr.height - 12) + 'px';
+                d.innerHTML = '<span class="anno-label">' + label + '</span>';
+                nav.appendChild(d);
+            }
+            var left = document.querySelectorAll('.navbar-nav.me-auto > li');
+            var right = document.querySelectorAll('.navbar-nav.ms-auto > li');
+            box(left[0], left[left.length - 1], '左側功能選單');
+            box(right[0], right[right.length - 1], '右側工具列');
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            if (SCENE === 'nav') annotate();
+            if (SCENE === 'search') {
+                var inp = document.getElementById('globalSearchInput');
+                inp.value = '報表';
+                window._globalSearch.open();
+            }
+        });
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

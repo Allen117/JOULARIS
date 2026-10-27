@@ -20,7 +20,7 @@ JOULARIS Engine（Windows 服務名 `JoularisEngine`）是一個基於 .NET 8 �
 ### 方法二：使用 PowerShell 腳本
 ```powershell
 # 以管理員權限執行 PowerShell
-cd "C:\Users\A50388.ITRI\Desktop\ScadaEngine\ScadaEngine.Engine\Scripts"
+cd "C:\Users\A50388.ITRI\Desktop\JOULARIS\ScadaEngine.Engine\Scripts"
 .\DeployService.ps1 -Action install
 ```
 

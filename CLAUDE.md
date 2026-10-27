@@ -10,6 +10,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 新增或修改功能後，須同步更新 `docs/` 下對應的功能說明書。
 
+改到使用者看得到的操作流程（按鈕、欄位、步驟、選單位置）時，另須同步更新線上使用手冊 `ScadaEngine.Web/Manual/{scada,ems,engineer}/` 對應章節；新增功能頁要在該書 `_toc.json` 加章節並填 `routes`。寫作規範見 `ScadaEngine.Web/Manual/README.md`，架構見 docs/功能說明書_使用手冊.md。
+
+修改過 `docs/功能說明書_*.md` 後，須檢查並同步修改對應的使用手冊內容（`ScadaEngine.Web/Manual/{scada,ems,engineer}/` 中涵蓋同一功能的章節），確保手冊與說明書描述一致；若該功能尚無手冊章節或該次修改不影響手冊內容，在回覆中明講。
+
 ## 實作計畫（Plan）規則
 
 當使用者說「**規劃**」「**計畫**」「**plan**」「**先想清楚**」，
@@ -43,7 +47,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **實作期間**：每次 `git commit` / `git push` 後，追記該階段累計 token（跨對話的 plan：每個對話收尾前先把該對話用量寫進 plan，避免遺失）
 - **Archive 時**：回填**總 token**（input / output / cache read / cache write 分列）、**模型**、**對應 API 費用** — 費用依「當下」官方牌價換算並列出計算式；牌價必須現查（`claude-api` skill 或 https://platform.claude.com/docs/en/about-claude/pricing ），**不可憑記憶報價**
 - **token 取得方式**（模型無法自省用量，禁止估計或編造）：
-  1. 解析本 session transcript：`%USERPROFILE%\.claude\projects\` 下**對應本專案**的資料夾（名稱 = 工作目錄路徑轉 kebab-case，形如 `c--Users-<帳號>-Desktop-ScadaEngine`）中**最近修改**的 `<session-id>.jsonl`，加總各則 assistant 訊息的 `message.usage`（`input_tokens` / `output_tokens` / `cache_read_input_tokens` / `cache_creation_input_tokens`）
+  1. 解析本 session transcript：`%USERPROFILE%\.claude\projects\` 下**對應本專案**的資料夾（名稱 = 工作目錄路徑轉 kebab-case，形如 `c--Users-<帳號>-Desktop-JOULARIS`）中**最近修改**的 `<session-id>.jsonl`，加總各則 assistant 訊息的 `message.usage`（`input_tokens` / `output_tokens` / `cache_read_input_tokens` / `cache_creation_input_tokens`）
      - ⚠️ 勿寫死帳號 —— 不同機器/帳號路徑不同；用 `ls -t <projects 目錄>/*.jsonl | head -1` 取最新那份
   2. 若無法讀取，請使用者執行 `/cost` 並貼上結果
 - 若某階段數字取不到，如實標「未取得」，不可補估
@@ -94,6 +98,7 @@ Web 埠 5038 寫死在 Program.cs（`ListenAnyIP`，環境變數無效），生�
 ### 部署到 C:\JOULARIS（本機 = 生產機）
 
 - **Release 包為 framework-dependent（瘦身）**：三個 .NET 8 app（Engine/Web/ModbusServer）不再自帶 runtime，**目標機須先裝 `ASP.NET Core Runtime 8.0.x (x64)`**（一包覆蓋三者）。`Install.bat` 開頭會偵測，缺就中止不動機器。**升級既有 self-contained 生產機前，務必先裝好 runtime**。只鎖 major=8（只有 .NET 9 不會跑）。Python 抽成 package 根目錄的版號化基礎包，Install.bat 只在缺/版本變更才鋪；只改 C# 碼時可 `BuildRelease.ps1 -NoPython` 產 app-only 小包。詳見 docs/功能說明書_部署與遠端更新.md
+- **在 macOS 建包**：`.bat` 在 Mac 跑不了，改執行 `./BuildRelease.command [-NoPython]`（需 `~/.dotnet` 的 .NET 8 SDK + dotnet tool 版 pwsh，不需 Homebrew）；產出的 Release 包搬到 Windows 目標機跑 `Install.bat`。Mac 無法生成 PythonRuntime，完整包須先從 Windows 機複製該資料夾進 repo → docs/功能說明書_部署與遠端更新.md §在 macOS 上建包
 - **一鍵全部署**：repo 根目錄 `QuickDeployAll.bat`（系統管理員執行）＝ `BuildRelease.ps1` 打包 → 最新 Release 包 `Install.bat` 安裝 Engine + Web（升級自動備份/還原現場設定）。**不碰 Modbus Gateway** — 要裝/更新 Gateway 另跑 Release 包內 `InstallModbusServer.bat`
 - **安裝根目錄唯一真相 = Install.bat 的 `set "_ROOT=C:\JOULARIS"`**（26.6.0 起；之前是 `C:\SCADA`）。程式碼**不得**寫死任何根目錄 — Shared / LicenseBridge / Algorithms / Python / Web 的 WatchedFolder 都以執行檔位置相對推算。舊機偵測到 `C:\SCADA` 時 Install.bat 先跑 `Engine\App\Setting\migrate-install-root.ps1` 自動搬家（服務 / SQL 資料檔 / 排程 / 設定檔改指；可 `-WhatIf` 預演）→ docs/功能說明書_部署與遠端更新.md §安裝根目錄遷移
 - ⚠️ 各專案 `Scripts\QuickDeploy.bat` 的 Update（選 6）會用 **repo 版設定檔硬蓋** `C:\JOULARIS\...` 現場設定（無備份），且停服務後的進程清理用 `ScadaEngine*` 萬用字元會**誤殺另一個服務的進程**；生產機更新一律走 QuickDeployAll / Install.bat
@@ -101,12 +106,12 @@ Web 埠 5038 寫死在 Program.cs（`ListenAnyIP`，環境變數無效），生�
 ### 卡住的 Web 進程（鎖住 bin 導致 build 失敗）
 
 ⚠️ 這台機器上**同時會有兩個 `ScadaEngine.Web` 進程**：
-`C:\JOULARIS\Web\App\` 是**部署站台**、`...\Desktop\ScadaEngine\ScadaEngine.Web\bin\Debug\` 才是開發 build。
+`C:\JOULARIS\Web\App\` 是**部署站台**、`...\Desktop\JOULARIS\ScadaEngine.Web\bin\Debug\` 才是開發 build（2026-10-22 起 repo 資料夾由 `ScadaEngine` 改名為 `JOULARIS`）。
 只有後者會鎖住 build 輸出，**不分路徑盲殺會一併關掉正式站台**，務必用路徑過濾：
 
 ```powershell
 Get-Process -Name 'ScadaEngine.Web' -ErrorAction SilentlyContinue |
-  Where-Object { $_.Path -like '*\Desktop\ScadaEngine\ScadaEngine.Web\bin\*' } |
+  Where-Object { $_.Path -like '*\Desktop\JOULARIS\ScadaEngine.Web\bin\*' } |
   Stop-Process -Force
 ```
 

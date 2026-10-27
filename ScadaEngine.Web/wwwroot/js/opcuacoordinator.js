@@ -131,9 +131,7 @@
     /** 存檔成功訊息；來源資料夾內的 Excel 未能自動重產（Excel 開著 / 有未匯入修改）時附上提示 */
     function successMessage(data) {
         var szMsg = data.message || t('opcuacoord.msg.success_default');
-        return data.workbookNotice ? szMsg + '
-
-' + data.workbookNotice : szMsg;
+        return data.workbookNotice ? szMsg + '\n\n' + data.workbookNotice : szMsg;
     }
 
     /* ── 點位編輯（Device 卡片 + 點位表格） ── */

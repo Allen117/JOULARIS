@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<!-- EMS 模式外殼（淡綠主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>產氣量表/迴路設定 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/airmeter.css">
+    <style>*,*::before,*::after{transition:none!important;animation:none!important;}</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            // '/Xxx/api/yyy': function () { return { ... }; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+    <script>(function(){var M={"/AirMeterSetting/api/tree": [{"id": 1, "parentId": null, "name": "空壓機房總產氣", "sortOrder": 0, "sid": null, "sign": 1, "description": null, "unitScale": 1, "maxVolume": null}, {"id": 2, "parentId": 1, "name": "空壓機 AC-01", "sortOrder": 0, "sid": "66306-S1", "sign": 1, "description": "定頻基載機", "maxVolume": 99999999, "unitScale": 1}, {"id": 3, "parentId": 1, "name": "空壓機 AC-02", "sortOrder": 1, "sid": "66307-S1", "sign": 1, "description": "變頻調節機", "maxVolume": 99999999, "unitScale": 1}, {"id": 4, "parentId": 1, "name": "空壓機 AC-03", "sortOrder": 2, "sid": "66308-S1", "sign": 1, "description": "備機", "maxVolume": 99999999, "unitScale": 1}], "/AirMeterSetting/api/sids": [{"sid": "66305-S1", "source": "Modbus", "coordName": "空壓監控盤", "deviceName": "FM-00", "name": "空壓總管累積產氣量", "unit": "Nm³", "unitScale": 1}, {"sid": "66306-S1", "source": "Modbus", "coordName": "空壓監控盤", "deviceName": "AC-01", "name": "空壓機 AC-01 累積產氣量", "unit": "Nm³", "unitScale": 1}, {"sid": "66307-S1", "source": "Modbus", "coordName": "空壓監控盤", "deviceName": "AC-02", "name": "空壓機 AC-02 累積產氣量", "unit": "Nm³", "unitScale": 1}, {"sid": "66308-S1", "source": "Modbus", "coordName": "空壓監控盤", "deviceName": "AC-03", "name": "空壓機 AC-03 累積產氣量", "unit": "Nm³", "unitScale": 1}]};var f=window.fetch;window.fetch=function(u,o){var p=String(u).split("?")[0];if(Object.prototype.hasOwnProperty.call(M,p))return Promise.resolve(new Response(JSON.stringify(M[p]),{status:200,headers:{"Content-Type":"application/json"}}));return f.apply(this,arguments);};})();</script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            
+            <i class="fas fa-wind text-primary me-2"></i>產氣量表/迴路設定
+        </h2>
+    </div>
+
+    <div class="row g-3">
+        <!-- 左側樹狀清單 -->
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                    <span><i class="fas fa-folder-tree me-1"></i>迴路階層</span>
+                    <button class="btn btn-sm btn-outline-light py-0" onclick="window._am.openCreateModal(null)">
+                        <i class="fas fa-plus me-1"></i>新增產氣量表/迴路
+                    </button>
+                </div>
+                <div class="card-body p-2" style="height: calc(100vh - 250px); overflow-y: auto;">
+                    <div id="treeContainer">
+                        <div class="text-center mt-5"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側詳情 -->
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light py-2">
+                    <span id="detailTitle"><i class="fas fa-hand-pointer me-1"></i>請從左側選取迴路</span>
+                </div>
+                <div class="card-body" id="detailArea">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-sitemap fa-4x mb-3 d-block" style="opacity:.3"></i>
+                        <p>選取左側的節點即可檢視/編輯詳細資訊</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/編輯 Modal -->
+<div class="modal fade" id="circuitModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-edit me-1"></i><span id="modalTitle">新增產氣量表/迴路</span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="amId">
+                <input type="hidden" id="amParentId">
+                <input type="hidden" id="amSid">
+                <input type="hidden" id="amUnitScale">
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-tag me-1"></i>名稱</label>
+                    <input type="text" class="form-control form-control-sm" id="amName" placeholder="例如：空壓機房總產氣 / 1 號空壓機">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-cog me-1"></i>節點類型</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <input type="radio" class="btn-check" name="amType" id="amTypeVirtual" value="virtual" checked>
+                        <label class="btn btn-outline-primary" for="amTypeVirtual">
+                            <i class="fas fa-folder me-1"></i>虛擬迴路
+                        </label>
+                        <input type="radio" class="btn-check" name="amType" id="amTypeMeter" value="meter">
+                        <label class="btn btn-outline-primary" for="amTypeMeter">
+                            <i class="fas fa-wind me-1"></i>實體產氣量表
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="amSignRow">
+                    <label class="form-label fw-semibold"><i class="fas fa-plus-minus me-1"></i>貢獻方向</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <input type="radio" class="btn-check" name="amSign" id="amSignPos" value="1" checked>
+                        <label class="btn btn-outline-success" for="amSignPos">
+                            <i class="fas fa-plus me-1"></i>正向（加入父）
+                        </label>
+                        <input type="radio" class="btn-check" name="amSign" id="amSignNeg" value="-1">
+                        <label class="btn btn-outline-danger" for="amSignNeg">
+                            <i class="fas fa-minus me-1"></i>反向（從父扣減）
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">用於建立「總表 − 已分配子表」這類算式；根節點不適用</small>
+                </div>
+
+                <div class="mb-3" id="amMeterFields" style="display:none;">
+                    <label class="form-label fw-semibold"><i class="fas fa-plug me-1"></i>產氣量點位</label>
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="form-control form-control-sm am-point-display" id="amPointDisplay">尚未綁定點位</div>
+                        <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" onclick="window._am.openPointPicker()">
+                            <i class="fas fa-crosshairs me-1"></i>選擇點位
+                        </button>
+                    </div>
+                    <small class="text-muted d-block mt-1">僅列出「單位可換算為 Nm³（Nm³ / m³ / SCM / 公升系）」**且**「點位名稱含空壓關鍵字（空壓 / 壓縮空氣 / 產氣 / 氣量 / air / compressor / FAD）」的累積點位；名稱含天然氣字樣（天然氣 / 瓦斯 / 燃氣 / LNG…）者一律排除。含計算點、DB 來源點位。</small>
+                    <div class="alert alert-info py-1 px-2 mt-1 mb-0 small">
+                        <i class="fas fa-info-circle me-1"></i>找不到你的產氣量點位？兩種可能：① 點位名稱沒帶空壓關鍵字 → 請在點位管理把名稱改成含「空壓 / 壓縮空氣 / 產氣量」等字樣；② 單位不是累積量單位（如標成 Nm³/min 或 Nm³/h 流量）→ 請改綁流量計的累積量點位（Nm³）。Nm³ / m³ 對天然氣表、水表也成立，名稱是唯一能分辨的訊號。
+                    </div>
+                    <div class="am-unitscale-info mt-1" id="amUnitScaleInfo" style="display:none;"></div>
+
+                    <label class="form-label fw-semibold mt-3"><i class="fas fa-sort-numeric-up me-1"></i>溢位上限 MaxVolume</label>
+                    <input type="text" inputmode="numeric" class="form-control form-control-sm" id="amMaxVolume" placeholder="例如：1,000,000,000（以點位原始單位計）">
+                    <small class="text-muted d-block mt-1">累積值溢位/歸零時用於計算 delta，以點位原始單位計；留空表示不處理溢位</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-comment me-1"></i>說明</label>
+                    <textarea class="form-control form-control-sm" id="amDesc" rows="2" placeholder="選填"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="window._am.saveCircuit()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 兩步驟點位選擇器 Modal（設備 → 點位清單＋搜尋） -->
+<div class="modal fade" id="amPointPickerModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-crosshairs me-1"></i>選擇產氣量點位</h6>
+                <button type="button" class="btn-close" onclick="window._am.closePointPicker(false)"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <div class="pp-panel-title"><i class="fas fa-server me-1"></i>通訊設備</div>
+                        <div id="ppDeviceList" class="pp-list"></div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="pp-panel-title"><i class="fas fa-plug me-1"></i>點位</div>
+                        <input type="text" class="form-control form-control-sm mb-1" id="ppSearch" placeholder="搜尋點位名稱 / SID..." autocomplete="off">
+                        <div id="ppPointList" class="pp-list"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-sm btn-outline-danger me-auto" onclick="window._am.clearPickedPoint()">
+                    <i class="fas fa-eraser me-1"></i>清除綁定
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="window._am.closePointPicker(false)">取消</button>
+                <button type="button" class="btn btn-sm btn-primary" id="ppConfirmBtn" disabled onclick="window._am.closePointPicker(true)">
+                    <i class="fas fa-check me-1"></i>確定
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{WWWROOT}}/css/airmeter.css" />
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+<script>window.i18n={_d:{"airmeter.title": "產氣量表/迴路設定", "airmeter.tree.header": "迴路階層", "airmeter.tree.add_root": "新增產氣量表/迴路", "airmeter.tree.loading": "載入中...", "airmeter.tree.empty": "尚無迴路，請點右上角新增", "airmeter.tree.load_failed": "載入失敗", "airmeter.detail.placeholder_title": "請從左側選取迴路", "airmeter.detail.placeholder_body": "選取左側的節點即可檢視/編輯詳細資訊", "airmeter.detail.type": "類型", "airmeter.detail.name": "名稱", "airmeter.detail.sign": "貢獻方向", "airmeter.detail.point": "點位名稱", "airmeter.detail.unit_scale": "單位換算", "airmeter.detail.max_volume": "溢位上限 MaxVolume", "airmeter.detail.desc": "說明", "airmeter.detail.none": "無", "airmeter.detail.not_set": "未設定", "airmeter.detail.point_missing": "找不到對應的點位", "airmeter.badge.virtual": "虛擬迴路", "airmeter.badge.meter": "實體產氣量表", "airmeter.form.name": "名稱", "airmeter.form.name_placeholder": "例如：空壓機房總產氣 / 1 號空壓機", "airmeter.form.type": "節點類型", "airmeter.form.type_virtual": "虛擬迴路", "airmeter.form.type_meter": "實體產氣量表", "airmeter.form.sign": "貢獻方向", "airmeter.form.sign_pos": "正向（加入父）", "airmeter.form.sign_neg": "反向（從父扣減）", "airmeter.form.sign_hint": "用於建立「總表 − 已分配子表」這類算式；根節點不適用", "airmeter.form.point": "產氣量點位", "airmeter.form.point_unbound": "尚未綁定點位", "airmeter.form.point_hint": "僅列出「單位可換算為 Nm³（Nm³ / m³ / SCM / 公升系）」**且**「點位名稱含空壓關鍵字（空壓 / 壓縮空氣 / 產氣 / 氣量 / air / compressor / FAD）」的累積點位；名稱含天然氣字樣（天然氣 / 瓦斯 / 燃氣 / LNG…）者一律排除。含計算點、DB 來源點位。", "airmeter.form.name_filter_hint": "找不到你的產氣量點位？兩種可能：① 點位名稱沒帶空壓關鍵字 → 請在點位管理把名稱改成含「空壓 / 壓縮空氣 / 產氣量」等字樣；② 單位不是累積量單位（如標成 Nm³/min 或 Nm³/h 流量）→ 請改綁流量計的累積量點位（Nm³）。Nm³ / m³ 對天然氣表、水表也成立，名稱是唯一能分辨的訊號。", "airmeter.form.unit_scale_display": "點位單位 {unit} → 換算係數 {scale}（Nm³）", "airmeter.form.max_volume": "溢位上限 MaxVolume", "airmeter.form.max_volume_placeholder": "例如：1,000,000,000（以點位原始單位計）", "airmeter.form.max_volume_hint": "累積值溢位/歸零時用於計算 delta，以點位原始單位計；留空表示不處理溢位", "airmeter.form.desc": "說明", "airmeter.form.desc_placeholder": "選填", "airmeter.btn.save": "儲存", "airmeter.btn.cancel": "取消", "airmeter.btn.confirm": "確定", "airmeter.btn.clear_binding": "清除綁定", "airmeter.btn.pick_point": "選擇點位", "airmeter.btn.add_child": "新增子節點", "airmeter.btn.edit": "編輯", "airmeter.btn.delete": "刪除", "airmeter.modal.create_title": "新增產氣量表/迴路", "airmeter.modal.create_child_title": "新增子節點", "airmeter.modal.edit_title": "編輯：{name}", "airmeter.picker.title": "選擇產氣量點位", "airmeter.picker.device": "通訊設備", "airmeter.picker.point": "點位", "airmeter.picker.search_placeholder": "搜尋點位名稱 / SID...", "airmeter.picker.no_data": "尚無點位資料", "airmeter.picker.pick_device_first": "請先選擇左側設備", "airmeter.picker.pick_subunit_first": "請先選擇子單元", "airmeter.picker.no_match": "無符合的點位", "airmeter.group.modbus": "Modbus 通訊設備", "airmeter.group.calculated": "計算點位", "airmeter.group.db": "DB 來源", "airmeter.group.unspecified": "未指定", "airmeter.sign.neg_tooltip": "反向：從父迴路扣減", "airmeter.msg.name_required": "請輸入名稱", "airmeter.msg.sid_required": "實體產氣量表必須綁定產氣量點位", "airmeter.msg.save_failed": "儲存失敗：{msg}", "airmeter.msg.delete_failed": "刪除失敗：{msg}", "airmeter.msg.sort_failed": "排序更新失敗：{msg}", "airmeter.msg.confirm_delete": "確定要刪除「{name}」嗎？", "airmeter.msg.confirm_delete_children": "此迴路含有子節點，刪除會一併移除所有子孫，確定繼續？", "airmeter.msg.confirm_move": "確定把「{name}」搬到「{parent}」底下？\n搬動後上層迴路的加總與申報數字會立即改變。", "airmeter.msg.confirm_move_into_meter": "⚠ 目標是實體產氣量表：掛子迴路後，該表會連自身一起加總。", "airmeter.err.name_required": "名稱不可為空", "airmeter.err.invalid_sign": "貢獻方向只能為 +1 或 -1", "airmeter.err.node_not_found": "節點不存在", "airmeter.err.invalid_air_point": "該點位不存在，或不符合產氣量點位條件（單位須可換算 Nm³，且點位名稱須含空壓關鍵字、不含天然氣字樣），請重新選擇點位", "airmeter.err.has_children": "該迴路含子節點，刪除將一併移除所有子孫", "airmeter.err.sort_failed": "排序更新失敗", "airmeter.err.sort_cycle": "不能把迴路搬到自己的子迴路底下", "airmeter.err.sort_multi_root": "只允許一個全廠根節點，不能搬成第二個根", "airmeter.err.sort_missing_node": "節點不存在，請重新整理頁面", "airmeter.err.sort_missing_parent": "目標迴路不存在，請重新整理頁面", "airmeter.err.unknown": "未知錯誤"},t:function(k,a){var v=this._d[k]||k;if(a)for(var i in a)v=v.split("{"+i+"}").join(a[i]);return v;},ready:function(cb){if(cb)setTimeout(cb,0);},getCulture:function(){return "zh-TW";}};</script>
+    <script src="{{WWWROOT}}/js/common/tree-dnd.js"></script>
+    <script src="{{WWWROOT}}/js/airmeter.js"></script>
+    <script>
+
+    (function () {
+        var t = setInterval(function () {
+            var el = document.querySelector('#treeContainer .tree-node[data-id="2"]');
+            if (el) { clearInterval(t); setTimeout(function () { el.click();  }, 150); }
+        }, 50);
+    })();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

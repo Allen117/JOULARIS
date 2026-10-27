@@ -97,6 +97,7 @@
   <data name="airdeclaration.warning.kwh" xml:space="preserve"><value>部分電表資料不完整或累積值倒退但未設 MaxKwh</value></data>
   <data name="airdeclaration.warning.nm3" xml:space="preserve"><value>部分產氣量表資料不完整（可能斷線）</value></data>
   <data name="airdeclaration.tooltip.kwh_stale" xml:space="preserve"><value>此月電表資料不完整（可能斷線）</value></data>
+  <data name="airdeclaration.tooltip.kwh_partial" xml:space="preserve"><value>此月電表邊界缺讀數，僅統計月內有讀數的區段（期中上線或期末斷線）</value></data>
   <data name="airdeclaration.tooltip.nm3_stale" xml:space="preserve"><value>此月產氣量表資料不完整（可能斷線）</value></data>
 
   <data name="airdeclaration.select.loading" xml:space="preserve"><value>-- 載入中 --</value></data>

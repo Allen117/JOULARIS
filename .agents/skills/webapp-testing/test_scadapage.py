@@ -2,7 +2,7 @@
 from playwright.sync_api import sync_playwright
 import json, os
 
-SCREENSHOT_DIR = "c:/Users/A50388.ITRI/Desktop/ScadaEngine/.claude/skills/webapp-testing/screenshots"
+SCREENSHOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "screenshots")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 BASE_URL = "http://localhost:5038"

@@ -79,6 +79,10 @@ View discovery is configured in `Program.cs` to look in both `/Views/{1}/{0}.csh
 
 有父子階層的設定頁（EnergyMeter / ChilledWaterSystem / WaterMeterSetting / GasMeterSetting / AirMeterSetting / LogicFlow 樹 / Designer 頁面樹）拖曳搬移**不要各頁重寫**——前端一律 `window.TreeDnd`（`plan` 算兩層新順序含循環判定、`bind` 事件委派三區落點 before / after / into + 空白處 root），後端批次排序 / 搬移在交易內先 `TreeSortValidator.Validate`（存在性 / 循環 / 單一根）再寫入，違規丟 `TreeSortException(code)` 由 Controller 轉 400。載入順序須在各頁主 JS 之前。詳見 [docs/功能說明書_階層樹拖曳搬移.md](../docs/功能說明書_階層樹拖曳搬移.md)。
 
+## 點位小數位數規則單一真相：`js/common/decimal-rule.js`
+
+Designer 綁點位時依「名稱特例 → 單位表 → 預設 1」算小數位數並寫進 widget 屬性（`window.DecimalRule.guess`）；**不要在各處另寫單位 → 位數對照**。規則表見 [docs/功能說明書_SCADA監控頁.md](../docs/功能說明書_SCADA監控頁.md) §小數位數自動帶入。
+
 ## Key Patterns & Pitfalls（Web 端）
 
 ### MQTT JSON Parsing
@@ -108,7 +112,7 @@ Registered as both `AddSingleton` and `AddHostedService` so it can be injected i
 
 僅以下頁面已導入 i18n，新增/修改其字串時：
 
-- **已 i18n 範圍**：ScadaPage、Realtime、EnergyReport、EnergyBaseline、History/Trend、EventLog、AccountSetting、ScheduleSetting、ConditionCtrl、LogicFlow、ModbusCoordinator、DbCoordinator、CalcPoint、WeatherSetting、EmsCardSetting、WaterMeterSetting、WaterUsageReport、WaterTariffSetting、WaterCostReport、WaterBillingPeriodSetting、GasMeterSetting、GasUsageReport、GasTariffSetting、GasCostReport、GasBillingPeriodSetting、AirMeterSetting、AirCompressorDeclaration、EquipmentEfficiencySetting、ContractCapacity、ChillerEfficiency、CompressorEfficiency（JS 字串共用 class-less `Resources/EquipmentEfficiency.resx`，兩診斷頁版面共用 `Views/Shared/_EquipmentDiagnosis.cshtml`）、共用 `_Layout`
+- **已 i18n 範圍**：ScadaPage、Realtime、EnergyReport、EnergyBaseline、History/Trend、EventLog、AccountSetting、ScheduleSetting、ConditionCtrl、LogicFlow、ModbusCoordinator、DbCoordinator、CalcPoint、WeatherSetting、EmsCardSetting、WaterMeterSetting、WaterUsageReport、WaterTariffSetting、WaterCostReport、WaterBillingPeriodSetting、GasMeterSetting、GasUsageReport、GasTariffSetting、GasCostReport、GasBillingPeriodSetting、AirMeterSetting、AirCompressorDeclaration、EquipmentEfficiencySetting、ContractCapacity、SystemParameter、Manual（框架字串；手冊內文走 `Manual/{book}/en/` 檔案，不走 resx）、ChillerEfficiency、CompressorEfficiency（JS 字串共用 class-less `Resources/EquipmentEfficiency.resx`，兩診斷頁版面共用 `Views/Shared/_EquipmentDiagnosis.cshtml`）、共用 `_Layout`
 - **.cshtml 字串**：`@Localizer["key"]`（key 命名 `feature.section.purpose` 全小寫底線分）
 - **JS 字串**：`window.i18n.t('key', {args})`，IIFE 內可宣告 `function t(key, args) { return window.i18n.t(key, args); }` 簡化
 - **Controller / Service / Excel exporter**：建構子注入 `IStringLocalizer<T>`，走 `_l["key"].Value`。Singleton 服務若依賴此須改 Scoped

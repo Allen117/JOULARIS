@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<!-- 使用手冊 scada/account-01：帳號管理使用者清單（Admin 視角，不列 Engineer 帳號）；使用者列由 recipe 靜態展開（View 是 Razor foreach，非 API） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>帳號管理 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/AccountSetting/GetPermissions/3': function () { return { permissionJson: "{\"pages\": [\"/ScadaPage\", \"/RealTime\", \"/HistoryData\", \"/EventLog\", \"/EMS\", \"/ElectricityCircuitInfo\", \"/EnergyReport\"], \"scadaPages\": {\"P001\": {\"canView\": true, \"canControl\": false}, \"P002\": {\"canView\": true, \"canControl\": true}, \"P003\": {\"canView\": true, \"canControl\": true}, \"P004\": {\"canView\": true, \"canControl\": false}, \"P005\": {\"canView\": false, \"canControl\": false}}}" }; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+        <div class="container-fluid mt-4"
+     id="accountSettingRoot"
+     data-configurable-pages="[{&quot;route&quot;: &quot;/ScadaPage&quot;, &quot;name&quot;: &quot;即時監控&quot;, &quot;ems&quot;: false}, {&quot;route&quot;: &quot;/RealTime&quot;, &quot;name&quot;: &quot;即時數據&quot;, &quot;ems&quot;: false}, {&quot;route&quot;: &quot;/ConditionCtrl&quot;, &quot;name&quot;: &quot;條件控制&quot;, &quot;ems&quot;: false}, {&quot;route&quot;: &quot;/HistoryData&quot;, &quot;name&quot;: &quot;歷史資料&quot;, &quot;ems&quot;: false}, {&quot;route&quot;: &quot;/EventLog&quot;, &quot;name&quot;: &quot;事件記錄&quot;, &quot;ems&quot;: false}, {&quot;route&quot;: &quot;/EMS&quot;, &quot;name&quot;: &quot;能源管理首頁&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/ChilledWaterSystem&quot;, &quot;name&quot;: &quot;空調水系統迴路設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/ChilledWaterCircuitInfo&quot;, &quot;name&quot;: &quot;空調水系統迴路&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/ElectricityCircuitInfo&quot;, &quot;name&quot;: &quot;電力迴路資訊&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/WaterCircuitInfo&quot;, &quot;name&quot;: &quot;自來水迴路資訊&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/GasCircuitInfo&quot;, &quot;name&quot;: &quot;氣迴路資訊&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/ChillerEfficiency&quot;, &quot;name&quot;: &quot;冰機效率診斷&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/CompressorEfficiency&quot;, &quot;name&quot;: &quot;空壓機效率診斷&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/EquipmentEfficiencySetting&quot;, &quot;name&quot;: &quot;設備效率設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/EnergyMeter&quot;, &quot;name&quot;: &quot;電表/迴路設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/EnergyReport&quot;, &quot;name&quot;: &quot;用電報表&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/ElectricityCostReport&quot;, &quot;name&quot;: &quot;電費報表&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/ContractCapacity&quot;, &quot;name&quot;: &quot;契約容量最佳化&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/RefrigerationTonReport&quot;, &quot;name&quot;: &quot;冷凍噸報表&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/WaterMeterSetting&quot;, &quot;name&quot;: &quot;自來水表/迴路設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/WaterUsageReport&quot;, &quot;name&quot;: &quot;用水報表&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/WaterTariffSetting&quot;, &quot;name&quot;: &quot;水費設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/WaterCostReport&quot;, &quot;name&quot;: &quot;水費報表&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/GasMeterSetting&quot;, &quot;name&quot;: &quot;氣表/迴路設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/GasUsageReport&quot;, &quot;name&quot;: &quot;用氣報表&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/GasTariffSetting&quot;, &quot;name&quot;: &quot;氣費設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/GasCostReport&quot;, &quot;name&quot;: &quot;氣費報表&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/AirMeterSetting&quot;, &quot;name&quot;: &quot;產氣量表/迴路設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/DailyReport&quot;, &quot;name&quot;: &quot;能源日報&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/DailyReportSetting&quot;, &quot;name&quot;: &quot;日報設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/EnergyDeclaration&quot;, &quot;name&quot;: &quot;能源申報&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/AirCompressorDeclaration&quot;, &quot;name&quot;: &quot;空壓機能源申報&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/BillingPeriodSetting&quot;, &quot;name&quot;: &quot;電費月結週期設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/WaterBillingPeriodSetting&quot;, &quot;name&quot;: &quot;水費月結週期設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/GasBillingPeriodSetting&quot;, &quot;name&quot;: &quot;氣費月結週期設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/TariffSetting&quot;, &quot;name&quot;: &quot;電費設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/HolidaySetting&quot;, &quot;name&quot;: &quot;國定假日設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/ShiftSetting&quot;, &quot;name&quot;: &quot;班別設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/EmsCardSetting&quot;, &quot;name&quot;: &quot;EMS卡片顯示設定&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/EnergyBaseline&quot;, &quot;name&quot;: &quot;能源基準&quot;, &quot;ems&quot;: true}, {&quot;route&quot;: &quot;/WeatherSetting&quot;, &quot;name&quot;: &quot;氣象資料&quot;, &quot;ems&quot;: false}, {&quot;route&quot;: &quot;/AccountSetting&quot;, &quot;name&quot;: &quot;帳號管理&quot;, &quot;ems&quot;: false}]"
+     data-scada-design-pages="[{&quot;szPageSid&quot;: &quot;P001&quot;, &quot;szPageName&quot;: &quot;系統總覽&quot;, &quot;szParentPageSid&quot;: null}, {&quot;szPageSid&quot;: &quot;P002&quot;, &quot;szPageName&quot;: &quot;空調系統&quot;, &quot;szParentPageSid&quot;: &quot;P001&quot;}, {&quot;szPageSid&quot;: &quot;P003&quot;, &quot;szPageName&quot;: &quot;冰水系統&quot;, &quot;szParentPageSid&quot;: &quot;P001&quot;}, {&quot;szPageSid&quot;: &quot;P004&quot;, &quot;szPageName&quot;: &quot;電力系統&quot;, &quot;szParentPageSid&quot;: &quot;P001&quot;}, {&quot;szPageSid&quot;: &quot;P005&quot;, &quot;szPageName&quot;: &quot;照明系統&quot;, &quot;szParentPageSid&quot;: &quot;P001&quot;}]">
+    <h4 class="mb-3"><i class="fas fa-users-cog me-2"></i>帳號管理</h4>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white d-flex align-items-center">
+            <h6 class="mb-0"><i class="fas fa-users me-2"></i>使用者清單</h6>
+            <span class="badge bg-light text-dark ms-2">共 6 筆</span>
+            <button class="btn btn-success btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                <i class="fas fa-user-plus me-1"></i>新增使用者
+            </button>
+        </div>
+        <div class="card-body p-0">
+            
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>帳號</th>
+                                <th>姓名</th>
+                                <th>角色</th>
+                                <th>部門</th>
+                                <th class="text-center">狀態</th>
+                                <th>最後登入</th>
+                                <th>建立時間</th>
+                                <th class="text-center" style="width:100px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                                            <tr>
+                                    <td><i class="fas fa-user me-1 text-primary"></i>admin</td>
+                                    <td>系統管理員</td>
+                                    <td><span class="badge bg-danger">Admin</span></td>
+                                    <td>資訊室</td>
+                                    <td class="text-center"><span class="badge bg-success">啟用</span></td>
+                                    <td class="small text-muted">2026-09-09 15:30:12</td>
+                                    <td class="small text-muted">2025-11-03 09:12:45</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-outline-primary btn-sm me-1 btn-edit" data-userid="1" data-username="admin" data-realname="系統管理員" data-role="Admin" data-department="資訊室" data-isactive="true" title="編輯"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-outline-danger btn-sm btn-delete" data-userid="1" data-username="admin" title="刪除"><i class="fas fa-trash-alt"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-user me-1 text-primary"></i>supervisor01</td>
+                                    <td>陳大明</td>
+                                    <td><span class="badge bg-danger">Admin</span></td>
+                                    <td>設備課</td>
+                                    <td class="text-center"><span class="badge bg-success">啟用</span></td>
+                                    <td class="small text-muted">2026-09-09 08:05:41</td>
+                                    <td class="small text-muted">2025-11-03 09:20:18</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-outline-primary btn-sm me-1 btn-edit" data-userid="2" data-username="supervisor01" data-realname="陳大明" data-role="Admin" data-department="設備課" data-isactive="true" title="編輯"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-outline-danger btn-sm btn-delete" data-userid="2" data-username="supervisor01" title="刪除"><i class="fas fa-trash-alt"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-user me-1 text-primary"></i>operator01</td>
+                                    <td>王小明</td>
+                                    <td><span class="badge bg-primary">User</span></td>
+                                    <td>設備課</td>
+                                    <td class="text-center"><span class="badge bg-success">啟用</span></td>
+                                    <td class="small text-muted">2026-09-09 14:52:07</td>
+                                    <td class="small text-muted">2025-11-05 10:02:33</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-outline-primary btn-sm me-1 btn-edit" data-userid="3" data-username="operator01" data-realname="王小明" data-role="User" data-department="設備課" data-isactive="true" title="編輯"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-outline-danger btn-sm btn-delete" data-userid="3" data-username="operator01" title="刪除"><i class="fas fa-trash-alt"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-user me-1 text-primary"></i>operator02</td>
+                                    <td>李小華</td>
+                                    <td><span class="badge bg-primary">User</span></td>
+                                    <td>值班中心</td>
+                                    <td class="text-center"><span class="badge bg-success">啟用</span></td>
+                                    <td class="small text-muted">2026-09-08 22:10:56</td>
+                                    <td class="small text-muted">2025-11-05 10:05:12</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-outline-primary btn-sm me-1 btn-edit" data-userid="4" data-username="operator02" data-realname="李小華" data-role="User" data-department="值班中心" data-isactive="true" title="編輯"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-outline-danger btn-sm btn-delete" data-userid="4" data-username="operator02" title="刪除"><i class="fas fa-trash-alt"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-user me-1 text-primary"></i>viewer01</td>
+                                    <td>張美玲</td>
+                                    <td><span class="badge bg-primary">User</span></td>
+                                    <td>能源管理組</td>
+                                    <td class="text-center"><span class="badge bg-success">啟用</span></td>
+                                    <td class="small text-muted">2026-09-04 09:41:20</td>
+                                    <td class="small text-muted">2026-02-17 13:48:09</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-outline-primary btn-sm me-1 btn-edit" data-userid="5" data-username="viewer01" data-realname="張美玲" data-role="User" data-department="能源管理組" data-isactive="true" title="編輯"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-outline-danger btn-sm btn-delete" data-userid="5" data-username="viewer01" title="刪除"><i class="fas fa-trash-alt"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-user me-1 text-primary"></i>vendor01</td>
+                                    <td>林志強</td>
+                                    <td><span class="badge bg-primary">User</span></td>
+                                    <td>維護廠商</td>
+                                    <td class="text-center"><span class="badge bg-secondary">停用</span></td>
+                                    <td class="small text-muted">尚未登入</td>
+                                    <td class="small text-muted">2026-06-22 16:30:00</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-outline-primary btn-sm me-1 btn-edit" data-userid="6" data-username="vendor01" data-realname="林志強" data-role="User" data-department="維護廠商" data-isactive="false" title="編輯"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-outline-danger btn-sm btn-delete" data-userid="6" data-username="vendor01" title="刪除"><i class="fas fa-trash-alt"></i></button>
+                                    </td>
+                                </tr>
+                        </tbody>
+                    </table>
+                </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增使用者 Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title" id="createUserModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>新增使用者
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">帳號 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="inputUsername" maxlength="50" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">姓名</label>
+                        <input type="text" class="form-control" id="inputRealName" maxlength="100">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">密碼 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="inputPassword" maxlength="100" required>
+                            <button class="btn btn-outline-secondary" type="button" id="btnTogglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">確認密碼 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="inputPasswordConfirm" maxlength="100" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">角色 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="inputRole">
+                            <option value="Admin">Admin</option>
+                            <option value="User" selected>User</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">部門</label>
+                        <input type="text" class="form-control" id="inputDepartment" maxlength="50">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="inputIsActive" checked>
+                            <label class="form-check-label" for="inputIsActive">啟用帳號</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="createUserAlert" class="alert mt-3 mb-0" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btnCreateUser">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 編輯使用者 Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h6 class="modal-title" id="editUserModalLabel">
+                    <i class="fas fa-user-edit me-2"></i>編輯使用者
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editUserID">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">帳號</label>
+                        <input type="text" class="form-control" id="editUsername" disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">姓名</label>
+                        <input type="text" class="form-control" id="editRealName" maxlength="100">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">角色 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editRole">
+                            <option value="Admin">Admin</option>
+                            <option value="User">User</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">部門</label>
+                        <input type="text" class="form-control" id="editDepartment" maxlength="50">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="editIsActive">
+                            <label class="form-check-label" for="editIsActive">啟用帳號</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 權限設定區塊（僅 User 角色顯示） -->
+                <div id="permissionSection" class="mt-3" style="display:none;">
+                    <hr>
+                    <h6 class="fw-bold"><i class="fas fa-shield-alt me-1"></i>頁面存取權限</h6>
+
+                    <div class="card mb-3">
+                        <div class="card-header py-2 bg-light d-flex align-items-center">
+                            <small class="fw-bold"><i class="fas fa-desktop me-1 text-primary"></i>SCADA 頁面</small>
+                            <div class="form-check form-check-inline ms-auto mb-0">
+                                <input class="form-check-input" type="checkbox" id="cbSelectAllScadaMain">
+                                <label class="form-check-label small" for="cbSelectAllScadaMain">全選</label>
+                            </div>
+                        </div>
+                        <div class="card-body py-2" id="permScadaMainPages"></div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header py-2 bg-light d-flex align-items-center">
+                            <small class="fw-bold"><i class="fas fa-leaf me-1 text-success"></i>EMS 頁面</small>
+                            <div class="form-check form-check-inline ms-auto mb-0">
+                                <input class="form-check-input" type="checkbox" id="cbSelectAllEmsPages">
+                                <label class="form-check-label small" for="cbSelectAllEmsPages">全選</label>
+                            </div>
+                        </div>
+                        <div class="card-body py-2" id="permEmsPages"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header py-2 bg-light">
+                            <small class="fw-bold">即時監控子頁面（ScadaPage）</small>
+                        </div>
+                        <div class="card-body py-2" id="permScadaPages">
+                            <small class="text-muted">載入中...</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="editUserAlert" class="alert mt-3 mb-0" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" id="btnSaveEdit">
+                    <i class="fas fa-save me-1"></i>儲存變更
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 刪除確認 Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title"><i class="fas fa-exclamation-triangle text-danger me-2"></i>確認刪除</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-3">
+                <p class="mb-1" id="deleteUserMsgWrap">
+                    <span id="deleteUserMsgPrefix"></span><strong id="deleteUsername"></strong><span id="deleteUserMsgSuffix"></span>
+                </p>
+                <small class="text-muted">此操作無法復原</small>
+                <input type="hidden" id="deleteUserID">
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger btn-sm" id="btnConfirmDelete">確認刪除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+    // i18n stub（只含本頁用到的 key，取自 Resources/*.resx zh-TW）
+    window.i18n = (function () {
+        var D = {"account.title": "帳號管理", "account.list.title": "使用者清單", "account.list.count": "共 {0} 筆", "account.button.create": "新增使用者", "account.col.username": "帳號", "account.col.realname": "姓名", "account.col.role": "角色", "account.col.department": "部門", "account.col.status": "狀態", "account.col.last_login": "最後登入", "account.col.created_at": "建立時間", "account.col.actions": "操作", "account.status.active": "啟用", "account.status.inactive": "停用", "account.status.never_login": "尚未登入", "account.status.no_users": "目前無使用者資料", "account.button.edit": "編輯", "account.button.delete": "刪除", "account.modal.create_title": "新增使用者", "account.modal.edit_title": "編輯使用者", "account.modal.delete_title": "確認刪除", "account.field.username": "帳號", "account.field.realname": "姓名", "account.field.password": "密碼", "account.field.password_confirm": "確認密碼", "account.field.role": "角色", "account.field.department": "部門", "account.field.is_active": "啟用帳號", "account.button.save": "儲存", "account.button.save_changes": "儲存變更", "account.button.cancel": "取消", "account.button.confirm_delete": "確認刪除", "account.permission.title": "頁面存取權限", "account.permission.scada_main_pages": "SCADA 頁面", "account.permission.ems_pages": "EMS 頁面", "account.permission.scada_pages": "即時監控子頁面（ScadaPage）", "account.permission.select_all": "全選", "account.permission.col_page": "頁面", "account.permission.col_can_view": "可檢視", "account.permission.col_can_control": "可控制", "account.permission.no_pages": "尚無已發佈的畫面設計", "account.permission.loading": "載入中...", "account.delete.confirm_msg": "確定要刪除使用者 {0} 嗎？", "account.delete.warning": "此操作無法復原", "account.alert.input_username": "請輸入帳號", "account.alert.input_password": "請輸入密碼", "account.alert.password_mismatch": "兩次輸入的密碼不一致", "account.alert.create_success": "新增成功，頁面即將重新整理...", "account.alert.create_failed": "新增失敗", "account.alert.create_failed_with": "新增失敗：{0}", "account.alert.update_success": "更新成功，頁面即將重新整理...", "account.alert.update_failed": "更新失敗", "account.alert.update_failed_with": "更新失敗：{0}", "account.alert.delete_failed": "刪除失敗", "account.alert.delete_failed_with": "刪除失敗：{0}", "account.alert.saving": "儲存中...", "account.required": "*"};
+        return { t: function (k, a) { var v = D[k] || k; if (a) Object.keys(a).forEach(function (n) { v = v.split("{" + n + "}").join(a[n]); }); return v; },
+                 ready: function (cb) { cb(); }, currentCulture: function () { return "zh-TW"; } };
+    })();
+    </script>
+    <script src="{{WWWROOT}}/js/accountsetting.js"></script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

@@ -260,13 +260,19 @@
         const totalLabel = escapeHtml(t('energyreport.table.total'));
         const staleTipRaw = t('energyreport.tooltip.stale');
         const staleTip = escapeHtml(staleTipRaw);
+        const partialTipRaw = t('energyreport.tooltip.partial');
+        const partialTip = escapeHtml(partialTipRaw);
+        // 斷線（琥珀三角）與部分區間（藍色半圓）兩種標記，互斥
+        const markOf = b => b.isStale ? UiState.staleMarkHtml('er-stale-mark', staleTipRaw)
+            : b.isPartial ? UiState.partialMarkHtml('er-partial-mark', partialTipRaw) : '';
+        const rowAttrOf = b => b.isStale ? ` title="${staleTip}"` : b.isPartial ? ` title="${partialTip}"` : '';
 
         if (!data.buckets || data.buckets.length === 0) {
             tbody.innerHTML = `<tr><td colspan="${nCols}" class="text-center text-muted py-3">${escapeHtml(t('energyreport.table.no_data'))}</td></tr>`;
         } else if (!isYoy) {
             tbody.innerHTML = data.buckets.map(b => {
-                const mark = b.isStale ? UiState.staleMarkHtml('er-stale-mark', staleTipRaw) : '';
-                const rowAttr = b.isStale ? ` title="${staleTip}"` : '';
+                const mark = markOf(b);
+                const rowAttr = rowAttrOf(b);
                 return `
                 <tr${rowAttr}>
                     <td>${escapeHtml(b.szLabel)}${mark}</td>
@@ -277,8 +283,8 @@
         } else {
             // YOY：期別 / 本期 / 去年同期 / 差異 / 增減%
             const rows = data.buckets.map(b => {
-                const mark = b.isStale ? UiState.staleMarkHtml('er-stale-mark', staleTipRaw) : '';
-                const rowAttr = b.isStale ? ` title="${staleTip}"` : '';
+                const mark = markOf(b);
+                const rowAttr = rowAttrOf(b);
                 return `
                 <tr${rowAttr}>
                     <td>${escapeHtml(b.szLabel)}${mark}</td>
@@ -352,12 +358,14 @@
         let tooltipCallbacks;
         let bStacked;
 
-        // 斷線提示：依 bucket index 查主迴路 buckets[idx].isStale，兩種模式共用
+        // 斷線 / 部分區間提示：依 bucket index 查主迴路 buckets[idx]，兩種模式共用
         const staleTip = t('energyreport.tooltip.stale');
+        const partialTip = t('energyreport.tooltip.partial');
         const staleAfterBody = function (items) {
             if (!items || !items.length) return undefined;
-            const idx = items[0].dataIndex;
-            return (data.buckets[idx] && data.buckets[idx].isStale) ? staleTip : undefined;
+            const b = data.buckets[items[0].dataIndex];
+            if (!b) return undefined;
+            return b.isStale ? staleTip : b.isPartial ? partialTip : undefined;
         };
 
         if (bBreakdown) {

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<!-- 使用手冊 scada/weather-02：執行狀態卡片（失敗：觀測資料過舊）；改 lastFetchMessage 機器碼可換其他狀態（ok|missing|stale|error|…） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>氣象資料來源設定 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/weather-setting.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+        .weather-toast { display: none !important; }  /* 載入測站 toast 不入鏡 */
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/WeatherSetting/api/setting': function () { return {"apiKey": "CWA-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX", "datasetId": "O-A0003-001", "stationId": "466920", "stationName": "臺北", "county": "臺北市", "pollIntervalMinutes": 10, "isEnabled": true, "lastFetchTime": "2026-09-09 15:40:12", "lastFetchOk": false, "lastFetchMessage": "stale|2026-09-09 14:20"}; },
+            '/WeatherSetting/api/stations': function () { return { stations: [{"datasetId": "O-A0003-001", "stationId": "466920", "stationName": "臺北", "county": "臺北市", "town": "中正區"}, {"datasetId": "O-A0001-001", "stationId": "C0A9C0", "stationName": "天母", "county": "臺北市", "town": "士林區"}, {"datasetId": "O-A0001-001", "stationId": "C0AC70", "stationName": "信義", "county": "臺北市", "town": "信義區"}, {"datasetId": "O-A0003-001", "stationId": "467490", "stationName": "臺中", "county": "臺中市", "town": "北區"}, {"datasetId": "O-A0003-001", "stationId": "467410", "stationName": "臺南", "county": "臺南市", "town": "南區"}, {"datasetId": "O-A0003-001", "stationId": "467440", "stationName": "高雄", "county": "高雄市", "town": "前鎮區"}] }; },
+            '/WeatherSetting/api/test': function () { return { success: true, stationName: '臺北', temperature: 29.4, humidity: 68, obsTime: '2026-09-09 15:40' }; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+<div class="container mt-4 weather-setting-page">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0"><i class="fas fa-cloud-sun me-2"></i>氣象資料來源設定</h4>
+        <button class="btn btn-primary" id="btnSave" onclick="window._weatherSetting.save()">
+            <i class="fas fa-save me-1"></i>儲存
+        </button>
+    </div>
+
+    <!-- API 授權碼 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0"><i class="fas fa-key me-1"></i> API 授權碼</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label fw-bold text-muted small" for="txtApiKey">中央氣象署開放資料授權碼</label>
+                    <input type="text" class="form-control form-control-sm font-monospace" id="txtApiKey"
+                           placeholder="CWA-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" autocomplete="off" maxlength="100" />
+                </div>
+                <div class="col-md-4">
+                    <div class="form-text mb-1">
+                        免費註冊申請：
+                        <a href="https://opendata.cwa.gov.tw" target="_blank" rel="noopener">opendata.cwa.gov.tw</a>
+                    </div>
+                </div>
+            </div>
+            <div class="form-text mt-2">每個部署現場請使用自己申請的授權碼，勿多現場共用同一把 — API 流量配額以授權碼計，且共用金鑰重新產生時所有現場會同時失效。</div>
+        </div>
+    </div>
+
+    <!-- 測站選擇 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0"><i class="fas fa-map-marker-alt me-1"></i> 測站選擇</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <button class="btn btn-outline-primary btn-sm w-100" id="btnLoadStations"
+                            onclick="window._weatherSetting.loadStations()">
+                        <i class="fas fa-download me-1"></i>載入測站清單
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-muted small" for="selCounty">縣市</label>
+                    <select class="form-select form-select-sm" id="selCounty" disabled></select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small" for="selStation">測站</label>
+                    <select class="form-select form-select-sm" id="selStation" disabled></select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary btn-sm w-100" id="btnTest"
+                            onclick="window._weatherSetting.test()">
+                        <i class="fas fa-plug me-1"></i>測試連線
+                    </button>
+                </div>
+            </div>
+            <div class="mt-2 small text-muted" id="currentStation"></div>
+            <div class="mt-2" id="testResult" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- 抓取設定 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0"><i class="fas fa-sliders-h me-1"></i> 抓取設定</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small" for="numInterval">抓取間隔（分鐘）</label>
+                    <input type="number" class="form-control form-control-sm" id="numInterval" min="5" max="1440" step="1" value="10" />
+                    <div class="form-text">5–1440 分鐘；氣象署觀測約每 10 分鐘更新一次，預設 10。</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" id="chkEnabled" />
+                        <label class="form-check-label fw-bold" for="chkEnabled">啟用自動抓取</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 執行狀態 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0"><i class="fas fa-heartbeat me-1"></i> 執行狀態</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small">最近抓取時間</label>
+                    <div id="lastFetchTime" class="small">—</div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold text-muted small">結果</label>
+                    <div id="lastFetchResult">—</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-muted small">訊息</label>
+                    <div id="lastFetchMessage" class="small">—</div>
+                </div>
+            </div>
+            <div class="form-text mt-2">觀測值寫入 DB 來源「Weather」設備（S1＝外氣溫度、S2＝外氣相對濕度），可於即時數據、歷史趨勢、能源基線相關變數等處使用。API 失敗或觀測時間距今超過 60 分鐘時，點位品質標記為 Bad、保留最近成功值。</div>
+        </div>
+    </div>
+</div>
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+    // i18n stub（只含本頁用到的 key，取自 Resources/*.resx zh-TW）
+    window.i18n = (function () {
+        var D = {"weathersetting.title": "氣象資料來源設定", "weathersetting.btn.save": "儲存", "weathersetting.card.api_key": "API 授權碼", "weathersetting.label.api_key": "中央氣象署開放資料授權碼", "weathersetting.hint.api_key_apply": "免費註冊申請：", "weathersetting.hint.api_key_per_site": "每個部署現場請使用自己申請的授權碼，勿多現場共用同一把 — API 流量配額以授權碼計，且共用金鑰重新產生時所有現場會同時失效。", "weathersetting.card.station": "測站選擇", "weathersetting.btn.load_stations": "載入測站清單", "weathersetting.label.county": "縣市", "weathersetting.label.station": "測站", "weathersetting.btn.test": "測試連線", "weathersetting.opt.select_county": "選擇縣市…", "weathersetting.opt.select_station": "選擇測站…", "weathersetting.dataset.auto": "自動站", "weathersetting.dataset.staffed": "署屬站", "weathersetting.current_station": "目前選用：{county} {name}（{id}）", "weathersetting.current_station_none": "尚未選擇測站", "weathersetting.testing": "測試中…", "weathersetting.test_result": "{name}：溫度 {temp} °C、相對濕度 {hum} %（觀測時間 {time}）", "weathersetting.toast.stations_loaded": "已載入 {count} 個測站", "weathersetting.toast.saved": "設定已儲存，背景服務最慢 30 秒內套用", "weathersetting.card.fetch": "抓取設定", "weathersetting.label.interval": "抓取間隔（分鐘）", "weathersetting.hint.interval": "5–1440 分鐘；氣象署觀測約每 10 分鐘更新一次，預設 10。", "weathersetting.label.enabled": "啟用自動抓取", "weathersetting.card.status": "執行狀態", "weathersetting.label.last_fetch_time": "最近抓取時間", "weathersetting.label.last_fetch_result": "結果", "weathersetting.label.last_fetch_message": "訊息", "weathersetting.hint.points": "觀測值寫入 DB 來源「Weather」設備（S1＝外氣溫度、S2＝外氣相對濕度），可於即時數據、歷史趨勢、能源基線相關變數等處使用。API 失敗或觀測時間距今超過 60 分鐘時，點位品質標記為 Bad、保留最近成功值。", "weathersetting.status.ok": "成功", "weathersetting.status.fail": "失敗", "weathersetting.msg.ok": "溫度 {temp} °C、相對濕度 {hum} %（觀測時間 {time}）", "weathersetting.msg.missing": "部分欄位缺測：溫度 {temp} °C、相對濕度 {hum} %（觀測時間 {time}），缺測點位已標記 Bad", "weathersetting.msg.stale": "觀測資料過舊（觀測時間 {time}），點位已標記 Bad", "weathersetting.msg.error": "抓取失敗：{detail}", "weathersetting.msg.station_not_found": "查無所選測站（測站可能已裁撤，請重新選站）", "weathersetting.msg.coordinator_not_loaded": "Engine 尚未載入 Weather 點位設定（DBPoint/Weather.json），請確認部署並通知 Engine 重新載入", "weathersetting.msg.disabled": "已停用", "weathersetting.err.load_failed": "載入失敗", "weathersetting.err.save_failed": "儲存失敗", "weathersetting.err.invalid_interval": "抓取間隔須為 5–1440 分鐘", "weathersetting.err.invalid_api_key": "授權碼長度超過上限", "weathersetting.err.enable_requires_key_and_station": "啟用前請先填入授權碼並選擇測站", "weathersetting.err.invalid_dataset": "資料集代碼不正確，請重新選擇測站", "weathersetting.err.api_key_required": "請先輸入 API 授權碼", "weathersetting.err.cwa_auth_failed": "氣象署 API 授權失敗，請檢查授權碼是否有效", "weathersetting.err.cwa_unreachable": "無法連線氣象署 API，請確認本機可對外連線 opendata.cwa.gov.tw", "weathersetting.err.test_requires_key_and_station": "請先填入授權碼並選擇測站", "weathersetting.err.station_not_found": "查無所選測站"};
+        return { t: function (k, a) { var v = D[k] || k; if (a) Object.keys(a).forEach(function (n) { v = v.split("{" + n + "}").join(a[n]); }); return v; },
+                 ready: function (cb) { cb(); }, currentCulture: function () { return "zh-TW"; } };
+    })();
+    </script>
+    <script src="{{WWWROOT}}/js/weather-setting.js"></script>
+    <script>
+// 只留「執行狀態」卡片；狀態示範「觀測資料過舊」
+document.addEventListener('DOMContentLoaded', function () {
+    var cards = document.querySelectorAll('.weather-setting-page > .card');
+    for (var i = 0; i < cards.length - 1; i++) cards[i].style.display = 'none';
+});
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

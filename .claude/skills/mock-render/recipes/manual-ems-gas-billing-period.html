@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<!-- 手冊 ems/billing-period-02：/GasBillingPeriodSetting 兩月一期（6 列）+ 已刪除期別摺疊區展開。mock /GasBillingPeriodSetting/api/list 回 {periods, skipped} -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>氣費月結週期設定 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/gasbillingperiodsetting.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/GasBillingPeriodSetting/api/list': function () {
+                // 兩月一期：刪除 2/4/6/8/10/12 月期後，奇數月期自動延伸到下個月底，全年無空窗無重疊
+                var P = [[1,'2026-01-01','2026-02-28'],[3,'2026-03-01','2026-04-30'],[5,'2026-05-01','2026-06-30'],
+                         [7,'2026-07-01','2026-08-31'],[9,'2026-09-01','2026-10-31'],[11,'2026-11-01','2026-12-31']];
+                function dto(m, s, e, cust) {
+                    var d = Math.round((new Date(e + 'T00:00:00') - new Date(s + 'T00:00:00')) / 86400000) + 1;
+                    return { year: 2026, month: m, start: s, end: e, days: d, isCustomized: cust, isNatural: !cust,
+                             isSkipped: !cust, label: cust ? (s.substring(0,4) === e.substring(0,4) ? s + '~' + e.substring(5) : s + '~' + e) : '2026-' + String(m).padStart(2, '0'), gapDays: 0 };
+                }
+                return {
+                    periods: P.map(function (p) { return dto(p[0], p[1], p[2], true); }),
+                    skipped: [2,4,6,8,10,12].map(function (m) {
+                        var s = '2026-' + String(m).padStart(2, '0') + '-01';
+                        var e = new Date(2026, m, 0); e = '2026-' + String(m).padStart(2, '0') + '-' + String(e.getDate()).padStart(2, '0');
+                        return dto(m, s, e, false);
+                    })
+                };
+            },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path](String(url), opts || {})), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            <i class="fas fa-calendar-check text-primary me-2"></i>氣費月結週期設定
+        </h2>
+    </div>
+
+    <!-- 說明卡 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body py-2 px-3 text-muted small">
+            <i class="fas fa-info-circle me-1"></i>每個期別（月份）各自設定氣費單起訖日期；未自訂的期別預設 = 上期結束 +1 天起算一個月（完全未自訂時 = 自然月）。設定即時生效，所有用氣月粒度顯示（用氣報表 / 氣費報表 / EMS 氣表卡片）依期別切分，歷史月報也會用新設定重算。<br />
+            <i class="fas fa-fire me-1 text-primary"></i>本頁僅影響用氣與氣費；供氣事業抄表日與台電、台水皆不同，三套月結週期各自獨立設定，改這裡不會動到電費或水費期別。<br />
+            <i class="fas fa-calendar-minus me-1 text-primary"></i>兩月一期：按某期的「刪除此期」，該期即消失、其日數併入前一期（該年第一期則由下一期向前吸收）。依序刪掉 2/4/6/8/10/12 月即得全年 6 期。已刪除的期別收在下方摺疊區，按「復原」可完整還原。<br />
+            <i class="fas fa-exclamation-triangle me-1 text-warning"></i>期別間允許空窗或重疊（僅警告不阻擋）：空窗段的用氣不會被任何期計入，重疊段會被兩期重複計入。
+        </div>
+    </div>
+
+    <!-- 年份切換 + 期別列表（只列實際存在的期別） -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-table me-1"></i>期別列表</span>
+            <div class="gbp-year-nav d-flex align-items-center gap-1">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window._gbp.prevYear()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <input type="number" id="gbpYear" class="form-control form-control-sm gbp-year-input"
+                       min="2000" max="2100" value="2026" />
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window._gbp.nextYear()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle mb-0 gbp-table">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="gbp-col-month">期別</th>
+                            <th class="gbp-col-date">起始日期</th>
+                            <th class="gbp-col-date">結束日期（含）</th>
+                            <th class="gbp-col-days text-end">天數</th>
+                            <th class="gbp-col-status">狀態</th>
+                            <th class="gbp-col-warn">連續性</th>
+                            <th class="gbp-col-actions">動作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gbpTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-primary me-1"></div>載入中…
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light py-2 small" id="gbpSkippedFooter" style="display:none;">
+            <a class="gbp-skipped-toggle" data-bs-toggle="collapse" href="#gbpSkippedBox" role="button">
+                <i class="fas fa-chevron-down me-1"></i>已刪除的期別（可復原）
+                （<span id="gbpSkippedCount">0</span>）
+            </a>
+            <div class="collapse mt-2" id="gbpSkippedBox">
+                <div id="gbpSkippedList" class="gbp-skipped-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+    // i18n stub（只含本頁用到的 key，取自 Resources/*.resx zh-TW）
+    window.i18n = (function () {
+        var D = {"gasbillingperiod.title": "氣費月結週期設定", "gasbillingperiod.hint.overview": "每個期別（月份）各自設定氣費單起訖日期；未自訂的期別預設 = 上期結束 +1 天起算一個月（完全未自訂時 = 自然月）。設定即時生效，所有用氣月粒度顯示（用氣報表 / 氣費報表 / EMS 氣表卡片）依期別切分，歷史月報也會用新設定重算。", "gasbillingperiod.hint.independent": "本頁僅影響用氣與氣費；供氣事業抄表日與台電、台水皆不同，三套月結週期各自獨立設定，改這裡不會動到電費或水費期別。", "gasbillingperiod.hint.bimonthly": "兩月一期：按某期的「刪除此期」，該期即消失、其日數併入前一期（該年第一期則由下一期向前吸收）。依序刪掉 2/4/6/8/10/12 月即得全年 6 期。已刪除的期別收在下方摺疊區，按「復原」可完整還原。", "gasbillingperiod.hint.gap_overlap": "期別間允許空窗或重疊（僅警告不阻擋）：空窗段的用氣不會被任何期計入，重疊段會被兩期重複計入。", "gasbillingperiod.table.title": "期別列表", "gasbillingperiod.table.col_period": "期別", "gasbillingperiod.table.col_start": "起始日期", "gasbillingperiod.table.col_end": "結束日期（含）", "gasbillingperiod.table.col_days": "天數", "gasbillingperiod.table.col_status": "狀態", "gasbillingperiod.table.col_warning": "連續性", "gasbillingperiod.table.col_actions": "動作", "gasbillingperiod.table.loading": "載入中…", "gasbillingperiod.table.empty": "該年所有期別皆已刪除，請於下方摺疊區復原", "gasbillingperiod.status.default": "預設", "gasbillingperiod.status.customized": "已自訂", "gasbillingperiod.warn.invalid": "結束日期不可早於起始日期", "gasbillingperiod.warn.gap": "與上期間有 {0} 天空窗", "gasbillingperiod.warn.overlap": "與上期重疊 {0} 天", "gasbillingperiod.button.save": "儲存", "gasbillingperiod.button.reset": "還原預設", "gasbillingperiod.button.skip": "刪除此期", "gasbillingperiod.button.unskip": "復原", "gasbillingperiod.skipped.header": "已刪除的期別（可復原）", "gasbillingperiod.confirm.reset": "確定將 {0} 期還原為預設（刪除自訂起訖）？", "gasbillingperiod.confirm.skip_merge_prev": "確定刪除 {0} 期？該期將從清單與所有報表消失，其日數併入前一期 {1}（前一期結束日將延伸至 {2}），全年不會出現空窗。此操作可於下方「已刪除的期別」摺疊區復原。", "gasbillingperiod.confirm.skip_merge_next": "確定刪除 {0} 期？該期為本年度第一期，其日數將由下一期向前吸收（下一期起始日將提前至 {1}），全年不會出現空窗。此操作可於下方「已刪除的期別」摺疊區復原。", "gasbillingperiod.confirm.unskip": "確定復原 {0} 期？相鄰期別將收回先前被吸收的日數。", "gasbillingperiod.msg.load_fail": "載入失敗：{0}", "gasbillingperiod.msg.save_fail": "儲存失敗：{0}", "gasbillingperiod.msg.reset_fail": "還原失敗：{0}", "gasbillingperiod.msg.skip_fail": "刪除失敗：{0}", "gasbillingperiod.msg.unskip_fail": "復原失敗：{0}"};
+        return { t: function (k, a) { var v = D[k] != null ? D[k] : k; if (a) Object.keys(a).forEach(function (n) { v = v.split("{" + n + "}").join(a[n]); }); return v; },
+                 ready: function (cb) { setTimeout(cb, 0); }, currentCulture: function () { return "zh-TW"; } };
+    })();
+    </script>
+    <script src="{{WWWROOT}}/js/gasbillingperiodsetting.js"></script>
+    <script>
+    // 展開「已刪除的期別」摺疊區
+    setTimeout(function () { var b = document.getElementById('gbpSkippedBox'); if (b) b.classList.add('show'); }, 300);
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

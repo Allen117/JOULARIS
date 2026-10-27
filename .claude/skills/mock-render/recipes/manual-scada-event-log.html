@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<!-- SCADA 模式外殼（深藍主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>事件記錄查詢 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/flatpickr/flatpickr.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/eventlog.css">
+    <style>*,*::before,*::after{transition:none!important;animation:none!important;}</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/api/eventlog/query': function () { return {"success": true, "total": 13, "data": [{"id": 100, "occurredAt": "2026-09-09 15:31:08", "eventType": 0, "eventTypeName": "警報", "severity": 1, "severityName": "高", "message": "冰水泵 P-01 出水溫度 超過上限 12", "isCleared": false, "clearedAt": null, "isAcknowledged": false, "acknowledgedBy": null, "triggerValue": 12.6, "thresholdValue": 12, "operatorSymbol": ">"}, {"id": 101, "occurredAt": "2026-09-09 15:31:09", "eventType": 3, "eventTypeName": "資訊", "severity": 3, "severityName": "低", "message": "Email 通知: 群組 2 個 / 收件人 5 個，成功 5、失敗 0", "isCleared": false, "clearedAt": null, "isAcknowledged": true, "acknowledgedBy": null, "triggerValue": null, "thresholdValue": null, "operatorSymbol": null}, {"id": 102, "occurredAt": "2026-09-09 15:31:08", "eventType": 3, "eventTypeName": "資訊", "severity": 3, "severityName": "低", "message": "Line 通知: 群組 1 個，成功 1、失敗 0", "isCleared": false, "clearedAt": null, "isAcknowledged": true, "acknowledgedBy": null, "triggerValue": null, "thresholdValue": null, "operatorSymbol": null}, {"id": 103, "occurredAt": "2026-09-09 14:58:22", "eventType": 3, "eventTypeName": "資訊", "severity": 4, "severityName": "無", "message": "operator01 將泵浦「冷卻水泵 P-03」頻率設為 45 Hz", "isCleared": false, "clearedAt": null, "isAcknowledged": true, "acknowledgedBy": null, "triggerValue": null, "thresholdValue": null, "operatorSymbol": null}, {"id": 104, "occurredAt": "2026-09-09 14:20:15", "eventType": 0, "eventTypeName": "警報", "severity": 2, "severityName": "中", "message": "空調箱 AHU-02 回風溫度 超過上限 28", "isCleared": true, "clearedAt": "2026-09-09 14:36:40", "isAcknowledged": true, "acknowledgedBy": "admin", "triggerValue": 28.4, "thresholdValue": 28, "operatorSymbol": ">"}, {"id": 105, "occurredAt": "2026-09-09 13:05:44", "eventType": 2, "eventTypeName": "警告", "severity": 3, "severityName": "低", "message": "電表 M-01 功率因數 低於下限 0.85", "isCleared": true, "clearedAt": "2026-09-09 13:20:02", "isAcknowledged": true, "acknowledgedBy": "operator01", "triggerValue": 0.83, "thresholdValue": 0.85, "operatorSymbol": "<"}, {"id": 106, "occurredAt": "2026-09-09 11:42:03", "eventType": 3, "eventTypeName": "資訊", "severity": 4, "severityName": "無", "message": "admin 將 DO「排風扇 EF-01」設為 ON", "isCleared": false, "clearedAt": null, "isAcknowledged": true, "acknowledgedBy": null, "triggerValue": null, "thresholdValue": null, "operatorSymbol": null}, {"id": 107, "occurredAt": "2026-09-09 10:15:30", "eventType": 0, "eventTypeName": "警報", "severity": 0, "severityName": "緊急", "message": "空壓機 AC-01 運轉狀態 狀態為 故障 觸發警報", "isCleared": true, "clearedAt": "2026-09-09 10:48:12", "isAcknowledged": true, "acknowledgedBy": "admin", "triggerValue": 1, "thresholdValue": 1, "operatorSymbol": "="}, {"id": 108, "occurredAt": "2026-09-09 09:02:11", "eventType": 3, "eventTypeName": "資訊", "severity": 4, "severityName": "無", "message": "operator01 將 AO「冰水閥 V-01 開度」切換為自動", "isCleared": false, "clearedAt": null, "isAcknowledged": true, "acknowledgedBy": null, "triggerValue": null, "thresholdValue": null, "operatorSymbol": null}, {"id": 109, "occurredAt": "2026-09-09 07:45:19", "eventType": 0, "eventTypeName": "警報", "severity": 1, "severityName": "高", "message": "冰水泵 P-02 運轉狀態 狀態為 跳脫 觸發警報", "isCleared": true, "clearedAt": "2026-09-09 07:52:03", "isAcknowledged": false, "acknowledgedBy": null, "triggerValue": 1, "thresholdValue": 1, "operatorSymbol": "="}, {"id": 110, "occurredAt": "2026-09-09 03:12:40", "eventType": 2, "eventTypeName": "警告", "severity": 2, "severityName": "中", "message": "水箱 T-01 液位 低於下限 30", "isCleared": true, "clearedAt": "2026-09-09 03:40:10", "isAcknowledged": true, "acknowledgedBy": "operator02", "triggerValue": 28.7, "thresholdValue": 30, "operatorSymbol": "<"}, {"id": 111, "occurredAt": "2026-09-08 22:18:05", "eventType": 0, "eventTypeName": "警報", "severity": 1, "severityName": "高", "message": "電表 M-02 電流 超過上限 180", "isCleared": true, "clearedAt": "2026-09-08 22:31:47", "isAcknowledged": true, "acknowledgedBy": "operator02", "triggerValue": 186.2, "thresholdValue": 180, "operatorSymbol": ">"}, {"id": 112, "occurredAt": "2026-09-08 18:05:36", "eventType": 3, "eventTypeName": "資訊", "severity": 4, "severityName": "無", "message": "operator02 停止泵浦「冷卻水泵 P-04」", "isCleared": false, "clearedAt": null, "isAcknowledged": true, "acknowledgedBy": null, "triggerValue": null, "thresholdValue": null, "operatorSymbol": null}]}; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<div class="container-fluid py-3">
+    <!-- 標題列 -->
+    <div class="d-flex align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="fas fa-clipboard-list text-primary me-2"></i>事件記錄查詢
+        </h5>
+    </div>
+
+    <!-- 查詢條件 -->
+    <div class="query-card p-3 mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label mb-1 small fw-bold">起始時間</label>
+                <input type="text" id="startTime" class="form-control form-control-sm"
+                       value="2026-09-08 15:43" autocomplete="off" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1 small fw-bold">結束時間</label>
+                <input type="text" id="endTime" class="form-control form-control-sm"
+                       value="2026-09-09 15:43" autocomplete="off" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1 small fw-bold">事件類型</label>
+                <select id="eventType" class="form-select form-select-sm">
+                    <option value="">全部</option>
+                    <option value="0">警報</option>
+                    <option value="2">警告</option>
+                    <option value="3">資訊</option>
+                    <option value="4">系統</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1 small fw-bold">嚴重程度</label>
+                <select id="severity" class="form-select form-select-sm">
+                    <option value="">全部</option>
+                    <option value="0">緊急</option>
+                    <option value="1">高</option>
+                    <option value="2">中</option>
+                    <option value="3">低</option>
+                    <option value="4">無</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1 small fw-bold">點位篩選</label>
+                <div class="input-group input-group-sm">
+                    <input type="text" id="sidFilter" class="form-control form-control-sm" placeholder="未選擇" readonly />
+                    <button class="btn btn-outline-primary" type="button" id="btnOpenPicker"
+                            onclick="window._eventLog.openPointPicker()">
+                        <i class="fas fa-crosshairs"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" id="btnClearPicker"
+                            onclick="window._eventLog.clearPointPicker()" style="display:none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label mb-1 small fw-bold">確認狀態</label>
+                <select id="acknowledged" class="form-select form-select-sm">
+                    <option value="">全部</option>
+                    <option value="0">未確認</option>
+                    <option value="1">已確認</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex gap-1">
+                <button id="btnQuery" class="btn btn-primary btn-sm flex-fill" onclick="window._eventLog.queryEvents()">
+                    <i class="fas fa-search me-1"></i>查詢
+                </button>
+            </div>
+        </div>
+        <!-- 快速時間範圍 -->
+        <div class="mt-2 d-flex align-items-center gap-1 flex-wrap">
+            <small class="text-muted me-1"><i class="fas fa-clock me-1"></i>快速：</small>
+            <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="1">1h</button>
+            <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="6">6h</button>
+            <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="24">24h</button>
+            <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="72">3d</button>
+            <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="168">7d</button>
+            <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="720">30d</button>
+        </div>
+    </div>
+
+    <!-- 統計摘要 -->
+    <div class="row g-2 mb-3" id="statsRow" style="display:none;">
+        <div class="col">
+            <div class="stat-card bg-light">
+                <div class="small text-muted">總筆數</div>
+                <div class="fw-bold fs-5" id="statTotal">0</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="stat-card" style="background:#fde8e8;">
+                <div class="small text-muted">警報</div>
+                <div class="fw-bold fs-5 text-danger" id="statAlarm">0</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="stat-card" style="background:#fff8e1;">
+                <div class="small text-muted">警告</div>
+                <div class="fw-bold fs-5 text-warning" id="statWarning">0</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="stat-card" style="background:#e8f5e9;">
+                <div class="small text-muted">已恢復</div>
+                <div class="fw-bold fs-5 text-success" id="statCleared">0</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="stat-card" style="background:#e3f2fd;">
+                <div class="small text-muted">未確認</div>
+                <div class="fw-bold fs-5 text-primary" id="statUnack">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果表格 -->
+    <div class="query-card position-relative">
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">載入中...</span>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center p-3 pb-0">
+            <span class="text-muted small" id="resultInfo">請設定條件後點擊查詢</span>
+            <button class="btn btn-outline-success btn-sm" id="btnExport" onclick="window._eventLog.exportCSV()" style="display:none;">
+                <i class="fas fa-file-csv me-1"></i>匯出 CSV
+            </button>
+        </div>
+
+        <div class="table-container p-3">
+            <table class="table table-hover table-sm result-table mb-0" id="resultTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>發生時間</th>
+                        <th>事件類型</th>
+                        <th>嚴重程度</th>
+                        <th>訊息</th>
+                        <th>恢復時間</th>
+                        <th>確認狀態</th>
+                        <th>確認者</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody">
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <i class="fas fa-search fa-2x mb-2 d-block"></i>
+                            請設定查詢條件後點擊「查詢」按鈕
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 點位選擇 Modal（兩步驟：設備 → 點位）-->
+<div class="modal fade" id="ppModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:440px;">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title mb-0" id="ppTitle">
+                    <i class="fas fa-crosshairs text-primary me-1"></i>選擇設備
+                </h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:10px 14px;">
+                <!-- Step 1: 設備清單 -->
+                <div id="ppStep1">
+                    <div id="ppDeviceList" style="max-height:320px;overflow-y:auto;"></div>
+                </div>
+                <!-- Step 2: 點位清單 -->
+                <div id="ppStep2" style="display:none;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <button class="btn btn-link btn-sm text-primary p-0" onclick="window._eventLog.ppBack()">
+                            <i class="fas fa-arrow-left me-1"></i>返回
+                        </button>
+                        <span class="badge bg-secondary" id="ppDevName"></span>
+                    </div>
+                    <input type="text" id="ppSearch" class="form-control form-control-sm mb-2"
+                           placeholder="搜尋點位名稱..." oninput="window._eventLog.ppFilter(this.value)" />
+                    <div id="ppPointList" style="max-height:280px;overflow-y:auto;"></div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary btn-sm" id="ppConfirmBtn"
+                        onclick="window._eventLog.ppConfirm()" disabled>確認</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+<script>window.i18n={_d:{"eventlog.title": "事件記錄查詢", "eventlog.filter.start_time": "起始時間", "eventlog.filter.end_time": "結束時間", "eventlog.filter.event_type": "事件類型", "eventlog.filter.severity": "嚴重程度", "eventlog.filter.point": "點位篩選", "eventlog.filter.acknowledged": "確認狀態", "eventlog.filter.all": "全部", "eventlog.filter.unselected": "未選擇", "eventlog.filter.quick": "快速：", "eventlog.filter.button.query": "查詢", "eventlog.event.alarm": "警報", "eventlog.event.fault": "故障", "eventlog.event.warning": "警告", "eventlog.event.info": "資訊", "eventlog.event.system": "系統", "eventlog.event.unknown": "未知", "eventlog.severity.urgent": "緊急", "eventlog.severity.high": "高", "eventlog.severity.medium": "中", "eventlog.severity.low": "低", "eventlog.severity.none": "無", "eventlog.ack.unack": "未確認", "eventlog.ack.acked": "已確認", "eventlog.stat.total": "總筆數", "eventlog.stat.alarm": "警報", "eventlog.stat.warning": "警告", "eventlog.stat.cleared": "已恢復", "eventlog.stat.unack": "未確認", "eventlog.col.no": "#", "eventlog.col.occurred_at": "發生時間", "eventlog.col.event_type": "事件類型", "eventlog.col.severity": "嚴重程度", "eventlog.col.message": "訊息", "eventlog.col.cleared_at": "恢復時間", "eventlog.col.ack_status": "確認狀態", "eventlog.col.ack_by": "確認者", "eventlog.tooltip.trigger_value": "觸發值", "eventlog.tooltip.threshold": "門檻值", "eventlog.tooltip.condition": "條件", "eventlog.result.empty_default": "請設定查詢條件後點擊「查詢」按鈕", "eventlog.result.empty_query": "查詢範圍內無事件記錄", "eventlog.result.placeholder": "請設定條件後點擊查詢", "eventlog.result.found": "共查詢到 {0} 筆記錄", "eventlog.result.button.export": "匯出 CSV", "eventlog.result.cell.active": "發生中", "eventlog.result.loading": "載入中...", "eventlog.alert.select_time": "請選擇起始與結束時間", "eventlog.alert.query_failed": "查詢失敗: {0}", "eventlog.alert.unknown_error": "未知錯誤", "eventlog.alert.query_error": "查詢發生錯誤: {0}", "eventlog.csv.filename": "事件記錄", "eventlog.picker.title.select_device": "選擇設備", "eventlog.picker.title.select_point": "選擇點位", "eventlog.picker.button.cancel": "取消", "eventlog.picker.button.confirm": "確認", "eventlog.picker.button.back": "返回", "eventlog.picker.search_placeholder": "搜尋點位名稱...", "eventlog.picker.no_devices": "尚無設備", "eventlog.picker.no_points": "無符合點位", "eventlog.picker.calc_point": "計算點位", "eventlog.picker.point_count": "{0} 點", "eventlog.picker.load_failed": "無法載入設備/點位清單: {0}"},t:function(k,a){var v=this._d[k]||k;if(a)for(var i in a)v=v.split("{"+i+"}").join(a[i]);return v;},ready:function(cb){cb&&cb();},getCulture:function(){return "zh-TW";}};</script>
+    <script src="{{WWWROOT}}/lib/flatpickr/flatpickr.min.js"></script>
+    <script src="{{WWWROOT}}/lib/flatpickr/zh-tw.js"></script>
+    <script src="{{WWWROOT}}/js/flatpickr-init.js"></script>
+    <script src="{{WWWROOT}}/js/common/point-grouping.js"></script>
+    <script src="{{WWWROOT}}/js/eventlog.js"></script>
+    <script>
+    // driver：按 24h 快速鈕 → 查詢；?hover=1 時把滑鼠提示打開在第一列訊息
+    document.querySelector('.quick-range[data-hours="24"]').click();
+    window._eventLog.queryEvents();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

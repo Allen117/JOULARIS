@@ -197,7 +197,7 @@ JS 內部同時以「根元素是否存在」防呆（雙保險），詳見 §9�
 | 方法 | 路由 | 回應 |
 |------|------|------|
 | GET | `/EMS/api/main-meter` | `{ hasMainMeter, id, name, hasChildren }` |
-| GET | `/EMS/api/main-meter-info` | `{ hasMainMeter, mode, name, voltage, current, power, powerFactor }` — `mode='realtime-by-sid'`（實體主表：`voltage={sid,pointName,unit}`）或 `mode='aggregated'`（虛擬主表：`voltage={unit}`）。點位未設定 `unit` 時前端 `MM_DEFAULT_UNITS` 補預設（V/A/kW，PF 無因次不顯示）供每個數值顯示單位 |
+| GET | `/EMS/api/main-meter-info` | `{ hasMainMeter, mode, name, voltage, current, power, powerFactor }` — `mode='realtime-by-sid'`（實體主表：`voltage={sid,pointName,unit}`）或 `mode='aggregated'`（虛擬主表：`voltage={unit}`）。點位未設定 `unit` 時前端 `MM_DEFAULT_UNITS` 補預設（V/A/kW，PF 無因次不顯示）供每個數值顯示單位。顯示位數：電壓/電流/功率 1 位小數、功率因數 2 位（實體/虛擬主表一致，`formatMainMeterValue`） |
 | GET | `/EMS/api/main-meter-values` | `{ voltage, current, power, powerFactor }` 皆 `number\|null` — 僅虛擬主表用；由 `MainMeterAggregationService.ComputeAsync` 現算 |
 | GET | `/EMS/api/main-meter-breakdown?granularity=&pivot=` | `{ hasMainMeter, meterName, items: [{ id, name, kwh }] }` |
 | GET | `/EMS/api/main-meter-yoy?granularity=&pivot=` | `{ hasMainMeter, rows: [{ id, name, isMainMeter, currentKwh, lastYearKwh, diffKwh, pctChange }] }` |

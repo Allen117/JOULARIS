@@ -97,6 +97,7 @@
   <data name="energydeclaration.warning.kwh" xml:space="preserve"><value>Some meters detected value rollback without MaxKwh configured</value></data>
   <data name="energydeclaration.warning.rt" xml:space="preserve"><value>Refrigeration data coverage insufficient (hourly aggregation pending or data missing)</value></data>
   <data name="energydeclaration.tooltip.stale" xml:space="preserve"><value>Meter data incomplete for this period (possible disconnection)</value></data>
+  <data name="energydeclaration.tooltip.partial" xml:space="preserve"><value>Boundary reading missing; only the sub-range with readings is counted (meter started mid-month or dropped before month end)</value></data>
 
   <data name="energydeclaration.select.loading" xml:space="preserve"><value>-- Loading --</value></data>
   <data name="energydeclaration.select.placeholder" xml:space="preserve"><value>-- Select report --</value></data>

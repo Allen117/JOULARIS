@@ -13,6 +13,8 @@ SCADA 監控頁是本系統的**核心即時視覺化操控介面**，讓使用�
 - **即時曲線**：畫面上可擺放會自己往左滾動的「近 N 分鐘」趨勢圖（`trendChart` widget，§7.4 (13)）—— 掛載時 backfill 補滿、之後複用同一份每秒即時值 append，穩態零 DB 查詢
 
 > **新增同型設備的畫面**：Designer 頁面樹支援**整頁複製貼上**（右鍵「複製此頁」/「貼上為子頁面」），複製出的頁面版面全同、**點位綁定全清空**，只要重綁點位即可。與畫布上 `Ctrl+C`/`Ctrl+V`（元件層級、**保留**綁定）是兩回事 → [功能說明書_圖面與邏輯複製.md](功能說明書_圖面與邏輯複製.md)
+
+> **從系統圖自動建頁**：pipe-diagram 系統圖經 skill `joularis-layout-gen` 產生頁面檔，Designer 頁面樹右鍵「**匯入頁面檔…**」→ 確認每台設備對應的 Device → 建出底圖 + 排好位置 + 依角色自動綁點的頁面 → [功能說明書_圖面與邏輯複製.md](功能說明書_圖面與邏輯複製.md) §10
 - **警報著色**：結合警報規則，超限時自動變色提示
 
 ---
@@ -276,6 +278,8 @@ DOMContentLoaded
 | `nFontSize` | 字體大小（預設 28） |
 | `szFontColor` | 字體色 |
 | `szUnit` | 單位 |
+| `nDecimalPlaces` | 即時值小數位數（0–6）。新放元件預設 1，綁點位時依 §小數位數自動帶入 規則寫入；**舊頁面無此鍵 → 執行期沿用 2 位**（外觀不變） |
+| `isDecimalAuto` | `true`（預設）= 重選點位時依新點位重算位數；屬性面板手動改過位數即變 `false`，之後重選不覆蓋 |
 | `szHighColor` / `szLowColor` | 警報變色 |
 | `szValueMode` | 顯示模式：不帶（即時值，預設）/ `day`（當日累積）/ `month`（當月累積） |
 | `szAccKind` | 累積計算方式：`meter`（累積讀值差值）/ `integrate`（瞬時值時間積分）— 僅累積模式 |
@@ -363,7 +367,8 @@ AI 點位除綁單一 SID 外，也可在 picker 的「**迴路**」來源分頁
 | `szDisplayName` | 顯示名稱 |
 | `szUnit` | 單位 |
 | `fMin` / `fMax` / `fStep` | 輸入範圍與步進 |
-| `nDecimalPlaces` | 小數位數 |
+| `nDecimalPlaces` | 小數位數（新放元件預設 1，綁點位時依 §小數位數自動帶入 規則寫入；設 0 不再被當成未設定） |
+| `isDecimalAuto` | 同 realtimeValue：手動改過位數即 `false`，重選不覆蓋 |
 | `szMenuManualLabel` | 右鍵「手動控制」選項文字 |
 | `szMenuAutoLabel` | 右鍵「自動控制」選項文字 |
 
@@ -431,13 +436,22 @@ AI 點位除綁單一 SID 外，也可在 picker 的「**迴路**」來源分頁
 | `szBodyBgOdd` / `szBodyBgEven` | 奇/偶數資料列底色（`null` = 沿用預設外觀） |
 | `szBorderColor` | 資料列分隔線色（`null` = 預設 `#f0f0f0`） |
 | `arrCells` | 二維陣列，每格可綁定 SID 或迴路指標 |
-| `arrColDecimals` | 各欄小數位數（迴路指標 cell 亦沿用） |
+| `arrColDecimals` | 各欄小數位數（迴路指標 cell 亦沿用）。AI 儲存格綁點（單格 picker / 列範本 / 迴路整列帶入）時，**該欄仍為 `null` 才**依 §小數位數自動帶入 規則填入；已設定不覆蓋 |
 
 - 每格可綁定 AI 或 DI 點位
 - AI：數值顯示 + 警報變色
 - DI：ON/OFF 文字 + 警報變色
 - 品質 BAD 時顯示「斷線」
 - 右鍵可針對單一儲存格加入趨勢圖
+
+**儲存格樣式同步**（字體大小 / 粗細 / 對齊，`setCellProp`）：
+
+- 改**首列**（標題列 row 0）某格 → 該**整欄**資料格同步
+- 改**首欄**（資料列 col 0）某格 → 該**整列**同步
+- 改其他格 → 只改該格，並記入 cell 級 `arrOwnKeys`（如 `["szAlign"]`）；之後首列 / 首欄同步會**跳過**已自訂該屬性的格
+- `[0,0]` 同時屬首列與首欄，依首列規則同步整欄
+- 對齊用「靠左 / 置中 / 靠右」三顆按鈕（`setCellAlign`）而非下拉：標題列預設已置中，下拉再選同值不觸發 change，同步就不會跑；按鈕點目前值也會套用
+- 點位屬性 `szPointType` 維持原規則：整欄資料列同步（標題列各自獨立）
 
 **迴路指標 cell**（plan 2026-07-23）：資料 cell 也可在 picker「迴路」分頁綁 `EnergyCircuit` 五指標
 （cell 級新鍵 `nCircuitId` / `szCircuitName` / `szMetric`，與 `szSid` 互斥，解除綁定時全 `delete`）。
@@ -622,6 +636,36 @@ props：`szSid / szPointName / szUnit / nWindowSec（時間窗秒數，預設 18
 - 右鍵為點位選單（`onTrendContextMenu`，與其他 widget 一致，見 §8 點位右鍵選單）
 
 > **重繪節奏調校**：資料收集固定跟著 1 秒即時輪詢，畫面重繪由 `widget-trend.js` 的 `TREND_REDRAW_MS`（預設 1000）控制。一頁多圖若實測 CPU 吃緊，把它調大即可（資料完整性不受影響）。
+
+#### 小數位數自動帶入（plan 2026-10-23-designer-auto-decimals）
+
+規則單一真相 `wwwroot/js/common/decimal-rule.js`（`window.DecimalRule.guess(szName, szUnit)` → 0–6）。**只在 Designer 綁點位當下判斷一次**並寫進 widget 屬性，執行期直接讀屬性、零額外成本，使用者仍可在屬性面板改。
+
+觸發點：AI / AO 點位新建與重選（picker）、表格 AI 儲存格綁點、列範本 / 迴路整列帶入、頁面檔匯入與設備角色綁定（`role-resolve.js` `_applyPointExtras`）。
+
+判斷順序：**名稱特例 → 單位表 → 預設 1**。單位比對前正規化：去空白、小寫、`m³`→`m3`、`²`→`2`、去 `^`、`℃`→`°c`、結尾 `/hr`→`/h`。名稱用「設備標籤 / 點位名」全名比對。
+
+| 量 | 判斷 | 位數 |
+|---|---|---|
+| 功因 | 名稱 `功因\|功率因數\|cosφ\|PF`（PF 以非英數字為邊界，不誤中 `PFM` / `APF`）；單位為 `%` 時 1 位 | 2 |
+| 次數 / 台數 / 狀態 | 名稱 `次數\|台數\|狀態\|count` | 0 |
+| 變頻器頻率 | `Hz` + 名稱 `變頻\|VFD\|輸出` | 1 |
+| 頻率 | `Hz` | 2 |
+| 電壓 / 電流 | `V` `A`（`kV` 2） | 1 |
+| 功率 | `kW` `kVA` `kVAR`（`MW` 2） | 1 |
+| 電度 | `kWh` `度` `kVARh` | 1 |
+| 溫度 | `℃` `°C` `°F` | 1 |
+| 壓力 | `bar` `kg/cm²` `kgf/cm2` 2；`MPa` 3；`kPa` `Pa` 1 | — |
+| 流量 / 累積量 | `m³/h` `CMH` `LPM` `L/min` `Nm³/min` `m³` `Nm³` | 1 |
+| 濕度 / 百分比 | `%RH` `%` | 1 |
+| 冷凍噸 | `RT` `RTh` | 1 |
+| 效率 | `kW/RT` `kW/(m³/min)` `kW/(Nm³/min)` | 2 |
+| 轉速 / 濃度 | `rpm` `ppm` | 0 |
+| 其他 / 比對不到 | — | 1 |
+
+- 手動改過位數（`isDecimalAuto=false`）後重選點位不覆蓋；未手動改過則依新點位重算
+- 既有頁面不回溯：舊 AI 點位沒有 `nDecimalPlaces` → 執行期 2 位；要套新規則請重選點位或手動改
+- 累積模式 / 迴路指標的 `nAccDecimals` 不受本規則影響；EMS 主要電表卡（`formatMainMeterValue`）另有 key 判斷，結果與本表一致
 
 #### 畫布共通編輯操作（選取 / 移動 / 對齊）
 

@@ -69,6 +69,9 @@ public class AirCompressorDeclarationBucket
     /// <summary>kWh 側該月電表資料不完整（可能斷線）</summary>
     public bool isKwhStale { get; set; }
 
+    /// <summary>kWh 側該月邊界缺讀數、改以月內首/末筆讀數起算（電表期中上線）</summary>
+    public bool isKwhPartial { get; set; }
+
     /// <summary>Nm³ 側該月有產氣量表掉線 transition</summary>
     public bool isNm3Stale { get; set; }
 }

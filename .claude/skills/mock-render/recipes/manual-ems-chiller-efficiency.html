@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<!-- EMS 模式外殼（淡綠主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>冰機效率診斷 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/equipment.css">
+    <style>*, *::before, *::after { transition: none !important; animation: none !important; }        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 9, 16, 10, 30, 5).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        // ═══ 換設備類別改這一行：'chiller' / 'compressor' ═══
+        var KIND = 'chiller';
+
+        // 決定性亂數（同一份 recipe 每次渲染數字相同）
+        var seed = 20260916;
+        function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
+        function r(v, d) { var p = Math.pow(10, d); return Math.round(v * p) / p; }
+
+        // 2026-09 共 30 天；9/1 為週二。dow: 0=日..6=六
+        var DAYS = []; for (var i = 1; i <= 30; i++) DAYS.push({ d: i, dow: (2 + i - 1) % 7 });
+        var LABELS = DAYS.map(function (x) { return '09/' + (x.d < 10 ? '0' + x.d : x.d); });
+        function isWe(x) { return x.dow === 0 || x.dow === 6; }
+
+        // 每台設備：每日 → {run 小時, load %, eff 主指標}；null = 當日停機
+        // thresholdBasis（同伺服端 EquipmentThresholdBasisDto）：冷卻 / 形式 / 系列 / 路徑 / 級距 / 標準 FL
+        function B(cooling, type, family, path, min, max, fl) {
+            return { mode: 'standard', cooling: cooling, chillerType: type, family: family, path: path,
+                bandMin: min, bandMax: max, stdFl: fl, isTypeUnset: false, isRatedMissing: false };
+        }
+        var DEV = {
+            // 門檻 = ASHRAE 90.1-2022 Table 6.8.1-3 滿載 FL（優）/ FL × 1.15（可）；變頻 → Path B、定頻 → Path A
+            chiller: [
+                { id: 1, name: 'CH-1 水冷離心 500RT 變頻', rated: 500, good: 0.585, fair: 0.673, basis: B('water', 'centrifugal', 'centrifugal', 'B', 400, 600, 0.585),
+                  // 變頻：部分負載（週末）效率反而更好
+                  day: function (x, k) { var we = isWe(x);
+                      var load = we ? 52 + rnd() * 6 : 74 + rnd() * 8;
+                      return { run: we ? 14 : 22, load: load, eff: (we ? 0.545 : 0.566) + (rnd() - 0.5) * 0.016 }; } },
+                { id: 2, name: 'CH-2 水冷離心 500RT 定頻', rated: 500, good: 0.560, fair: 0.644, basis: B('water', 'centrifugal', 'centrifugal', 'A', 400, 600, 0.560),
+                  // 冷凝器結垢：月初 ~0.575 → 月底 ~0.69，期間平均「可」、月底已越過「差」線
+                  day: function (x, k) { var we = isWe(x);
+                      var load = we ? 48 + rnd() * 6 : 70 + rnd() * 8;
+                      return { run: we ? 12 : 20, load: load, eff: 0.575 + k * 0.004 + (rnd() - 0.5) * 0.012 }; } },
+                { id: 3, name: 'CH-3 水冷螺旋 350RT 定頻', rated: 350, good: 0.610, fair: 0.702, basis: B('water', 'screw', 'pd', 'A', 300, 600, 0.610),
+                  // 尖峰輔機：只在平日午間低載跑，定頻低負載效率差
+                  day: function (x, k) { if (isWe(x)) return null;
+                      var load = 34 + rnd() * 10;
+                      return { run: 6 + Math.round(rnd() * 3), load: load, eff: 0.76 + (rnd() - 0.5) * 0.04 }; } },
+                { id: 4, name: 'CH-4 氣冷螺旋 150RT 定頻', rated: 150, good: 1.188, fair: 1.366, basis: B('air', 'screw', 'air', 'A', 150, null, 1.188),   // EER 10.1
+                  // 辦公區氣冷機：平日白天運轉
+                  day: function (x, k) { if (isWe(x)) return null;
+                      var load = 62 + rnd() * 8;
+                      return { run: 10, load: load, eff: 1.24 + (rnd() - 0.5) * 0.05 }; } }
+            ],
+            compressor: [
+                { id: 11, name: 'AC-1 變頻螺旋 75kW', rated: 12.5, good: 7, fair: 9,
+                  day: function (x, k) { var we = isWe(x);
+                      if (x.d === 14 || x.d === 15) return null;   // 保養停機
+                      var load = we ? 45 + rnd() * 8 : 78 + rnd() * 10;
+                      return { run: 24, load: load, eff: 6.18 + (rnd() - 0.5) * 0.25, loaded: 1.0, press: 6.92 + rnd() * 0.08 }; } },
+                { id: 12, name: 'AC-2 定頻螺旋 55kW', rated: 9.2, good: 7, fair: 9,
+                  day: function (x, k) { var we = isWe(x);
+                      var load = we ? 38 + rnd() * 8 : 72 + rnd() * 8;
+                      return { run: we ? 10 : 20, load: load, eff: 7.25 + (we ? 0.45 : 0) + (rnd() - 0.5) * 0.3, loaded: we ? 0.58 : 0.84, press: 7.05 + rnd() * 0.1 }; } },
+                { id: 13, name: 'AC-3 定頻螺旋 37kW', rated: 6.0, good: 7, fair: 9,
+                  // 修剪機：大量卸載空轉，比功率 > 9 → 差
+                  day: function (x, k) { if (isWe(x)) return null;
+                      var load = 30 + rnd() * 12;
+                      return { run: 16, load: load, eff: 9.6 + (rnd() - 0.5) * 0.7, loaded: 0.42 + rnd() * 0.08, press: 7.18 + rnd() * 0.08 }; } },
+                { id: 14, name: 'AC-4 備用機 37kW', rated: 6.0, good: 7, fair: 9,
+                  // 備機：只在 AC-1 保養日（9/14、9/15）上線
+                  day: function (x, k) { if (x.d !== 14 && x.d !== 15) return null;
+                      var load = 82 + rnd() * 6;
+                      return { run: 22, load: load, eff: 7.6 + (rnd() - 0.5) * 0.2, loaded: 0.92, press: 7.0 }; } }
+            ]
+        };
+
+        // ── 由逐日紀錄算出 period DTO（序列 / 全場 / 合計 / 負載分佈 / 排名同源 → 自洽） ──
+        function buildPeriod() {
+            seed = 20260916;
+            var devs = DEV[KIND], isC = KIND === 'compressor';
+            // 冰機 output = RT·h、eff = kWh / RT·h；空壓機 output = m³、eff = kWh / m³ × 60
+            function effOf(kwh, o) { return o > 0 ? (isC ? kwh / o * 60 : kwh / o) : null; }
+            var bins = [0, 1, 2, 3].map(function (b) { return { bin: b, hours: 0, kwh: 0, output: 0 }; });
+            var fleetK = DAYS.map(function () { return 0; }), fleetO = DAYS.map(function () { return 0; });
+            var T = { kwh: 0, output: 0, runHours: 0, loadW: 0, loadedH: 0, pressW: 0 };
+            var series = [], ranking = [];
+            devs.forEach(function (dv) {
+                var S = { kwh: 0, output: 0, runHours: 0, loadW: 0 }, vals = [];
+                DAYS.forEach(function (x, k) {
+                    var rec = dv.day(x, k);
+                    if (!rec) { vals.push(null); return; }
+                    var out = r(isC ? dv.rated * rec.load / 100 * 60 * rec.run : dv.rated * rec.load / 100 * rec.run, 1);
+                    var kwh = r(isC ? rec.eff * out / 60 : rec.eff * out, 1);
+                    vals.push(r(effOf(kwh, out), isC ? 2 : 3));
+                    fleetK[k] += kwh; fleetO[k] += out;
+                    S.kwh += kwh; S.output += out; S.runHours += rec.run; S.loadW += rec.load * rec.run;
+                    if (isC) { T.loadedH += rec.loaded * rec.run; T.pressW += rec.press * rec.run; }
+                    var b = bins[rec.load <= 25 ? 0 : rec.load <= 50 ? 1 : rec.load <= 75 ? 2 : 3];
+                    b.hours += rec.run; b.kwh += kwh; b.output += out;
+                });
+                series.push({ id: dv.id, name: dv.name, values: vals });
+                var p = effOf(S.kwh, S.output);
+                ranking.push({ id: dv.id, name: dv.name, kwh: S.kwh, output: S.output, primary: p,
+                    secondary: p == null ? null : (isC ? p * 2.832 : 3.517 / p),
+                    runHours: S.runHours, avgLoadPct: S.loadW / S.runHours,
+                    grade: p <= dv.good ? 'Good' : p <= dv.fair ? 'Fair' : 'Poor',
+                    good: dv.good, fair: dv.fair, thresholdBasis: dv.basis || { mode: 'manual' }, coveragePct: 100 });
+                T.kwh += S.kwh; T.output += S.output; T.runHours += S.runHours; T.loadW += S.loadW;
+            });
+            ranking.sort(function (a, b) { return a.primary - b.primary; });
+            bins.forEach(function (b) {
+                b.kwhPct = T.kwh ? b.kwh / T.kwh * 100 : 0;
+                b.outputPct = T.output ? b.output / T.output * 100 : 0;
+                b.primary = effOf(b.kwh, b.output);
+            });
+            var P = effOf(T.kwh, T.output);
+            return {
+                kind: KIND, granularity: 'day', deviceCount: devs.length, labels: LABELS,
+                totals: { kwh: T.kwh, output: T.output, primary: P,
+                    secondary: isC ? P * 2.832 : 3.517 / P, tertiary: isC ? T.kwh / T.output : 12 / P,
+                    runHours: T.runHours, avgLoadPct: T.loadW / T.runHours,
+                    loadedRatio: isC ? T.loadedH / T.runHours : null, avgPressure: isC ? T.pressW / T.runHours : null },
+                series: series,
+                fleet: DAYS.map(function (x, k) { return fleetO[k] ? r(effOf(fleetK[k], fleetO[k]), isC ? 2 : 3) : null; }),
+                loadBins: bins, ranking: ranking,
+                coverage: { expectedHours: 720, actualHours: 720, coveragePct: 100, missingHours: 0, worstName: null, thresholdPct: 90, isBelowThreshold: false }
+            };
+        }
+
+        // ── 即時快照（2026-10-16 10:30:05）：kW = 主指標 × 產出、COP = 3.517 ÷ kW/RT、kW/100cfm = 比功率 × 2.832 ──
+        var TS = '2026-10-16T10:30:05';
+        var RT = {
+            chiller: [
+                { id: 1, name: 'CH-1 水冷離心 500RT 變頻', grade: 'Good', isRunning: true, hasData: true, primary: 0.571, secondary: 3.517 / 0.571, kw: 0.571 * 402.5, output: 402.5, loadPct: 81, chwDeltaT: 5.2, cdwDeltaT: 4.8, evapApproach: 1.1, condApproach: 1.4, outputSource: 'flow', rtPoint: 405.0, good: 0.585, fair: 0.673, lastUpdate: TS },
+                { id: 2, name: 'CH-2 水冷離心 500RT 定頻', grade: 'Poor', isRunning: true, hasData: true, primary: 0.692, secondary: 3.517 / 0.692, kw: 0.692 * 361.3, output: 361.3, loadPct: 72, chwDeltaT: 4.9, cdwDeltaT: 4.1, evapApproach: 1.3, condApproach: 4.6, outputSource: 'flow', rtPoint: 358.2, good: 0.560, fair: 0.644, lastUpdate: TS },
+                { id: 3, name: 'CH-3 水冷螺旋 350RT 定頻', grade: 'Off', isRunning: false, hasData: true, primary: null, secondary: null, kw: 0.8, output: 0, loadPct: 0, chwDeltaT: 0.2, cdwDeltaT: 0.1, evapApproach: null, condApproach: null, good: 0.610, fair: 0.702, lastUpdate: TS },
+                { id: 4, name: 'CH-4 氣冷螺旋 150RT 定頻', grade: 'Fair', isRunning: true, hasData: true, primary: 1.236, secondary: 3.517 / 1.236, kw: 1.236 * 98.4, output: 98.4, loadPct: 66, chwDeltaT: 5.0, cdwDeltaT: null, evapApproach: 1.6, condApproach: null, outputSource: 'flow', rtPoint: 97.9, good: 1.188, fair: 1.366, lastUpdate: TS }
+            ],
+            compressor: [
+                { id: 11, name: 'AC-1 變頻螺旋 75kW', grade: 'Good', isRunning: true, hasData: true, primary: 6.21, secondary: 6.21 * 2.832, kw: 6.21 * 10.6, output: 10.6, loadPct: 85, pressBar: 6.95, tempC: 82.4, isLoaded: true, good: 7, fair: 9, lastUpdate: TS },
+                { id: 12, name: 'AC-2 定頻螺旋 55kW', grade: 'Fair', isRunning: true, hasData: true, primary: 7.18, secondary: 7.18 * 2.832, kw: 7.18 * 7.0, output: 7.0, loadPct: 76, pressBar: 7.08, tempC: 85.1, isLoaded: true, good: 7, fair: 9, lastUpdate: TS },
+                { id: 13, name: 'AC-3 定頻螺旋 37kW', grade: 'Poor', isRunning: true, hasData: true, primary: 10.35, secondary: 10.35 * 2.832, kw: 10.35 * 2.1, output: 2.1, loadPct: 35, pressBar: 7.21, tempC: 79.6, isLoaded: false, good: 7, fair: 9, lastUpdate: TS },
+                { id: 14, name: 'AC-4 備用機 37kW', grade: 'Off', isRunning: false, hasData: true, primary: null, secondary: null, kw: 0.0, output: 0, loadPct: 0, pressBar: 7.06, tempC: 31.2, isLoaded: false, good: 7, fair: 9, lastUpdate: TS }
+            ]
+        };
+
+        RT.chiller.forEach(function (it, i) { it.thresholdBasis = DEV.chiller[i].basis; });
+        RT.compressor.forEach(function (it) { it.thresholdBasis = { mode: 'manual' }; });
+
+        var MOCK = {
+            '/EMS/api/equipment/realtime': function () { return { kind: KIND, items: RT[KIND], serverTime: TS }; },
+            '/EMS/api/equipment/period': function () { return buildPeriod(); }
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- PAGE_CONTENT：Views/Shared/_EquipmentDiagnosis.cshtml -->
+<div class="container-fluid mt-3 eqd-page" id="eqdRoot" data-kind="chiller">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h5 class="mb-0"><i class="fas fa-temperature-low me-2 text-primary"></i>冰機效率診斷</h5>
+        <a class="btn btn-sm btn-outline-primary" href="#"><i class="fas fa-sliders-h me-1"></i>設備效率設定</a>
+    </div>
+    <div id="eqdEmpty" class="text-center text-muted py-5" style="display:none;">尚未設定任何設備。</div>
+    <div id="eqdMain">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center eq-green-header">
+                <span><i class="fas fa-bolt me-1"></i>即時</span>
+                <span class="small opacity-75" id="eqdRealtimeTime"></span>
+            </div>
+            <div class="card-body p-2">
+                <div id="eqdRealtime" class="eq-rt-grid"><div class="text-center text-muted py-3 w-100">載入中…</div></div>
+            </div>
+        </div>
+        <div class="card shadow-sm mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2 eq-green-header">
+                <span><i class="fas fa-chart-line me-1"></i>累計</span>
+                <span class="d-flex align-items-center gap-2">
+                    <span class="btn-group btn-group-sm ems-gran-group" role="group" id="eqdGranGroup">
+                        <button type="button" class="btn ems-gran-btn active" data-gran="hour">日</button>
+                        <button type="button" class="btn ems-gran-btn" data-gran="day">月</button>
+                        <button type="button" class="btn ems-gran-btn" data-gran="month">年</button>
+                    </span>
+                    <input type="date" id="eqdPivotDate" class="form-control form-control-sm ems-hub-picker" />
+                    <input type="month" id="eqdPivotMonth" class="form-control form-control-sm ems-hub-picker" style="display:none;" />
+                    <input type="number" id="eqdPivotYear" min="2000" max="2100" class="form-control form-control-sm ems-hub-picker" style="display:none;" />
+                </span>
+            </div>
+            <div class="card-body p-2">
+                <div id="eqdCoverage" class="alert alert-warning py-1 px-2 small mb-2" style="display:none;"></div>
+                <div id="eqdTiles" class="eq-tiles mb-2"></div>
+                <div class="row g-2">
+                    <div class="col-lg-8">
+                        <div class="eq-chart-title small fw-semibold">效率趨勢</div>
+                        <div class="eq-chart-wrap"><canvas id="eqdTrendChart"></canvas></div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="eq-chart-title small fw-semibold">負載率分佈 <i class="fas fa-question-circle text-muted"></i></div>
+                        <div class="eq-chart-wrap"><canvas id="eqdLoadChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="eq-chart-title small fw-semibold mt-3">設備排名（依期間平均效率）</div>
+                <div class="table-responsive" id="eqdRanking"></div>
+                <div class="small text-muted mt-2"><i class="fas fa-info-circle me-1"></i>期間 kW/RT = 期間總耗電 ÷ 總冷量（能量加權，ASHRAE 90.1 / AHRI 550/590）；COP = 3.517 ÷ kW/RT、EER = 12 ÷ kW/RT。冷量以冰水流量 × 出回水溫差逐分鐘計算。</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- PAGE_SCRIPTS -->
+<script>
+/* i18n stub（字串取自 Resources/EquipmentEfficiency.resx zh-TW） */
+window.i18n = { t: function (k, a) {
+    var D = {
+        'eq.grade.Good':'優','eq.grade.Fair':'可','eq.grade.Poor':'差','eq.grade.Off':'停機','eq.grade.NoData':'資料不足',
+        'eq.metric.cop':'COP','eq.metric.eer':'EER','eq.metric.cooling':'冷量','eq.metric.airflow':'空氣量','eq.metric.load':'負載率',
+        'eq.metric.chw_dt':'冰水 ΔT','eq.metric.cdw_dt':'冷卻水 ΔT','eq.metric.evap_approach':'蒸發器趨近','eq.metric.cond_approach':'冷凝器趨近',
+        'eq.metric.kw_per_100cfm':'kW/100cfm','eq.metric.specific_energy':'比能耗','eq.metric.press':'排氣壓力','eq.metric.disch_temp':'排氣溫度',
+        'eq.metric.loaded_state':'加載','eq.metric.power':'電力',
+        'eq.diag.load_error':'載入失敗','eq.diag.updated_at':'更新於 {time}','eq.diag.running':'運轉中','eq.diag.stopped':'停機',
+        'eq.diag.run_unknown':'運轉狀態未知','eq.diag.loaded':'加載','eq.diag.unloaded':'卸載','eq.diag.rt_point_compare':'RT 點對照：{v} RT',
+        'eq.diag.no_data':'尚無即時值','eq.diag.threshold':'門檻 {good} / {fair}',
+        'eq.diag.coverage_warn':'資料覆蓋率 {pct}%（{name} 缺 {missing} 小時，低於 {threshold}%），缺漏時段不計入效率分子分母。',
+        'eq.diag.tile_primary':'期間平均效率','eq.diag.tile_kwh':'總耗電','eq.diag.tile_output':'總{name}','eq.diag.tile_run_hours':'運轉時數',
+        'eq.diag.tile_avg_load':'平均負載率','eq.diag.tile_loaded_ratio':'加載時間比','eq.diag.tile_avg_press':'平均排氣壓力',
+        'eq.diag.fleet':'全場加權','eq.diag.bin_kwh_pct':'耗電占比','eq.diag.bin_output_pct':'{name}占比',
+        'eq.diag.bin_hours':'運轉 {h} 小時','eq.diag.bin_efficiency':'效率 {v} {unit}',
+        'eq.diag.col_name':'設備','eq.diag.col_grade':'評級','eq.diag.col_run_hours':'運轉時數','eq.diag.col_avg_load':'平均負載 %',
+        'eq.diag.col_threshold':'門檻','eq.diag.col_coverage':'覆蓋率',
+        'eq.basis.std':'90.1 {type} {band} {path}','eq.basis.cooling_kind':'{cooling}{kind}','eq.basis.with_type':'{base}（{type}）',
+        'eq.basis.pd':'容積式','eq.basis.band_lt':'<{max}RT','eq.basis.band_ge':'\u2265{min}RT','eq.basis.band_range':'{min}\u2013{max}RT',
+        'eq.basis.path_a':'定頻(Path A)','eq.basis.path_b':'變頻(Path B)','eq.basis.manual':'手動門檻',
+        'eq.basis.type_unset':'機型未設定','eq.basis.rated_missing':'未填額定 RT',
+        'eq.cooling.water':'水冷','eq.cooling.air':'氣冷',
+        'eq.ctype.centrifugal':'離心','eq.ctype.screw':'螺旋','eq.ctype.scroll':'渦卷','eq.ctype.reciprocating':'往復'
+    };
+    var s = D[k] || k;
+    if (a) Object.keys(a).forEach(function (n) { s = s.split('{' + n + '}').join(a[n]); });
+    return s;
+} };
+</script>
+<script src="{{WWWROOT}}/js/equipment-threshold.js"></script>
+<script src="{{WWWROOT}}/js/ems-equipment.js"></script>
+<script>
+/* driver：切「月」粒度、pivot = 2026-09（init 已在前一個 DOMContentLoaded 跑完；
+   點按鈕時 _hasDevices 仍 null → 不發 period，等 realtime 回來 isFirst 才以 day 粒度查） */
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('eqdPivotMonth').value = '2026-09';
+    document.querySelector('#eqdGranGroup .ems-gran-btn[data-gran="day"]').click();
+});
+</script>
+
+
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<!-- 使用手冊 scada/condition-ctrl-02：一組開／關兩條相反規則（隱藏表單只留清單） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>條件控制 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/conditionctrl.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+<div class="container-fluid mt-4">
+
+    <!-- 頁面標題 -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">
+            <i class="fas fa-code-branch text-primary me-2"></i>條件控制
+        </h2>
+    </div>
+
+    <!-- 新增條件控制規則 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-plus-circle text-success me-2"></i>新增條件控制規則
+            </h5>
+        </div>
+        <div class="card-body">
+
+            <!-- 第一列：條件側（設備 → 條件點位 → 運算子 → 數值） -->
+            <div class="row g-3 align-items-end mb-2">
+
+                <!-- 條件設備 -->
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-server text-dark me-1"></i>設備
+                    </label>
+                    <select id="conditionCoordinator" class="form-select form-select-sm">
+                        <option value="0">— 全部設備 —</option>
+                            <option value="1">空調控制器 DDC-01</option>
+                            <option value="2">冰水系統控制器 DDC-02</option>
+                        <option value="CALC">計算點位</option>
+                        <option value="DMD">需量點位</option>
+                    </select>
+                </div>
+
+                <!-- 條件子設備 (多ID時顯示) -->
+                <div class="col-md-2 d-none" id="conditionSubDeviceCol">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-sitemap text-dark me-1"></i>子設備
+                    </label>
+                    <select id="conditionSubDevice" class="form-select form-select-sm">
+                        <option value="">— 請選擇子設備 —</option>
+                    </select>
+                </div>
+
+                <!-- 條件點位 -->
+                <div class="col-md-4" id="conditionPointCol">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-tag text-primary me-1"></i>參考點位
+                    </label>
+                    <select id="conditionPoint" class="form-select form-select-sm">
+                        <option value="">— 請選擇點位 —</option>
+                            <option value="65793-S1" data-name="空調箱 AHU-01 回風溫度" data-unit="℃">空調箱 AHU-01 回風溫度</option>
+                            <option value="65794-S1" data-name="空調箱 AHU-01 風機啟停" data-unit="">空調箱 AHU-01 風機啟停</option>
+                            <option value="65795-S1" data-name="空調箱 AHU-01 CO2 濃度" data-unit="ppm">空調箱 AHU-01 CO2 濃度</option>
+                            <option value="65796-S1" data-name="空調箱 AHU-01 外氣風門開度" data-unit="%">空調箱 AHU-01 外氣風門開度</option>
+                            <option value="131329-S1" data-name="冰水泵 P-01 啟停" data-unit="">冰水泵 P-01 啟停</option>
+                            <option value="131330-S1" data-name="冰水泵 P-02 啟停" data-unit="">冰水泵 P-02 啟停</option>
+                            <option value="131331-S1" data-name="冰水出水溫度" data-unit="℃">冰水出水溫度</option>
+                            <option value="131332-S1" data-name="冰水泵 P-01 頻率設定" data-unit="Hz">冰水泵 P-01 頻率設定</option>
+                            <option value="CALC-1" data-name="室內平均溫度" data-unit="℃">室內平均溫度</option>
+                            <option value="DMD-1" data-name="總電表 需量" data-unit="kW">總電表 需量</option>
+                    </select>
+                </div>
+
+                <!-- 運算子 -->
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-not-equal text-warning me-1"></i>運算子
+                    </label>
+                    <select id="conditionOperator" class="form-select form-select-sm">
+                        <option value=">">>　（大於）</option>
+                        <option value="<"><　（小於）</option>
+                        <option value=">=">>=　（大於等於）</option>
+                        <option value="<="><=　（小於等於）</option>
+                        <option value="==">=　（等於）</option>
+                        <option value="!=">≠　（不等於）</option>
+                    </select>
+                </div>
+
+                <!-- 數值 -->
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-hashtag text-info me-1"></i>數值
+                    </label>
+                    <input type="number" id="conditionValue" class="form-control form-control-sm"
+                           placeholder="輸入比較數值" step="any" />
+                </div>
+
+            </div>
+
+            <!-- 第二列：控制側（設備 → 控制點位 → 控制值） -->
+            <div class="row g-3 align-items-end">
+
+                <!-- 控制設備 -->
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-server text-dark me-1"></i>設備
+                    </label>
+                    <select id="controlCoordinator" class="form-select form-select-sm">
+                        <option value="0">— 全部設備 —</option>
+                            <option value="1">空調控制器 DDC-01</option>
+                            <option value="2">冰水系統控制器 DDC-02</option>
+                        <option value="CALC">計算點位</option>
+                    </select>
+                </div>
+
+                <!-- 控制子設備 (多ID時顯示) -->
+                <div class="col-md-2 d-none" id="controlSubDeviceCol">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-sitemap text-dark me-1"></i>子設備
+                    </label>
+                    <select id="controlSubDevice" class="form-select form-select-sm">
+                        <option value="">— 請選擇子設備 —</option>
+                    </select>
+                </div>
+
+                <!-- 控制點位 -->
+                <div class="col-md-4" id="controlPointCol">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-bolt text-danger me-1"></i>控制點位
+                    </label>
+                    <select id="controlPoint" class="form-select form-select-sm">
+                        <option value="">— 請選擇點位 —</option>
+                            <option value="65793-S1" data-name="空調箱 AHU-01 回風溫度" data-unit="℃">空調箱 AHU-01 回風溫度</option>
+                            <option value="65794-S1" data-name="空調箱 AHU-01 風機啟停" data-unit="">空調箱 AHU-01 風機啟停</option>
+                            <option value="65795-S1" data-name="空調箱 AHU-01 CO2 濃度" data-unit="ppm">空調箱 AHU-01 CO2 濃度</option>
+                            <option value="65796-S1" data-name="空調箱 AHU-01 外氣風門開度" data-unit="%">空調箱 AHU-01 外氣風門開度</option>
+                            <option value="131329-S1" data-name="冰水泵 P-01 啟停" data-unit="">冰水泵 P-01 啟停</option>
+                            <option value="131330-S1" data-name="冰水泵 P-02 啟停" data-unit="">冰水泵 P-02 啟停</option>
+                            <option value="131331-S1" data-name="冰水出水溫度" data-unit="℃">冰水出水溫度</option>
+                            <option value="131332-S1" data-name="冰水泵 P-01 頻率設定" data-unit="Hz">冰水泵 P-01 頻率設定</option>
+                            <option value="CALC-1" data-name="室內平均溫度" data-unit="℃">室內平均溫度</option>
+                    </select>
+                </div>
+
+                <!-- 控制值 -->
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-pen text-secondary me-1"></i>控制值
+                    </label>
+                    <input type="number" id="controlValue" class="form-control form-control-sm"
+                           placeholder="輸入控制值" step="any" />
+                </div>
+
+                <!-- 備註 -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-comment-alt text-muted me-1"></i>備註
+                        <small class="text-muted fw-normal">（選填，最多 50 字）</small>
+                    </label>
+                    <input type="text" id="remarksValue" class="form-control form-control-sm"
+                           placeholder="輸入備註說明" maxlength="50" />
+                </div>
+
+            </div>
+
+            <div class="mt-3 d-flex align-items-center gap-2">
+                <button id="btnAddRule" class="btn btn-success btn-sm px-4">
+                    <i class="fas fa-plus me-1"></i>新增規則
+                </button>
+                <button id="btnClearForm" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-1"></i>清除
+                </button>
+                <button id="btnSaveEdit" class="btn btn-warning btn-sm px-4 d-none">
+                    <i class="fas fa-save me-1"></i>編輯
+                </button>
+                <button id="btnCancelEdit" class="btn btn-outline-secondary btn-sm d-none">
+                    <i class="fas fa-ban me-1"></i>取消
+                </button>
+                <div id="formAlert" class="alert alert-warning py-1 px-3 mb-0 d-none small">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    <span id="formAlertMsg"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 規則清單 -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+            <h5 class="mb-0">
+                <i class="fas fa-list text-primary me-2"></i>
+                條件控制規則清單
+                <span class="badge bg-secondary ms-1" id="ruleCount">0</span>
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <div id="saveAlert" class="d-none small"></div>
+                <button id="btnSaveToDb" class="btn btn-primary btn-sm d-none">
+                    <i class="fas fa-database me-1"></i>儲存規則至資料庫
+                </button>
+                <button id="btnClearAll" class="btn btn-outline-danger btn-sm d-none">
+                    <i class="fas fa-trash-alt me-1"></i>清除全部
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div id="emptyRuleMsg" class="text-center py-5 text-muted">
+                <i class="fas fa-clipboard-list fa-3x mb-3 d-block opacity-25"></i>
+                <div>尚未新增任何條件控制規則</div>
+                <small>請填寫上方表單後按下「新增規則」</small>
+            </div>
+            <div class="table-responsive d-none" id="ruleTableWrapper">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="text-center" style="width:50px">#</th>
+                            <th><i class="fas fa-tag me-1"></i>條件點位</th>
+                            <th class="text-center" style="width:90px">運算子</th>
+                            <th class="text-center" style="width:100px">數值</th>
+                            <th><i class="fas fa-bolt me-1"></i>控制點位</th>
+                            <th class="text-center" style="width:100px">控制值</th>
+                            <th>備註</th>
+                            <th class="text-center" style="width:70px">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ruleTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+    // i18n stub（只含本頁用到的 key，取自 Resources/*.resx zh-TW）
+    window.i18n = (function () {
+        var D = {"conditionctrl.api.save_success": "已儲存 {0} 筆規則", "conditionctrl.api.save_failed": "儲存失敗，請查看 Engine 日誌", "conditionctrl.demand.point_suffix": "需量", "conditionctrl.title": "條件控制", "conditionctrl.card.add_rule": "新增條件控制規則", "conditionctrl.card.rule_list": "條件控制規則清單", "conditionctrl.label.device": "設備", "conditionctrl.label.sub_device": "子設備", "conditionctrl.label.reference_point": "參考點位", "conditionctrl.label.operator": "運算子", "conditionctrl.label.value": "數值", "conditionctrl.label.control_point": "控制點位", "conditionctrl.label.control_value": "控制值", "conditionctrl.label.remarks": "備註", "conditionctrl.label.remarks_hint": "（選填，最多 50 字）", "conditionctrl.option.all_devices": "— 全部設備 —", "conditionctrl.option.select_sub_device": "— 請選擇子設備 —", "conditionctrl.option.select_point": "— 請選擇點位 —", "conditionctrl.option.calc": "計算點位", "conditionctrl.option.db_source_suffix": "（DB 來源）", "conditionctrl.op.gt": ">　（大於）", "conditionctrl.op.lt": "<　（小於）", "conditionctrl.op.gte": ">=　（大於等於）", "conditionctrl.op.lte": "<=　（小於等於）", "conditionctrl.op.eq": "=　（等於）", "conditionctrl.op.neq": "≠　（不等於）", "conditionctrl.placeholder.value": "輸入比較數值", "conditionctrl.placeholder.control_value": "輸入控制值", "conditionctrl.placeholder.remarks": "輸入備註說明", "conditionctrl.btn.add_rule": "新增規則", "conditionctrl.btn.clear": "清除", "conditionctrl.btn.save_edit": "編輯", "conditionctrl.btn.cancel": "取消", "conditionctrl.btn.save_to_db": "儲存規則至資料庫", "conditionctrl.btn.clear_all": "清除全部", "conditionctrl.col.index": "#", "conditionctrl.col.condition_point": "條件點位", "conditionctrl.col.operator": "運算子", "conditionctrl.col.value": "數值", "conditionctrl.col.control_point": "控制點位", "conditionctrl.col.control_value": "控制值", "conditionctrl.col.remarks": "備註", "conditionctrl.col.actions": "操作", "conditionctrl.empty.title": "尚未新增任何條件控制規則", "conditionctrl.empty.hint": "請填寫上方表單後按下「新增規則」", "conditionctrl.tooltip.load_to_form": "點擊載入至表單", "conditionctrl.tooltip.edit": "編輯", "conditionctrl.tooltip.delete": "刪除", "conditionctrl.msg.select_condition_point": "請選擇條件點位", "conditionctrl.msg.enter_condition_value": "請輸入條件數值", "conditionctrl.msg.select_control_point": "請選擇控制點位", "conditionctrl.msg.enter_control_value": "請輸入控制值", "conditionctrl.msg.points_must_differ": "條件點位與控制點位不能相同", "conditionctrl.msg.confirm_clear_all": "確定要清除所有規則嗎？", "conditionctrl.msg.saving": "儲存中…", "conditionctrl.msg.save_failed": "儲存失敗", "conditionctrl.msg.network_error": "網路錯誤，請稍後再試", "conditionctrl.name.calc_points": "計算點位", "conditionctrl.name.db_source": "DB 來源", "conditionctrl.name.demand_points": "需量點位", "conditionctrl.option.demand": "需量點位"};
+        return { t: function (k, a) { var v = D[k] || k; if (a) Object.keys(a).forEach(function (n) { v = v.split("{" + n + "}").join(a[n]); }); return v; },
+                 ready: function (cb) { cb(); }, currentCulture: function () { return "zh-TW"; } };
+    })();
+    </script>
+    <script>window._condCtrlData = {"allPoints": [{"sid": "65793-S1", "name": "空調箱 AHU-01 回風溫度", "unit": "℃"}, {"sid": "65794-S1", "name": "空調箱 AHU-01 風機啟停", "unit": ""}, {"sid": "65795-S1", "name": "空調箱 AHU-01 CO2 濃度", "unit": "ppm"}, {"sid": "65796-S1", "name": "空調箱 AHU-01 外氣風門開度", "unit": "%"}, {"sid": "131329-S1", "name": "冰水泵 P-01 啟停", "unit": ""}, {"sid": "131330-S1", "name": "冰水泵 P-02 啟停", "unit": ""}, {"sid": "131331-S1", "name": "冰水出水溫度", "unit": "℃"}, {"sid": "131332-S1", "name": "冰水泵 P-01 頻率設定", "unit": "Hz"}, {"sid": "CALC-1", "name": "室內平均溫度", "unit": "℃"}, {"sid": "DMD-1", "name": "總電表 需量", "unit": "kW"}], "allCoords": [{"id": 1, "name": "空調控制器 DDC-01", "modbusId": "1", "deviceName": ""}, {"id": 2, "name": "冰水系統控制器 DDC-02", "modbusId": "2", "deviceName": ""}], "allDbCoords": [], "dbRules": [{"conditionPointSid": "65793-S1", "operatorSymbol": ">", "conditionValue": 26, "controlPointSid": "65794-S1", "controlValue": 1, "remarks": "回風溫度過高，開啟風機"}, {"conditionPointSid": "65793-S1", "operatorSymbol": "<=", "conditionValue": 24, "controlPointSid": "65794-S1", "controlValue": 0, "remarks": "回風溫度回落，關閉風機"}]};</script>
+    <script src="{{WWWROOT}}/js/common/point-grouping.js"></script>
+    <script src="{{WWWROOT}}/js/conditionctrl.js"></script>
+    <script>
+// 只看清單：隱藏上方新增表單卡片
+document.addEventListener('DOMContentLoaded', function () { document.querySelector('.card.mb-3').style.display = 'none'; });
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<!-- EMS 模式外殼（淡綠主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>能源日報 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/dailyreport.css">
+    <style>*,*::before,*::after{transition:none!important;animation:none!important;}</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/DailyReport/api/setting': function () { return { nSectionFlags: 255 }; },
+            '/DailyReport/api/report': function () { return {"data": {"dtGeneratedAt": "2026-09-09T02:00:12", "isReportDateHoliday": false, "isLastWeekHoliday": false, "isStaleLastHour": false, "alarm": {"nOccurredCount": 5, "nClearedCount": 4, "nUnacknowledgedCount": 2, "items": [{"dtOccurredAt": "2026-09-08T08:12:40", "nEventType": 0, "nSeverity": 1, "szMessage": "冰水泵 P-01 出水溫度 超過上限 12", "dtClearedAt": "2026-09-08T08:31:05", "isAcknowledged": true}, {"dtOccurredAt": "2026-09-08T10:47:18", "nEventType": 2, "nSeverity": 0, "szMessage": "空壓機 AC-01 運轉狀態 狀態為 故障 觸發警報", "dtClearedAt": "2026-09-08T11:20:44", "isAcknowledged": true}, {"dtOccurredAt": "2026-09-08T13:05:02", "nEventType": 0, "nSeverity": 2, "szMessage": "空調箱 AHU-02 回風溫度 超過上限 28", "dtClearedAt": "2026-09-08T13:42:37", "isAcknowledged": true}, {"dtOccurredAt": "2026-09-08T15:26:51", "nEventType": 0, "nSeverity": 2, "szMessage": "電表 M-01 功率因數 低於下限 0.85", "dtClearedAt": "2026-09-08T15:58:10", "isAcknowledged": false}, {"dtOccurredAt": "2026-09-08T21:14:33", "nEventType": 0, "nSeverity": 1, "szMessage": "水箱 T-01 液位 低於下限 30", "dtClearedAt": null, "isAcknowledged": false}]}, "electricity": {"isAvailable": true, "szCircuitName": "總電表", "szUnit": "kWh", "dTotal": 15505.9, "dHourly": [430.6, 425.4, 408.0, 417.7, 432.6, 419.1, 407.7, 518.0, 591.8, 651.7, 750.7, 900.3, 998.8, 1025.8, 1069.4, 1085.1, 984.6, 854.1, 772.2, 681.7, 414.6, 409.4, 428.1, 428.5], "isHourlyStale": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, "water": {"isAvailable": true, "szCircuitName": "總水表", "szUnit": "m³", "dTotal": 169.5, "dHourly": [3.3, 3.1, 3.1, 3.3, 3.3, 3.1, 3.2, 7.6, 9.2, 10.8, 12.9, 14.5, 14.3, 13.7, 13.1, 11.3, 8.9, 7.2, 6.0, 4.8, 3.1, 3.2, 3.3, 3.2], "isHourlyStale": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, "gas": {"isAvailable": true, "szCircuitName": "總氣表", "szUnit": "m³", "dTotal": 726.2, "dHourly": [18.1, 17.5, 18.1, 18.5, 17.8, 17.5, 18.3, 34.9, 42.1, 51.4, 61.0, 62.5, 57.6, 52.2, 44.4, 34.0, 26.5, 23.0, 20.5, 18.4, 17.7, 18.5, 18.2, 17.5], "isHourlyStale": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, "rth": {"isAvailable": true, "szCircuitName": "冷凍主機群", "szUnit": "RT·h", "dTotal": 8903.8, "dHourly": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 149.9, 350.3, 495.8, 644.1, 748.3, 859.3, 976.7, 993.4, 926.2, 871.3, 786.0, 627.6, 474.9, 0.0, 0.0, 0.0, 0.0], "isHourlyStale": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, "dayComparisons": [{"szEnergy": "electricity", "szUnit": "kWh", "dDay": 15505.9, "dPrevDay": 14916.7, "dDiffPrevPct": 3.9, "dLastWeek": 14482.5, "dDiffLastWeekPct": 7.1}, {"szEnergy": "water", "szUnit": "m³", "dDay": 169.5, "dPrevDay": 174.75, "dDiffPrevPct": -3.0, "dLastWeek": 165.77, "dDiffLastWeekPct": 2.3}, {"szEnergy": "gas", "szUnit": "m³", "dDay": 726.2, "dPrevDay": 715.31, "dDiffPrevPct": 1.5, "dLastWeek": 734.91, "dDiffLastWeekPct": -1.2}, {"szEnergy": "rth", "szUnit": "RT·h", "dDay": 8903.8, "dPrevDay": 8440.8, "dDiffPrevPct": 5.5, "dLastWeek": 8031.2, "dDiffLastWeekPct": 10.9}], "efficiency": {"dDay": 1.741, "dPrevDay": 1.767, "dLastWeek": 1.803, "dDiffPrevPct": -1.5, "dDiffLastWeekPct": -3.4}, "weather": {"dAvgTempDay": 31.4, "dAvgTempPrevDay": 30.6, "dAvgTempLastWeek": 29.2}, "mtdComparisons": [{"szEnergy": "electricity", "szUnit": "kWh", "dCurrent": 118155.0, "dLastYear": 123463.9, "dDiffPct": -4.3, "szCurrentRange": "2026-09-01 ~ 2026-09-08", "szLastYearRange": "2025-09-01 ~ 2025-09-08"}, {"szEnergy": "water", "szUnit": "m³", "dCurrent": 1330.58, "dLastYear": 1299.39, "dDiffPct": 2.4, "szCurrentRange": "2026-09-01 ~ 2026-09-08", "szLastYearRange": "2025-09-01 ~ 2025-09-08"}, {"szEnergy": "gas", "szUnit": "m³", "dCurrent": 5744.24, "dLastYear": 5796.41, "dDiffPct": -0.9, "szCurrentRange": "2026-09-01 ~ 2026-09-08", "szLastYearRange": "2025-09-01 ~ 2025-09-08"}, {"szEnergy": "rth", "szUnit": "RT·h", "dCurrent": 65888.1, "dLastYear": 68066.2, "dDiffPct": -3.2, "szCurrentRange": "2026-09-01 ~ 2026-09-08", "szLastYearRange": "2025-09-01 ~ 2025-09-08"}], "insights": [{"szCategory": "weather", "szText": "報告日均溫 31.4°C，較上週同星期高 2.2°C，空調負載增加為可能原因"}, {"szCategory": "alarm", "szText": "用電較前日增加 3.9%，當日發生 5 筆警報/故障事件，可能相關"}, {"szCategory": "efficiency", "szText": "單位冷凍噸耗電 1.741 kWh/RTh，較上週同星期下降 3.4%"}], "compressorDiagnosis": null}, "isSnapshot": true, "nMailStatus": 1, "szMailDetail": "2026-09-09 02:00 寄出，收件人 3 位"}; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path](String(url), opts)), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <h2 class="mb-0">
+            <i class="fas fa-newspaper text-primary me-2"></i>能源日報
+        </h2>
+        <div class="d-flex align-items-center gap-2">
+            <input type="date" id="drDate" class="form-control form-control-sm" style="width:160px;"
+                   value="2026-09-08" max="2026-09-08">
+            <button class="btn btn-primary btn-sm" onclick="window._dr.load()">
+                <i class="fas fa-search me-1"></i>查詢
+            </button>
+            
+                <a class="btn btn-outline-secondary btn-sm" href="/DailyReportSetting">
+                    <i class="fas fa-cog me-1"></i>日報設定
+                </a>
+            
+        </div>
+    </div>
+
+    <!-- 狀態徽章列 -->
+    <div id="drBadges" class="mb-3 d-flex align-items-center gap-2 flex-wrap d-none">
+        <span id="drBadgeHoliday" class="badge bg-warning text-dark d-none"><i class="fas fa-calendar-day me-1"></i>假日</span>
+        <span id="drBadgeStale" class="badge bg-danger d-none"><i class="fas fa-exclamation-triangle me-1"></i>最後時段資料缺漏</span>
+        <span id="drBadgeAdhoc" class="badge bg-secondary d-none" title="此日期無 02:00 快照，為即時計算結果"><i class="fas fa-bolt me-1"></i>即時計算</span>
+        <span id="drBadgeMail" class="badge bg-light text-dark border d-none"></span>
+        <span id="drGeneratedAt" class="text-muted small"></span>
+    </div>
+
+    <div id="drLoading" class="text-center text-muted py-5 d-none">
+        <div class="spinner-border text-primary mb-2" role="status"></div>
+        <div>日報計算中…</div>
+    </div>
+    <div id="drError" class="alert alert-danger d-none"></div>
+
+    <div id="drContent" class="d-none">
+        <!-- 警報摘要 -->
+        <div class="card shadow-sm mb-3 d-none" id="drCardAlarm">
+            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-bell me-1"></i>警報摘要（警報 + 故障）</span>
+                <span id="drAlarmCounts" class="small"></span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered mb-0 dr-alarm-table">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width:90px;">時間</th>
+                                <th style="width:70px;">類型</th>
+                                <th style="width:70px;">嚴重度</th>
+                                <th>訊息</th>
+                                <th style="width:90px;">狀態</th>
+                                <th style="width:70px;">確認</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drAlarmBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-light py-2 text-center d-none" id="drAlarmMoreWrap">
+                <button class="btn btn-sm btn-outline-secondary" id="drAlarmMoreBtn" onclick="window._dr.toggleAlarms()"></button>
+            </div>
+        </div>
+
+        <!-- 四能源別時報表 -->
+        <div class="row g-3 mb-3" id="drHourlyRow">
+            <div class="col-lg-6 d-none" id="drCardElectricity">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light py-2 d-flex justify-content-between">
+                        <span><i class="fas fa-bolt me-1"></i>用電時報表（kWh）</span>
+                        <span class="text-muted small" id="drNameElectricity"></span>
+                    </div>
+                    <div class="card-body"><div style="height:220px;"><canvas id="drChartElectricity"></canvas></div></div>
+                    <div class="card-footer bg-light text-muted small">日總量：<span id="drTotalElectricity" class="fw-bold text-primary">--</span> kWh</div>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none" id="drCardWater">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light py-2 d-flex justify-content-between">
+                        <span><i class="fas fa-water me-1"></i>用水時報表（m&#179;）</span>
+                        <span class="text-muted small" id="drNameWater"></span>
+                    </div>
+                    <div class="card-body"><div style="height:220px;"><canvas id="drChartWater"></canvas></div></div>
+                    <div class="card-footer bg-light text-muted small">日總量：<span id="drTotalWater" class="fw-bold text-primary">--</span> m&#179;</div>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none" id="drCardGas">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light py-2 d-flex justify-content-between">
+                        <span><i class="fas fa-fire me-1"></i>用氣時報表（m&#179;）</span>
+                        <span class="text-muted small" id="drNameGas"></span>
+                    </div>
+                    <div class="card-body"><div style="height:220px;"><canvas id="drChartGas"></canvas></div></div>
+                    <div class="card-footer bg-light text-muted small">日總量：<span id="drTotalGas" class="fw-bold text-primary">--</span> m&#179;</div>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none" id="drCardRth">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light py-2 d-flex justify-content-between">
+                        <span><i class="fas fa-snowflake me-1"></i>冷凍噸時報表（RT&#183;h）</span>
+                        <span class="text-muted small" id="drNameRth"></span>
+                    </div>
+                    <div class="card-body"><div style="height:220px;"><canvas id="drChartRth"></canvas></div></div>
+                    <div class="card-footer bg-light text-muted small">日總量：<span id="drTotalRth" class="fw-bold text-primary">--</span> RT&#183;h</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 比較區 -->
+        <div class="row g-3 mb-3">
+            <div class="col-lg-7 d-none" id="drCardDayCompare">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light py-2">
+                        <i class="fas fa-exchange-alt me-1"></i>單日比較（報告日 vs 前日 / 上週同星期）
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered mb-0 dr-compare-table">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>能源別</th>
+                                        <th class="text-end">報告日</th>
+                                        <th class="text-end">前日</th>
+                                        <th class="text-end">vs 前日</th>
+                                        <th class="text-end">上週同星期</th>
+                                        <th class="text-end">vs 上週</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="drDayCompareBody"></tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="alert alert-warning py-2 px-3 mb-0 mt-2 small d-none" id="drLastWeekNote"></div>
+                    </div>
+                    <div class="card-footer bg-light text-muted small d-none" id="drWeatherLine"></div>
+                </div>
+            </div>
+            <div class="col-lg-5 d-none" id="drCardMtd">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light py-2">
+                        <i class="fas fa-calendar-alt me-1"></i>月累計比較（本月 vs 去年同期）
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered mb-0 dr-compare-table">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>能源別</th>
+                                        <th class="text-end">本月累計</th>
+                                        <th class="text-end">去年同期</th>
+                                        <th class="text-end">差異</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="drMtdBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-muted small" id="drMtdRange"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 智慧摘要 -->
+        <div class="card shadow-sm mb-3 d-none" id="drCardInsights">
+            <div class="card-header bg-light py-2">
+                <i class="fas fa-lightbulb me-1"></i>智慧摘要
+            </div>
+            <div class="card-body py-2">
+                <ul class="mb-0 dr-insight-list" id="drInsightList"></ul>
+            </div>
+        </div>
+
+        <!-- 空壓系統診斷（日報設定勾選才顯示） -->
+        <div class="card shadow-sm mb-3 d-none" id="drCardCompressorDiag">
+            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-compress-arrows-alt me-1"></i>空壓系統診斷</span>
+                <a class="small" href="/CompressorEfficiency#diagnosis">詳細診斷</a>
+            </div>
+            <div class="card-body py-2">
+                <div class="text-muted small mb-2" id="drCompressorDiagSummary"></div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-1 align-middle">
+                        <thead><tr><th>發現</th><th style="width:220px;">篩檢節能</th><th>建議下一步</th></tr></thead>
+                        <tbody id="drCompressorDiagBody"></tbody>
+                    </table>
+                </div>
+                <div class="text-muted small" id="drCompressorDiagNotices"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+
+    <script src="{{WWWROOT}}/js/dailyreport.js"></script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

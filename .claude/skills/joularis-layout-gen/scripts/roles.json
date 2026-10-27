@@ -1,0 +1,52 @@
+{
+  "_說明": "設備型別 → 固定座位排列（plan 2026-10-21 決策 4）。只放排列與 widget 型別，點名別名唯一真相在 ScadaEngine.Web/wwwroot/js/role-aliases.js（_equipRoleAliases），這裡不重複。seats 的 null = 空座位；role = 匯入時交給 resolveEquipRole 的角色名；title = Designer i18n key（匯入時解析成當前語系文字）。",
+
+  "_widget": "w = 每格寬（標籤 + widget）。DI/AI widget 在監控頁不顯示標題（只有 tooltip），所以 DI/AI 每格左側放一個 text widget 當角色短名（label = i18n key，匯入時依語系解析；text widget 內距 8px，40 寬只放得下 2 個中文字 / 4 個英文字）。label_w 含與 widget 之間 1px 間隙；格寬 - label_w < min_w 時不放標籤、widget 佔滿整格。self_titled 的 DO/AO 本身顯示標題（szDisplayName / szTitle），不放標籤、佔滿整格",
+  "widget": { "w": 100, "h": 20, "col_gap": 10, "row_pitch": 40, "min_w": 60, "min_row_gap": 1, "label_w": 40, "label_font": 10, "label_color": "#333333" },
+
+  "kinds": {
+    "DI": { "type": "diPoint",       "slot": "szSid", "color": "#2E9E44" },
+    "AI": { "type": "realtimeValue", "slot": "szSid", "color": "#E0B000" },
+    "DO": { "type": "doPoint",       "slot": "szCid", "color": "#F07A1A", "self_titled": true },
+    "AO": { "type": "aoPoint",       "slot": "szCid", "color": "#8A4FC8", "self_titled": true }
+  },
+
+  "seats_def": {
+    "FAULT":       { "role": "FAULT",     "kind": "DI", "title": "designer.import.role.FAULT", "label": "designer.import.label.FAULT" },
+    "MODE":        { "role": "MODE",      "kind": "DI", "title": "designer.import.role.MODE", "label": "designer.import.label.MODE" },
+    "MODE_REMOTE": { "role": "MODE",      "kind": "DI", "title": "designer.import.role.MODE_REMOTE", "label": "designer.import.label.MODE_REMOTE" },
+    "RUN":         { "role": "RUN",       "kind": "DI", "title": "designer.import.role.RUN", "label": "designer.import.label.RUN" },
+    "FREQ":        { "role": "FREQ",      "kind": "AI", "title": "designer.import.role.FREQ", "label": "designer.import.label.FREQ" },
+    "LOAD":        { "role": "LOAD",      "kind": "AI", "title": "designer.import.role.LOAD", "label": "designer.import.label.LOAD" },
+    "CHWOUT":      { "role": "CHWOUT",    "kind": "AI", "title": "designer.import.role.CHWOUT", "label": "designer.import.label.CHWOUT" },
+    "WATERTEMP":   { "role": "WATERTEMP", "kind": "AI", "title": "designer.import.role.WATERTEMP", "label": "designer.import.label.WATERTEMP" },
+    "STARTSTOP":   { "role": "STARTSTOP", "kind": "DO", "title": "designer.import.role.STARTSTOP", "label": "designer.import.label.STARTSTOP" },
+    "FREQSET":     { "role": "FREQSET",   "kind": "AO", "title": "designer.import.role.FREQSET", "label": "designer.import.label.FREQSET" },
+    "SETTEMP":     { "role": "SETTEMP",   "kind": "AO", "title": "designer.import.role.SETTEMP", "label": "designer.import.label.SETTEMP" }
+  },
+
+  "equip_types": {
+    "pump-gray": "pump",
+    "pump-blue": "pump",
+    "pump-light": "pump",
+    "chiller": "chiller",
+    "cooling-tower": "coolingTower"
+  },
+
+  "seats": {
+    "pump": [
+      ["FAULT", "STARTSTOP", "FREQSET"],
+      ["MODE", "RUN", "FREQ"]
+    ],
+    "chiller": [
+      ["FAULT", "STARTSTOP", "SETTEMP", null],
+      ["MODE_REMOTE", "RUN", "CHWOUT", "LOAD"]
+    ],
+    "coolingTower": [
+      ["FAULT", "STARTSTOP", "FREQSET", null],
+      ["MODE", "RUN", "FREQ", "WATERTEMP"]
+    ]
+  },
+
+  "sensor_types": ["sensor-temp", "flow-meter", "gauge-pressure"]
+}

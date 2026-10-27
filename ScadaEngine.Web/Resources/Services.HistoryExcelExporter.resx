@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="excel.filename" xml:space="preserve"><value>歷史趨勢</value></data>
+  <data name="excel.sheet.stats" xml:space="preserve"><value>統計</value></data>
+  <data name="excel.sheet.chart" xml:space="preserve"><value>圖表</value></data>
+  <data name="excel.col.timestamp" xml:space="preserve"><value>時間戳記</value></data>
+  <data name="excel.col.value" xml:space="preserve"><value>數值</value></data>
+  <data name="excel.col.quality" xml:space="preserve"><value>品質</value></data>
+  <data name="excel.col.valid" xml:space="preserve"><value>有效值</value></data>
+  <data name="excel.stats.range" xml:space="preserve"><value>查詢期間：{0} ~ {1}</value></data>
+  <data name="excel.stats.interval" xml:space="preserve"><value>取樣間隔：{0} 分鐘</value></data>
+  <data name="excel.stats.interval_raw" xml:space="preserve"><value>取樣間隔：原始資料</value></data>
+  <data name="excel.stats.col.point" xml:space="preserve"><value>點位名稱</value></data>
+  <data name="excel.stats.col.unit" xml:space="preserve"><value>單位</value></data>
+  <data name="excel.stats.col.kind" xml:space="preserve"><value>類型</value></data>
+  <data name="excel.stats.col.count" xml:space="preserve"><value>筆數</value></data>
+  <data name="excel.stats.col.valid_count" xml:space="preserve"><value>有效筆數</value></data>
+  <data name="excel.stats.col.min" xml:space="preserve"><value>最小值</value></data>
+  <data name="excel.stats.col.max" xml:space="preserve"><value>最大值</value></data>
+  <data name="excel.stats.col.avg" xml:space="preserve"><value>平均值</value></data>
+  <data name="excel.stats.col.std_dev" xml:space="preserve"><value>標準差</value></data>
+  <data name="excel.stats.col.diff" xml:space="preserve"><value>差異值</value></data>
+  <data name="excel.stats.col.remark" xml:space="preserve"><value>備註</value></data>
+  <data name="excel.kind.instant" xml:space="preserve"><value>即時值</value></data>
+  <data name="excel.kind.cumulative" xml:space="preserve"><value>累計值</value></data>
+  <data name="excel.kind.period" xml:space="preserve"><value>期間值</value></data>
+  <data name="excel.kind.status" xml:space="preserve"><value>狀態值</value></data>
+  <data name="excel.remark.no_valid" xml:space="preserve"><value>整段無有效資料</value></data>
+  <data name="excel.remark.limited" xml:space="preserve"><value>已達每點位 {0} 筆上限，後段資料未納入</value></data>
+  <data name="excel.remark.status_avg" xml:space="preserve"><value>平均值即運轉率</value></data>
+  <data name="excel.remark.drop" xml:space="preserve"><value>偵測到歸零 / 換表 {0} 次（已分段相加）</value></data>
+  <data name="excel.remark.spike" xml:space="preserve"><value>剔除單筆突波 {0} 筆</value></data>
+  <data name="excel.remark.start_inset" xml:space="preserve"><value>起點往內至 {0}（之前無有效值）</value></data>
+  <data name="excel.remark.end_inset" xml:space="preserve"><value>終點往內至 {0}（之後無有效值）</value></data>
+  <data name="excel.chart.col.point" xml:space="preserve"><value>點位名稱</value></data>
+  <data name="excel.chart.col.diff" xml:space="preserve"><value>差異值</value></data>
+  <data name="excel.chart.col.unit" xml:space="preserve"><value>單位</value></data>
+  <data name="excel.chart.bar_title" xml:space="preserve"><value>差異值（{0}）</value></data>
+  <data name="excel.chart.pie_title" xml:space="preserve"><value>差異值占比（{0}）</value></data>
+  <data name="excel.chart.line_title" xml:space="preserve"><value>趨勢（{0}）</value></data>
+  <data name="excel.chart.none" xml:space="preserve"><value>本次匯出無可繪製的圖表（期間值、狀態值與無有效資料的點位不畫圖）</value></data>
+</root>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<!-- EMS 模式外殼（淡綠主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>水費報表 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/energyreport.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/watercostreport.css">
+    <style>*,*::before,*::after{transition:none!important;animation:none!important;}
+    /* 截圖用：展開級距明細後讓合計列也入鏡 */ .table-responsive{max-height:none!important;}</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/WaterCostReport/api/circuits': function () { return [{"id": 1, "name": "總水表", "parentId": null, "sortOrder": 1, "sid": "30001"}, {"id": 2, "name": "空調補水", "parentId": 1, "sortOrder": 1, "sid": "30002"}, {"id": 3, "name": "生活用水", "parentId": 1, "sortOrder": 2, "sid": "30003"}, {"id": 4, "name": "區域 A 用水", "parentId": 1, "sortOrder": 3, "sid": "30004"}]; },
+            '/WaterCostReport/api/query': function () { return [{"periodLabel": "2026-03", "totalM3": 1248.61, "totalCost": 14966.7, "planName": "台水流動水費", "isStale": false, "tiers": [{"from": 1, "to": 10, "price": 7.35, "sliceM3": 10, "sliceCost": 73.5}, {"from": 11, "to": 30, "price": 9.45, "sliceM3": 20, "sliceCost": 189.0}, {"from": 31, "to": 50, "price": 11.55, "sliceM3": 20, "sliceCost": 231.0}, {"from": 51, "to": null, "price": 12.075, "sliceM3": 1198.61, "sliceCost": 14473.22}]}, {"periodLabel": "2026-04", "totalM3": 1396.275, "totalCost": 16749.8, "planName": "台水流動水費", "isStale": false, "tiers": [{"from": 1, "to": 10, "price": 7.35, "sliceM3": 10, "sliceCost": 73.5}, {"from": 11, "to": 30, "price": 9.45, "sliceM3": 20, "sliceCost": 189.0}, {"from": 31, "to": 50, "price": 11.55, "sliceM3": 20, "sliceCost": 231.0}, {"from": 51, "to": null, "price": 12.075, "sliceM3": 1346.28, "sliceCost": 16256.27}]}, {"periodLabel": "2026-05", "totalM3": 1652.94, "totalCost": 19849.0, "planName": "台水流動水費", "isStale": false, "tiers": [{"from": 1, "to": 10, "price": 7.35, "sliceM3": 10, "sliceCost": 73.5}, {"from": 11, "to": 30, "price": 9.45, "sliceM3": 20, "sliceCost": 189.0}, {"from": 31, "to": 50, "price": 11.55, "sliceM3": 20, "sliceCost": 231.0}, {"from": 51, "to": null, "price": 12.075, "sliceM3": 1602.94, "sliceCost": 19355.5}]}, {"periodLabel": "2026-06", "totalM3": 1874.315, "totalCost": 22522.1, "planName": "台水流動水費", "isStale": false, "tiers": [{"from": 1, "to": 10, "price": 7.35, "sliceM3": 10, "sliceCost": 73.5}, {"from": 11, "to": 30, "price": 9.45, "sliceM3": 20, "sliceCost": 189.0}, {"from": 31, "to": 50, "price": 11.55, "sliceM3": 20, "sliceCost": 231.0}, {"from": 51, "to": null, "price": 12.075, "sliceM3": 1824.32, "sliceCost": 22028.6}]}, {"periodLabel": "2026-07", "totalM3": 2103.58, "totalCost": 25290.5, "planName": "台水流動水費", "isStale": false, "tiers": [{"from": 1, "to": 10, "price": 7.35, "sliceM3": 10, "sliceCost": 73.5}, {"from": 11, "to": 30, "price": 9.45, "sliceM3": 20, "sliceCost": 189.0}, {"from": 31, "to": 50, "price": 11.55, "sliceM3": 20, "sliceCost": 231.0}, {"from": 51, "to": null, "price": 12.075, "sliceM3": 2053.58, "sliceCost": 24796.98}]}, {"periodLabel": "2026-08", "totalM3": 2068.76, "totalCost": 24870.0, "planName": "台水流動水費", "isStale": false, "tiers": [{"from": 1, "to": 10, "price": 7.35, "sliceM3": 10, "sliceCost": 73.5}, {"from": 11, "to": 30, "price": 9.45, "sliceM3": 20, "sliceCost": 189.0}, {"from": 31, "to": 50, "price": 11.55, "sliceM3": 20, "sliceCost": 231.0}, {"from": 51, "to": null, "price": 12.075, "sliceM3": 2018.76, "sliceCost": 24376.53}]}]; },
+            '/WaterBillingPeriodSetting/api/range': function () { return [{"year": 2026, "month": 3, "start": "2026-03-01", "end": "2026-03-31", "days": 31, "isCustomized": false, "isNatural": true, "label": "2026-03", "gapDays": 0}, {"year": 2026, "month": 4, "start": "2026-04-01", "end": "2026-04-30", "days": 30, "isCustomized": false, "isNatural": true, "label": "2026-04", "gapDays": 0}, {"year": 2026, "month": 5, "start": "2026-05-01", "end": "2026-05-31", "days": 31, "isCustomized": false, "isNatural": true, "label": "2026-05", "gapDays": 0}, {"year": 2026, "month": 6, "start": "2026-06-01", "end": "2026-06-30", "days": 30, "isCustomized": false, "isNatural": true, "label": "2026-06", "gapDays": 0}, {"year": 2026, "month": 7, "start": "2026-07-01", "end": "2026-07-31", "days": 31, "isCustomized": false, "isNatural": true, "label": "2026-07", "gapDays": 0}, {"year": 2026, "month": 8, "start": "2026-08-01", "end": "2026-08-31", "days": 31, "isCustomized": false, "isNatural": true, "label": "2026-08", "gapDays": 0}]; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path](String(url), opts)), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link active dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            <i class="fas fa-hand-holding-water text-primary me-2"></i>水費報表
+        </h2>
+    </div>
+
+    <!-- 查詢條件（版型同電費報表，樣式共用 energyreport.css 的 er-* class） -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2">
+            <i class="fas fa-filter me-1"></i>查詢條件
+        </div>
+        <div class="card-body p-3">
+            <div class="er-filter-bar">
+                <div class="er-circuit">
+                    <label class="form-label fw-semibold"><i class="fas fa-sitemap me-1"></i>自來水表迴路</label>
+                    <select id="wcrCircuit" class="form-select form-select-sm">
+                        <option value="">載入中...</option>
+                    </select>
+                </div>
+                <div class="er-narrow-date">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar-week me-1"></i>起始期別</label>
+                    <input type="month" id="wcrMonthStart" class="form-control form-control-sm">
+                </div>
+                <div class="er-narrow-date">
+                    <label class="form-label fw-semibold"><i class="fas fa-calendar-week me-1"></i>結束期別</label>
+                    <input type="month" id="wcrMonthEnd" class="form-control form-control-sm">
+                </div>
+                <div class="er-period-hint">
+                    <span id="wcrPeriodHint" class="text-muted small"></span>
+                </div>
+                <div class="er-btn">
+                    <button class="btn btn-primary btn-sm" onclick="window._wcr.query()">
+                        <i class="fas fa-search me-1"></i>查詢
+                    </button>
+                </div>
+                <div class="er-btn">
+                    <button class="btn btn-success btn-sm" onclick="window._wcr.exportExcel()" id="btnWcrExport" disabled>
+                        <i class="fas fa-file-excel me-1"></i>匯出 Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果區 -->
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light py-2">
+                    <i class="fas fa-chart-bar me-1"></i>各期水費
+                </div>
+                <div class="card-body">
+                    <div style="height:360px;position:relative;">
+                        <canvas id="wcrChart"></canvas>
+                        <div id="wcrNoData" class="wcr-nodata" style="display:none;"></div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light text-muted small">
+                    總水費：<span id="wcrTotalCost" class="fw-bold text-primary">--</span> 元
+                    <span class="ms-3">總用水量：<span id="wcrTotalM3" class="fw-bold">--</span> m&#179;</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light py-2">
+                    <i class="fas fa-table me-1"></i>期別明細
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:420px;overflow-y:auto;">
+                        <table class="table table-striped table-hover table-bordered mb-0">
+                            <thead class="table-dark" style="position:sticky;top:0;z-index:30;">
+                                <tr>
+                                    <th>期別</th>
+                                    <th class="text-end">用水量 (m³)</th>
+                                    <th>套用方案</th>
+                                    <th class="text-end">水費（元）</th>
+                                    <th class="text-center">明細</th>
+                                </tr>
+                            </thead>
+                            <tbody id="wcrTableBody">
+                                <tr><td colspan="5" class="text-center text-muted py-4">請選擇迴路與期別區間後查詢</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+<script>window.i18n={_d:{"watercostreport.title": "水費報表", "watercostreport.filter.title": "查詢條件", "watercostreport.filter.circuit": "自來水表迴路", "watercostreport.filter.month_start": "起始期別", "watercostreport.filter.month_end": "結束期別", "watercostreport.button.query": "查詢", "watercostreport.button.export": "匯出 Excel", "watercostreport.select.loading": "載入中...", "watercostreport.select.placeholder": "請選擇迴路", "watercostreport.select.empty": "無自來水表迴路資料", "watercostreport.period.hint": "期別區間：{0} ~ {1}", "watercostreport.chart.title": "各期水費", "watercostreport.chart.dataset_label": "{0} 水費", "watercostreport.chart.y_axis": "水費（元）", "watercostreport.chart.x_axis": "期別", "watercostreport.chart.no_data": "查無資料", "watercostreport.label.total": "總水費", "watercostreport.label.total_m3": "總用水量", "watercostreport.unit.ntd": "元", "watercostreport.table.title": "期別明細", "watercostreport.table.col_period": "期別", "watercostreport.table.col_m3": "用水量 (m³)", "watercostreport.table.col_plan": "套用方案", "watercostreport.table.col_cost": "水費（元）", "watercostreport.table.col_detail": "明細", "watercostreport.table.empty": "請選擇迴路與期別區間後查詢", "watercostreport.table.querying": "查詢中...", "watercostreport.table.no_data": "查無資料", "watercostreport.table.total": "合計", "watercostreport.detail.col_range": "級距（度）", "watercostreport.detail.col_price": "單價（元/度）", "watercostreport.detail.col_m3": "度數 (m³)", "watercostreport.detail.col_cost": "金額（元）", "watercostreport.detail.above": "{0} 度以上", "watercostreport.badge.stale": "資料不完整", "watercostreport.badge.stale_hint": "該期用水量彙總含品質警示，金額僅供參考", "watercostreport.alert.select_circuit": "請先選擇迴路", "watercostreport.alert.month_order": "期別區間不正確（結束不可早於起始）", "watercostreport.alert.query_failed": "查詢失敗：{0}", "watercostreport.alert.export_failed": "匯出失敗：{0}"},t:function(k,a){var v=this._d[k]||k;if(a)for(var i in a)v=v.split("{"+i+"}").join(a[i]);return v;},ready:function(cb){if(cb)setTimeout(cb,0);},getCulture:function(){return "zh-TW";}};</script>
+    <script src="{{WWWROOT}}/js/watercostreport.js"></script>
+    <script>
+        window._wcrInit = { today: '2026-09-09' };
+        // driver：設起訖期別 + 選迴路 1 + 查詢；水費版展開最後一期級距明細
+        (function () {
+            function drive() {
+                var sel = document.getElementById('wcrCircuit');
+                if (!Array.prototype.some.call(sel.options, function (o) { return o.value === '1'; })) { setTimeout(drive, 60); return; }
+                var a = document.getElementById('wcrMonthStart'), b = document.getElementById('wcrMonthEnd');
+                a.value = '2026-03'; b.value = '2026-08'; b.dispatchEvent(new Event('change'));
+                sel.value = '1';
+                Promise.resolve(window._wcr.query()).then(function () { window._wcr.toggleDetail(5); });
+            }
+            document.addEventListener('DOMContentLoaded', function () { setTimeout(drive, 80); });
+        })();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

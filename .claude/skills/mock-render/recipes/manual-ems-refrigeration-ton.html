@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<!-- 冷凍噸報表 月粒度 2025-01~2025-12（單一迴路 12 月 RT·h）離線模擬渲染 -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>冷凍噸報表 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/refrigerationtonreport.css">
+
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        /* headless 凍結 timeline，一律關動畫/轉場避免卡在起始值 */
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘 ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2025, 11, 31, 10, 0, 0).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        // 冷凍噸月粒度 2025 全年（季節型、YoY 穩定的冷量需求）
+        // dTotalRtHour = 各月 dRtHour 加總（頁面會顯示合計，使用者可驗算）
+        var RT = [
+            { szLabel: '2025-01', dRtHour: 28500 },
+            { szLabel: '2025-02', dRtHour: 27200 },
+            { szLabel: '2025-03', dRtHour: 32800 },
+            { szLabel: '2025-04', dRtHour: 41500 },
+            { szLabel: '2025-05', dRtHour: 52300 },
+            { szLabel: '2025-06', dRtHour: 63800 },
+            { szLabel: '2025-07', dRtHour: 71200 },
+            { szLabel: '2025-08', dRtHour: 72600 },
+            { szLabel: '2025-09', dRtHour: 64100 },
+            { szLabel: '2025-10', dRtHour: 51900 },
+            { szLabel: '2025-11', dRtHour: 38400 },
+            { szLabel: '2025-12', dRtHour: 30700 }
+        ];
+        var buckets = RT.map(function (m) {
+            return {
+                dtBucketStart: m.szLabel + '-01T00:00:00',
+                szLabel: m.szLabel,
+                dRtHour: m.dRtHour
+            };
+        });
+        var dTotal = buckets.reduce(function (s, b) { return s + b.dRtHour; }, 0);
+
+        var QUERY_RESULT = {
+            nCircuitId: 1,
+            szCircuitName: '冷凍主機群',
+            szGranularity: 'month',
+            dtStart: '2025-01-01T00:00:00',
+            dtEnd: '2026-01-01T00:00:00',
+            buckets: buckets,
+            dTotalRtHour: dTotal,
+            isHasWarning: false,
+            coverage: {
+                nExpectedHours: 8760, nActualHours: 8760, dCoveragePercent: 100.0,
+                nMissingHours: 0, szWorstLeafName: '', nThresholdPercent: 90, isBelowThreshold: false
+            },
+            children: []
+        };
+
+        var MOCK = {
+            '/RefrigerationTonReport/api/circuits': function () {
+                return [
+                    { id: 1, name: '冷凍主機群', parentId: null, sortOrder: 1, sid: '20001' },
+                    { id: 2, name: '冰水主機 CH-01', parentId: 1, sortOrder: 1, sid: '20002' },
+                    { id: 3, name: '冰水主機 CH-02', parentId: 1, sortOrder: 2, sid: '20003' }
+                ];
+            },
+            '/RefrigerationTonReport/api/query': function () { return QUERY_RESULT; }
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT ═══════════ -->
+        <div class="container-fluid mt-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="mb-0">
+                    <i class="fas fa-snowflake text-primary me-2"></i>冷凍噸報表
+                </h2>
+                <span class="text-muted small">
+                    <i class="fas fa-leaf me-1"></i>能源管理
+                </span>
+            </div>
+
+            <!-- 查詢條件 -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-light py-2">
+                    <i class="fas fa-filter me-1"></i>查詢條件
+                </div>
+                <div class="card-body p-3">
+                    <div class="rt-filter-bar">
+                        <div class="rt-circuit">
+                            <label class="form-label fw-semibold"><i class="fas fa-sitemap me-1"></i>空調水系統迴路</label>
+                            <select id="rtCircuit" class="form-select form-select-sm">
+                                <option value="">-- 載入中 --</option>
+                            </select>
+                        </div>
+                        <div class="rt-narrow-unit">
+                            <label class="form-label fw-semibold"><i class="fas fa-clock me-1"></i>單位</label>
+                            <select id="rtGranularity" class="form-select form-select-sm">
+                                <option value="hour">時</option>
+                                <option value="day" selected>日</option>
+                                <option value="month">月</option>
+                                <option value="year">年</option>
+                            </select>
+                        </div>
+
+                        <div class="rt-wide-date rt-period rt-period-hour">
+                            <label class="form-label fw-semibold"><i class="fas fa-calendar-day me-1"></i>起時</label>
+                            <div class="input-group input-group-sm rt-hour-group">
+                                <input type="date" id="rtHourStartDate" class="form-control form-control-sm">
+                                <select id="rtHourStartHour" class="form-select form-select-sm rt-hour-select"></select>
+                            </div>
+                        </div>
+                        <div class="rt-wide-date rt-period rt-period-hour">
+                            <label class="form-label fw-semibold"><i class="fas fa-calendar-day me-1"></i>訖時</label>
+                            <div class="input-group input-group-sm rt-hour-group">
+                                <input type="date" id="rtHourEndDate" class="form-control form-control-sm">
+                                <select id="rtHourEndHour" class="form-select form-select-sm rt-hour-select"></select>
+                            </div>
+                        </div>
+
+                        <div class="rt-narrow-date rt-period rt-period-day">
+                            <label class="form-label fw-semibold"><i class="fas fa-calendar me-1"></i>起日</label>
+                            <input type="date" id="rtDayStart" class="form-control form-control-sm">
+                        </div>
+                        <div class="rt-narrow-date rt-period rt-period-day">
+                            <label class="form-label fw-semibold"><i class="fas fa-calendar me-1"></i>訖日</label>
+                            <input type="date" id="rtDayEnd" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="rt-narrow-date rt-period rt-period-month">
+                            <label class="form-label fw-semibold"><i class="fas fa-calendar-week me-1"></i>起月</label>
+                            <input type="month" id="rtMonthStart" class="form-control form-control-sm">
+                        </div>
+                        <div class="rt-narrow-date rt-period rt-period-month">
+                            <label class="form-label fw-semibold"><i class="fas fa-calendar-week me-1"></i>訖月</label>
+                            <input type="month" id="rtMonthEnd" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="rt-narrow-date rt-period rt-period-year">
+                            <label class="form-label fw-semibold"><i class="fas fa-calendar-alt me-1"></i>起年</label>
+                            <input type="number" id="rtYearStart" class="form-control form-control-sm" min="2000" max="2100">
+                        </div>
+                        <div class="rt-narrow-date rt-period rt-period-year">
+                            <label class="form-label fw-semibold"><i class="fas fa-calendar-alt me-1"></i>訖年</label>
+                            <input type="number" id="rtYearEnd" class="form-control form-control-sm" min="2000" max="2100">
+                        </div>
+
+                        <div class="rt-btn">
+                            <button class="btn btn-primary btn-sm" onclick="window._rt.query()">
+                                <i class="fas fa-search me-1"></i>查詢
+                            </button>
+                        </div>
+                        <div class="rt-btn">
+                            <button class="btn btn-success btn-sm" onclick="window._rt.exportExcel()" id="rtBtnExport" disabled>
+                                <i class="fas fa-file-excel me-1"></i>匯出 Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 結果區 -->
+            <div class="row g-3">
+                <div class="col-lg-7">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-chart-bar me-1"></i>冷量分布</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted small" id="rtWarnText"></span>
+                                <button type="button" id="rtBtnToggleBreakdown" class="btn btn-sm btn-outline-secondary d-none" onclick="window._rt.toggleBreakdown()">
+                                    <i class="fas fa-layer-group me-1"></i><span id="rtBtnToggleBreakdownText">顯示明細</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div style="height:360px;">
+                                <canvas id="rtChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light text-muted small">
+                            總計：<span id="rtTotal" class="fw-bold text-primary">--</span> RT·h
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light py-2">
+                            <i class="fas fa-table me-1"></i>數據明細
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height:420px;overflow-y:auto;">
+                                <table class="table table-striped table-hover table-bordered mb-0">
+                                    <thead class="table-dark" style="position:sticky;top:0;z-index:30;">
+                                        <tr>
+                                            <th>時段</th>
+                                            <th class="text-end">冷量 (RT·h)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rtTableBody">
+                                        <tr><td colspan="2" class="text-center text-muted py-4">尚未查詢</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+
+    <!-- ═══════════ PAGE_SCRIPTS ═══════════ -->
+    <!-- i18n stub：只填 refrigerationtonreport.js 用到的 key（shell 沒載 i18n.js） -->
+    <script>
+    window.i18n = {
+        _dict: {
+            'refrigerationtonreport.select.empty': '尚未設定空調水系統迴路',
+            'refrigerationtonreport.select.placeholder': '-- 請選擇空調水系統迴路 --',
+            'refrigerationtonreport.console.load_circuit_failed': '[RefrigerationTonReport] 載入迴路失敗',
+            'refrigerationtonreport.alert.select_circuit': '請選擇空調水系統迴路',
+            'refrigerationtonreport.alert.hour_order': '訖時不可早於起時',
+            'refrigerationtonreport.alert.day_order': '訖日不可早於起日',
+            'refrigerationtonreport.alert.month_order': '訖月不可早於起月',
+            'refrigerationtonreport.alert.year_order': '訖年不可早於起年',
+            'refrigerationtonreport.table.querying': '查詢中…',
+            'refrigerationtonreport.alert.query_failed': '查詢失敗：{0}',
+            'refrigerationtonreport.table.no_data': '無資料',
+            'refrigerationtonreport.table.total': '合計',
+            'refrigerationtonreport.warning.data_incomplete': '⚠ 部分時段資料不足（樣本數 < 30/小時），該段視為缺資料',
+            'refrigerationtonreport.button.show_total': '顯示合計',
+            'refrigerationtonreport.button.show_breakdown': '顯示明細',
+            'refrigerationtonreport.chart.breakdown_total_label': '合計：{0} RT·h',
+            'refrigerationtonreport.chart.dataset_label': '{0} (RT·h)',
+            'refrigerationtonreport.chart.y_axis': 'RT·h',
+            'refrigerationtonreport.chart.x_axis': '時段',
+            'refrigerationtonreport.alert.export_failed': '匯出失敗：{0}'
+        },
+        t: function (key, args) {
+            var s = this._dict[key] || key;
+            if (args) Object.keys(args).forEach(function (k) { s = s.split('{' + k + '}').join(args[k]); });
+            return s;
+        },
+        ready: function (cb) { cb(); }
+    };
+    </script>
+    <script src="{{WWWROOT}}/js/refrigerationtonreport.js"></script>
+    <script>
+        window._rtInit = { today: '2025-12-31' };
+        // 自動驅動：切月粒度 + 設 2025/01~2025/12 + 選迴路 + 觸發查詢
+        (function () {
+            function drive() {
+                var g = document.getElementById('rtGranularity');
+                g.value = 'month';
+                g.dispatchEvent(new Event('change'));
+                document.getElementById('rtMonthStart').value = '2025-01';
+                document.getElementById('rtMonthEnd').value = '2025-12';
+                var sel = document.getElementById('rtCircuit');
+                var opt = Array.prototype.find.call(sel.options, function (o) { return o.value === '1'; });
+                if (!opt) { setTimeout(drive, 60); return; }
+                sel.value = '1';
+                window._rt.query();
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () { setTimeout(drive, 80); });
+            } else {
+                setTimeout(drive, 80);
+            }
+        })();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

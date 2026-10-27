@@ -38,6 +38,13 @@
     font-size: 0.85em;
 }
 
+/* 部分區間（邊界缺讀數、改以區間內首/末筆起算）：藍色 ◐，與斷線 ⚠ 互斥 */
+.ed-partial-mark {
+    color: #0d6efd;
+    cursor: help;
+    font-size: 0.85em;
+}
+
 #edTableBody td {
     font-size: 0.85rem;
     padding: 6px 10px;

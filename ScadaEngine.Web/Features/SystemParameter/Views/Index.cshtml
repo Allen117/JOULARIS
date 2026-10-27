@@ -1,0 +1,78 @@
+@using ScadaEngine.Web.Features.SystemParameter.Models
+@{
+    ViewData["Title"] = Localizer["sysparam.title"].Value;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var rMax = SystemParameterLimits.HistoryMaxRecordsPerPoint;
+    var rCells = SystemParameterLimits.HistoryExportMaxCells;
+}
+
+<link rel="stylesheet" href="~/css/systemparameter.css" asp-append-version="true" />
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            <i class="fas fa-sliders-h text-primary me-2"></i>@Localizer["sysparam.title"]
+        </h2>
+        <span class="text-muted small" id="spUpdatedAt"></span>
+    </div>
+    <div class="text-muted small mb-3">
+        <i class="fas fa-info-circle me-1"></i>@Localizer["sysparam.hint.page"]
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2">
+            <i class="fas fa-chart-area me-1"></i>@Localizer["sysparam.group.history"]
+        </div>
+        <div class="card-body p-3">
+            <div class="sp-row">
+                <label class="sp-label" for="spMaxRecords">@Localizer["sysparam.history_max_records.label"]</label>
+                <div class="sp-input">
+                    <input type="number" id="spMaxRecords" class="form-control form-control-sm"
+                           min="@rMax.nMin" max="@rMax.nMax" step="100" data-key="nHistoryMaxRecordsPerPoint" />
+                    <span class="sp-unit">@Localizer["sysparam.unit.records"]</span>
+                </div>
+                <div class="sp-desc">
+                    @Localizer["sysparam.history_max_records.desc"]
+                    <div class="sp-range">@Localizer["sysparam.range", rMax.nMin.ToString("N0"), rMax.nMax.ToString("N0"), rMax.nDefault.ToString("N0")]</div>
+                </div>
+            </div>
+            <div class="sp-row">
+                <label class="sp-label" for="spMaxCells">@Localizer["sysparam.history_export_max_cells.label"]</label>
+                <div class="sp-input">
+                    <input type="number" id="spMaxCells" class="form-control form-control-sm"
+                           min="@rCells.nMin" max="@rCells.nMax" step="1000" data-key="nHistoryExportMaxCells" />
+                    <span class="sp-unit">@Localizer["sysparam.unit.cells"]</span>
+                </div>
+                <div class="sp-desc">
+                    @Localizer["sysparam.history_export_max_cells.desc"]
+                    <div class="sp-range">@Localizer["sysparam.range", rCells.nMin.ToString("N0"), rCells.nMax.ToString("N0"), rCells.nDefault.ToString("N0")]</div>
+                </div>
+            </div>
+            <div class="sp-row">
+                <label class="sp-label" for="spJitter">@Localizer["sysparam.jitter.label"]</label>
+                <div class="sp-input">
+                    <input type="number" id="spJitter" class="form-control form-control-sm"
+                           min="@SystemParameterLimits.dJitterMin" max="@SystemParameterLimits.dJitterMax" step="0.1" data-key="dCumulativeJitterTolerancePct" />
+                    <span class="sp-unit">%</span>
+                </div>
+                <div class="sp-desc">
+                    @Localizer["sysparam.jitter.desc"]
+                    <div class="sp-range">@Localizer["sysparam.range", SystemParameterLimits.dJitterMin, SystemParameterLimits.dJitterMax, SystemParameterLimits.dJitterDefault]</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm" id="btnSpSave" onclick="window._sp.save()">
+            <i class="fas fa-save me-1"></i>@Localizer["sysparam.button.save"]
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="window._sp.resetDefaults()">
+            <i class="fas fa-undo me-1"></i>@Localizer["sysparam.button.defaults"]
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/systemparameter.js" asp-append-version="true"></script>
+}

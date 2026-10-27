@@ -41,7 +41,7 @@
     var isFetchOk = true;
 
     // ── DOM ──
-    var $nav, $icon, $count, $snoozeLabel, $status, $unlock, $resume;
+    var $nav, $icon, $count, $snoozeLabel, $status, $unlock, $resume, $silence;
 
     // ════════════════ localStorage ════════════════
 
@@ -303,16 +303,15 @@
         var nPending = pendingAlarms.length;
         var isSnooze = isSnoozed();
         var isSounding = audible.length > 0;
-
-        // 已消音：按過「消音」且尚未被新警報突破 / 取消 → 與暫時靜音同樣切 🔕
-        // （有未確認警報時維持紅色不淡化，仍提醒有警報；沒有警報時也切，讓按鈕有即時回饋）
-        var isSilenced = state.isSilenced && !isSounding;
+        // 已消音：按過「消音」且尚未被新警報突破 / 取消（有未確認警報時紅色靜止；警報都確認後仍維持，直到新警報或取消）
+        var isSilenced = !isSnooze && state.isSilenced && !isSounding;
 
         $nav.classList.toggle('as-alerting', isSounding);
         $nav.classList.toggle('as-has-pending', nPending > 0);
         $nav.classList.toggle('as-muted', isSnooze);
 
-        $icon.className = (isSnooze || isSilenced) ? 'fas fa-bell-slash' : 'fas fa-bell';
+        // 頂端圖示與選單項目同圖：暫時靜音 = bell-slash、消音 = volume-mute、其餘 = bell
+        $icon.className = isSnooze ? 'fas fa-bell-slash' : (isSilenced ? 'fas fa-volume-mute' : 'fas fa-bell');
         $count.textContent = nPending;
         $count.classList.toggle('d-none', nPending === 0);
 
@@ -329,6 +328,10 @@
         else if (isSilenced) szStatus = t('layout.alarm_sound.status.silenced_idle');
         else szStatus = t('layout.alarm_sound.status.normal');
         $status.textContent = szStatus;
+
+        // 消音只針對「正在響」的警報；沒在響時（無警報 / 已消音 / 暫時靜音）點了沒作用 → 停用
+        $silence.classList.toggle('disabled', !isSounding);
+        $silence.setAttribute('aria-disabled', String(!isSounding));
 
         $resume.classList.toggle('d-none', !isSnooze && !state.isSilenced && state.silencedKeys.length === 0);
 
@@ -357,6 +360,7 @@
         $status = document.getElementById('alarmSoundStatus');
         $unlock = document.getElementById('alarmSoundUnlock');
         $resume = document.getElementById('alarmSoundResume');
+        $silence = document.getElementById('alarmSoundSilence');
 
         loadState();
         heartbeat();

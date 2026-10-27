@@ -295,7 +295,8 @@ public class DailyReportService
             for (var i = 0; i < 24 && i < rpt.buckets.Count; i++)
             {
                 section.dHourly[i] = Math.Round(section.dHourly[i] + rpt.buckets[i].dKwh, 3);
-                section.isHourlyStale[i] = section.isHourlyStale[i] || rpt.buckets[i].isStale;
+                // 日報小時格：邊界缺讀數改以區間內首/末筆起算（isPartial）亦視為不完整
+                section.isHourlyStale[i] = section.isHourlyStale[i] || rpt.buckets[i].isStale || rpt.buckets[i].isPartial;
             }
             section.dTotal = Math.Round(section.dTotal + rpt.dTotalKwh, 3);
             section.isHasWarning |= rpt.isHasWarning;

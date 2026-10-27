@@ -8,6 +8,6 @@
 | chartjs-adapter-date-fns | 3.0.0 | MIT | https://www.chartjs.org/ |
 | flatpickr | 4.6.13 | MIT | https://flatpickr.js.org/ |
 | @fortawesome/fontawesome-free | 6.5.1 | CC-BY-4.0 (icons) / OFL-1.1 (fonts) / MIT (code) | https://fontawesome.com/license/free |
-| xlsx (SheetJS CE) | 0.18.5 | Apache-2.0 | https://sheetjs.com/ |
+| xlsx (SheetJS CE) | 0.20.3 | Apache-2.0 | https://sheetjs.com/ |
 
 無 copyleft 授權。Font Awesome Free 的圖示為 CC BY 4.0，需在產品文件保留署名（CSS 檔頭已含）。

@@ -42,6 +42,12 @@
             + '<i class="' + WARN_ICON_CLS + '" aria-hidden="true"></i></span>';
     }
 
+    /** 表格單格的「部分區間」標記（藍色半圓 + hover tooltip）；與 stale 互斥，由呼叫端決定 */
+    function partialMarkHtml(cls, tip) {
+        return ' <span class="' + esc(cls) + '" title="' + esc(tip) + '">'
+            + '<i class="fas fa-adjust" aria-hidden="true"></i></span>';
+    }
+
     /** 年增減百分比：正 → upCls + caret-up，負 → downCls + caret-down，0 → 灰 0.0%，null → -- */
     function pctHtml(p, upCls, downCls) {
         if (p == null || isNaN(p)) return '<span class="text-muted">--</span>';
@@ -54,6 +60,7 @@
         warnHtml: warnHtml,
         setWarnText: setWarnText,
         staleMarkHtml: staleMarkHtml,
+        partialMarkHtml: partialMarkHtml,
         pctHtml: pctHtml
     };
 })();

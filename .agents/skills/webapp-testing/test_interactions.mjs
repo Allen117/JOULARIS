@@ -3,8 +3,9 @@
  */
 import { chromium } from 'playwright';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-const SCREENSHOT_DIR = 'c:/Users/A50388.ITRI/Desktop/ScadaEngine/.claude/skills/webapp-testing/screenshots';
+const SCREENSHOT_DIR = fileURLToPath(new URL('./screenshots', import.meta.url));
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
 const BASE_URL = 'http://localhost:5038';

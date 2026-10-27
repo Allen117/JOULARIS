@@ -257,13 +257,17 @@
             const totalLabel = escapeHtml(t('energydeclaration.table.total'));
             const staleTipRaw = t('energydeclaration.tooltip.stale');
             const staleTip = escapeHtml(staleTipRaw);
+            const partialTipRaw = t('energydeclaration.tooltip.partial');
+            const partialTip = escapeHtml(partialTipRaw);
             tbody.innerHTML = data.buckets.map(b => {
+                const tip = b.isKwhStale ? staleTip : b.isKwhPartial ? partialTip : '';
                 const mark = b.isKwhStale
-                    ? UiState.staleMarkHtml('ed-stale-mark', staleTipRaw) : '';
+                    ? UiState.staleMarkHtml('ed-stale-mark', staleTipRaw)
+                    : b.isKwhPartial ? UiState.partialMarkHtml('ed-partial-mark', partialTipRaw) : '';
                 return `
                 <tr>
                     <td>${escapeHtml(b.szLabel)}</td>
-                    <td class="text-end"${b.isKwhStale ? ` title="${staleTip}"` : ''}>${fmt1(b.dKwh)}${mark}</td>
+                    <td class="text-end"${tip ? ` title="${tip}"` : ''}>${fmt1(b.dKwh)}${mark}</td>
                     <td class="text-end">${fmt1(b.dRtHour)}</td>
                     <td class="text-end">${fmtEff(b.dKwhPerRtHour)}</td>
                 </tr>`;
@@ -361,11 +365,13 @@
                                 const b = data.buckets[items[0].dataIndex];
                                 return t('energydeclaration.chart.efficiency_label', { 0: fmtEff(b ? b.dKwhPerRtHour : null) });
                             },
-                            // kWh 側斷線時附註提示（依 bucket index 查 isKwhStale）
+                            // kWh 側斷線 / 部分區間時附註提示（依 bucket index 查 isKwhStale / isKwhPartial）
                             afterBody: function (items) {
                                 if (!items.length) return undefined;
                                 const b = data.buckets[items[0].dataIndex];
-                                return (b && b.isKwhStale) ? t('energydeclaration.tooltip.stale') : undefined;
+                                if (!b) return undefined;
+                                return b.isKwhStale ? t('energydeclaration.tooltip.stale')
+                                    : b.isKwhPartial ? t('energydeclaration.tooltip.partial') : undefined;
                             }
                         }
                     }

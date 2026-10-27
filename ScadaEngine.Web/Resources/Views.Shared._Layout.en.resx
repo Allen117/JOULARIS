@@ -143,10 +143,10 @@
   <data name="layout.lang.en" xml:space="preserve"><value>English</value></data>
 
   <data name="layout.search.title" xml:space="preserve"><value>Global Search</value></data>
-  <data name="layout.search.nav_hint" xml:space="preserve"><value>Search</value></data>
   <data name="layout.search.placeholder" xml:space="preserve"><value>Search pages...</value></data>
   <data name="layout.search.no_result" xml:space="preserve"><value>No matching pages</value></data>
   <data name="layout.search.recent" xml:space="preserve"><value>Recently Used</value></data>
+  <data name="layout.manual.title" xml:space="preserve"><value>User Manual</value></data>
   <data name="layout.search.hint" xml:space="preserve"><value>↑↓ Select · Enter Open · Esc Close</value></data>
   <data name="layout.search.error" xml:space="preserve"><value>Failed to load search index. Please refresh the page.</value></data>
   <data name="layout.alarm_sound.title" xml:space="preserve"><value>Alarm Sound</value></data>
@@ -164,4 +164,5 @@
   <data name="layout.alarm_sound.status.snoozed" xml:space="preserve"><value>Snoozed, {min} min left</value></data>
   <data name="layout.alarm_sound.status.offline" xml:space="preserve"><value>Unable to fetch alarm data</value></data>
   <data name="layout.menu.contract_capacity" xml:space="preserve"><value>Contract Capacity Optimization</value></data>
+  <data name="layout.menu.system_parameter" xml:space="preserve"><value>System Parameters</value></data>
 </root>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<!-- 使用手冊 SCADA「趨勢圖」/HistoryData（SCADA 藍）：走真實 history.js + point-grouping.js + flatpickr。
+     SCENE 由 location.hash 決定：預設 'multi'（3 點位堆疊小圖 + 多點統計表，左側展開空調箱 → AHU-01 並勾 2 個點位待加入）
+           或 --hash single（單點有效功率：統計卡 + 折線 + 品質不良紅點 03:00–03:30 + 展開資料明細）。
+     點位由 head 的 history.replaceState('?sid=..&hours=24') 走頁面自己的深連結帶入並自動查詢；selInterval 在 DOMContentLoaded 先設 5 分鐘。
+     mock /api/history/data 依 szSID / szStart / szEnd / nInterval 產決定性序列（SERIES），min/max/avg/std 只算 Good、累計點位帶 dDiff -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>歷史趨勢圖 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/flatpickr/flatpickr.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/history.css">
+    <style>*, *::before, *::after { transition: none !important; animation: none !important; }</style>
+    <script>
+    var SCENE = location.hash === '#single' ? 'single' : 'multi';   // render_page.py --hash single
+    history.replaceState(null, '', location.pathname + (SCENE === 'single'
+        ? '?sid=65793-S7&hours=24'
+        : '?sid=65793-S7&sid=131329-S3&sid=262401-S1&hours=24'));
+
+    // 點位目錄：[sid, 名稱, 單位]
+    var PT = [
+        ['65793-S1', '電壓 R-S', 'V'], ['65793-S4', '電流 R 相', 'A'], ['65793-S7', '有效功率', 'kW'],
+        ['65793-S8', '功率因數', 'PF'], ['65793-S10', '累積電度', 'kWh'],
+        ['131329-S1', '運轉狀態', ''], ['131329-S3', '回風溫度', '℃'], ['131329-S4', '送風溫度', '℃'],
+        ['131329-S5', '回風濕度', '%'], ['131329-S6', '風機頻率', 'Hz'],
+        ['131585-S1', '運轉狀態', ''], ['131585-S3', '回風溫度', '℃'], ['131585-S4', '送風溫度', '℃'],
+        ['196865-S2', '運轉頻率', 'Hz'], ['197121-S2', '運轉頻率', 'Hz'], ['197377-S2', '運轉頻率', 'Hz'],
+        ['262401-S1', '外氣溫度', '℃'], ['262401-S2', '外氣濕度', '%'],
+        ['DB1-S1', '契約容量', 'kW'], ['CALC-S2', '空調總用電', 'kW']
+    ];
+    var COORDS = [
+        { nId: 1, szName: '電力盤 MCC-01', szModbusID: '1', szDeviceName: 'M-01' },
+        { nId: 2, szName: '空調箱', szModbusID: '1,2', szDeviceName: 'AHU-01,AHU-02' },
+        { nId: 3, szName: '冰水泵', szModbusID: '1,2,3', szDeviceName: 'P-01,P-02,P-03' },
+        { nId: 4, szName: '環境感測', szModbusID: '1', szDeviceName: '' }
+    ];
+
+    // ── 決定性序列：h = 一天中的小時（小數），r = 決定性雜訊 [-1,1] ──
+    function rnd(seed) { var x = Math.sin(seed * 12.9898) * 43758.5453; return (x - Math.floor(x)) * 2 - 1; }
+    function office(h) { return (h >= 8 && h < 18) ? 1 : (h >= 7 && h < 8) ? h - 7 : (h >= 18 && h < 19) ? 19 - h : 0; }
+    var SERIES = {
+        '65793-S7':  function (h, r) { return 42 + 55 * office(h) + 6 * Math.sin(h / 24 * Math.PI * 2) + 3 * r; },
+        '131329-S3': function (h, r) { return 25.2 - 1.3 * office(h) + 0.6 * Math.sin((h - 15) / 24 * Math.PI * 2) + 0.15 * r; },
+        '262401-S1': function (h, r) { return 28.5 + 4 * Math.sin((h - 9) / 24 * Math.PI * 2) + 0.3 * r; }
+    };
+    // 品質不良區段（單點示意）：09-09 03:00 ~ 03:30 通訊中斷
+    function isBad(sid, d) { return sid === '65793-S7' && d.getDate() === 9 && d.getHours() === 3 && d.getMinutes() <= 30; }
+
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function isoLocal(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':00'; }
+    function historyData(url) {
+        var qs = new URLSearchParams(url.split('?')[1] || '');
+        var sid = qs.get('szSID'), nInt = parseInt(qs.get('nInterval'), 10) || 1;
+        var st = new Date(qs.get('szStart').replace(' ', 'T')), en = new Date(qs.get('szEnd').replace(' ', 'T'));
+        var p = PT.find(function (x) { return x[0] === sid; });
+        var f = SERIES[sid] || function (h, r) { return 50 + 5 * r; };
+        var step = nInt * 60000, t0 = Math.ceil(st.getTime() / step) * step, data = [], good = [];
+        for (var t = t0, i = 0; t <= en.getTime(); t += step, i++) {
+            var d = new Date(t), h = d.getHours() + d.getMinutes() / 60;
+            var bad = isBad(sid, d);
+            var v = bad ? 0 : Math.round(f(h, rnd(i + sid.length * 97)) * 1000) / 1000;
+            data.push({ t: isoLocal(d), v: v, q: bad ? 'Bad' : 'Good' });
+            if (!bad) good.push(v);
+        }
+        var avg = good.reduce(function (a, b) { return a + b; }, 0) / good.length;
+        var sd = Math.sqrt(good.reduce(function (a, b) { return a + (b - avg) * (b - avg); }, 0) / good.length);
+        var dev = COORDS.find(function (c) { var n = parseInt(sid, 10); return n >= c.nId * 65536 && n < (c.nId + 1) * 65536; });
+        var label = !dev ? '' : (dev.szModbusID.indexOf(',') >= 0
+            ? dev.szDeviceName.split(',')[(parseInt(sid, 10) - dev.nId * 65536) >> 8 > 0 ? ((parseInt(sid, 10) - dev.nId * 65536) >> 8) - 1 : 0]
+            : dev.szName);
+        return {
+            success: true, szSID: sid, szName: (label ? label + ' / ' : '') + p[1], szUnit: p[2],
+            nCount: data.length, nValidCount: good.length, nMaxRecords: 5000, isLimited: false,
+            dMin: Math.min.apply(null, good), dMax: Math.max.apply(null, good), dAvg: avg, dStdDev: sd,
+            dDiff: null, data: data
+        };
+    }
+
+    // 查詢完成時間：headless 預設 en-US，固定成 zh-TW 畫面常見的 24h 格式
+    Date.prototype.toLocaleTimeString = function () { return pad(this.getHours()) + ':' + pad(this.getMinutes()) + ':' + pad(this.getSeconds()); };
+
+    window.i18n = {
+        ready: function (cb) { cb(); },
+        t: function (k, a) {
+            var s = ({
+                'history.chart.title.queried': '已查詢 {0} 個點位', 'history.chart.completed_at': '查詢完成: {0}',
+                'history.table.button.expand': '展開', 'history.table.button.collapse': '收合',
+                'history.basket.button.remove': '移除', 'history.chart.no_data': '該時段內無歷史資料',
+                'history.chart.axis_dual': '雙軸', 'history.chart.axis_single': '單軸',
+                'history.alert.no_points_data': '無點位資料', 'history.chart.title.empty': '請加入點位後按下查詢'
+            })[k] || k;
+            if (a) Object.keys(a).forEach(function (i) { s = s.split('{' + i + '}').join(a[i]); });
+            return s;
+        }
+    };
+    </script>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/api/history/data': function (url) { return historyData(url); },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path](String(url), opts)), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0"><i class="fas fa-chart-line text-primary me-2"></i>歷史趨勢圖</h2>
+    </div>
+    <div class="row">
+        <div class="col-md-2 pe-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-dark text-white py-2"><h6 class="mb-0"><i class="fas fa-server me-1"></i>設備清單</h6></div>
+                <div class="list-group list-group-flush" id="coordinatorList">
+                    <a href="#" class="list-group-item list-group-item-action py-2 coordinator-item active" data-id="1" data-name="電力盤 MCC-01">
+                        <i class="fas fa-chevron-right me-1" style="font-size:.7rem;visibility:hidden;"></i><i class="fas fa-plug me-1 text-secondary"></i><span class="small">電力盤 MCC-01</span></a>
+                    <div class="coordinator-group">
+                        <a href="#" class="list-group-item list-group-item-action py-2 coordinator-toggle" id="tg2" data-id="2" data-name="空調箱">
+                            <i class="fas fa-chevron-right me-1 toggle-icon text-secondary" style="font-size:.7rem;"></i><i class="fas fa-plug me-1 text-secondary"></i><span class="small">空調箱</span></a>
+                        <div class="sub-menu" style="display:none;">
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" id="sub2_1" data-id="2" data-modbusid="1" data-name="AHU-01"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">AHU-01</span></a>
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" id="sub2_2" data-id="2" data-modbusid="2" data-name="AHU-02"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">AHU-02</span></a>
+                        </div>
+                    </div>
+                    <div class="coordinator-group">
+                        <a href="#" class="list-group-item list-group-item-action py-2 coordinator-toggle" id="tg3" data-id="3" data-name="冰水泵">
+                            <i class="fas fa-chevron-right me-1 toggle-icon text-secondary" style="font-size:.7rem;"></i><i class="fas fa-plug me-1 text-secondary"></i><span class="small">冰水泵</span></a>
+                        <div class="sub-menu" style="display:none;">
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" id="sub3_1" data-id="3" data-modbusid="1" data-name="P-01"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">P-01</span></a>
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" id="sub3_2" data-id="3" data-modbusid="2" data-name="P-02"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">P-02</span></a>
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" id="sub3_3" data-id="3" data-modbusid="3" data-name="P-03"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">P-03</span></a>
+                        </div>
+                    </div>
+                    <a href="#" class="list-group-item list-group-item-action py-2 coordinator-item" data-id="4" data-name="環境感測">
+                        <i class="fas fa-chevron-right me-1" style="font-size:.7rem;visibility:hidden;"></i><i class="fas fa-plug me-1 text-secondary"></i><span class="small">環境感測</span></a>
+                    <div class="coordinator-group">
+                        <a href="#" class="list-group-item list-group-item-action py-2 coordinator-toggle" data-sid-prefix="DB" data-name="DB">
+                            <i class="fas fa-chevron-right me-1 toggle-icon text-secondary" style="font-size:.7rem;"></i><i class="fas fa-database me-1 text-secondary"></i><span class="small">DB</span></a>
+                        <div class="sub-menu" style="display:none;">
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" data-sid-prefix="DB1-" data-name="能源資料庫"><i class="fas fa-database me-1 text-muted" style="font-size:.75rem;"></i><span class="small">能源資料庫</span></a>
+                        </div>
+                    </div>
+                    <a href="#" class="list-group-item list-group-item-action py-2 coordinator-item" data-id="-999" data-name="計算點位">
+                        <i class="fas fa-chevron-right me-1" style="font-size:.7rem;visibility:hidden;"></i><i class="fas fa-calculator me-1 text-warning"></i><span class="small">計算點位</span></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-10">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-light"><h5 class="mb-0"><i class="fas fa-sliders-h text-primary me-2"></i>查詢條件</h5></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-semibold text-muted mb-0"><i class="fas fa-list-ul me-1"></i>點位選取</label>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-outline-secondary btn-xs" id="btnCheckAll">全選</button>
+                                    <button class="btn btn-outline-secondary btn-xs" id="btnUncheckAll">清除</button>
+                                </div>
+                            </div>
+                            <div id="pointListContainer" class="border rounded bg-white" style="height:148px; overflow-y:auto; padding:0.2rem 0.5rem;"></div>
+                            <button class="btn btn-primary btn-sm w-100 mt-2" id="btnAddToBasket"><i class="fas fa-plus me-1"></i>加入待查詢清單</button>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-semibold text-muted mb-0"><i class="fas fa-clipboard-list me-1"></i>待查詢清單
+                                    <span class="badge bg-primary ms-1" id="basketCount">0</span></label>
+                                <button class="btn btn-outline-danger btn-xs" id="btnClearBasket">清除全部</button>
+                            </div>
+                            <div id="basketContainer" class="border rounded bg-white" style="height:148px; overflow-y:auto; padding:0.2rem 0.4rem;"></div>
+                            <div class="mt-2 text-muted small" id="basketHint" style="display:none"><i class="fas fa-info-circle me-1"></i>可跨設備加入，最多 8 個點位</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold text-muted"><i class="fas fa-calendar-plus me-1"></i>開始時間</label>
+                                    <input type="text" id="dtStart" class="form-control form-control-sm" value="2026-09-08 15:42" autocomplete="off" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold text-muted"><i class="fas fa-calendar-check me-1"></i>結束時間</label>
+                                    <input type="text" id="dtEnd" class="form-control form-control-sm" value="2026-09-09 15:42" autocomplete="off" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold text-muted"><i class="fas fa-stopwatch me-1"></i>時間間隔</label>
+                                    <select id="selInterval" class="form-select form-select-sm">
+                                        <option value="1" selected>1 分鐘</option><option value="5">5 分鐘</option><option value="15">15 分鐘</option>
+                                        <option value="30">30 分鐘</option><option value="60">1 小時</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 d-flex gap-2">
+                                    <button id="btnQuery" class="btn btn-success btn-sm flex-fill"><i class="fas fa-search me-1"></i>查詢</button>
+                                    <button id="btnClear" class="btn btn-outline-secondary btn-sm" title="清除圖表"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                            <div class="mt-2 d-flex align-items-center gap-1 flex-wrap">
+                                <small class="text-muted me-1">快速：</small>
+                                <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="1">1h</button>
+                                <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="6">6h</button>
+                                <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="24">24h</button>
+                                <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="72">3d</button>
+                                <button class="btn btn-outline-secondary btn-xs quick-range" data-hours="168">7d</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0" id="chartTitle"><i class="fas fa-chart-area text-primary me-2"></i>請加入點位後按下查詢</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="limitWarning" class="badge bg-warning text-dark d-none"><i class="fas fa-exclamation-triangle me-1"></i>部分點位超過每點位筆數上限</span>
+                        <button id="btnExportExcel" class="btn btn-outline-success btn-sm d-none"><i class="fas fa-file-excel me-1"></i>匯出 Excel</button>
+                        <button id="btnSingleAxis" class="btn btn-outline-secondary btn-sm axis-toggle-btn d-none" title="切換單軸/雙軸模式"><i class="fas fa-arrows-alt-v me-1"></i>雙軸</button>
+                        <div class="btn-group btn-group-sm" id="chartTypeGroup">
+                            <button class="btn btn-outline-primary active" data-type="line"><i class="fas fa-chart-line me-1"></i>折線</button>
+                            <button class="btn btn-outline-primary" data-type="bar"><i class="fas fa-chart-bar me-1"></i>柱狀</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="loadingSpinner" class="text-center py-5 d-none"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted small">查詢中...</div></div>
+                    <div id="noDataMsg" class="text-center py-5 text-muted"><i class="fas fa-chart-line fa-3x mb-3 d-block opacity-25"></i><div>請加入點位並設定時間範圍後按下查詢</div></div>
+                    <div id="statsRow" style="display:none; padding:0.75rem 0.75rem 0;">
+                        <div class="row g-2">
+                            <div class="col"><div class="rounded p-2 text-white d-flex justify-content-between align-items-center" style="background:#198754;"><div><div class="fw-bold" id="statMin">--</div><div style="font-size:0.75rem;">最小值</div></div><i class="fas fa-arrow-down opacity-50"></i></div></div>
+                            <div class="col"><div class="rounded p-2 text-white d-flex justify-content-between align-items-center" style="background:#dc3545;"><div><div class="fw-bold" id="statMax">--</div><div style="font-size:0.75rem;">最大值</div></div><i class="fas fa-arrow-up opacity-50"></i></div></div>
+                            <div class="col"><div class="rounded p-2 text-dark d-flex justify-content-between align-items-center" style="background:#ffc107;"><div><div class="fw-bold" id="statAvg">--</div><div style="font-size:0.75rem;">平均值</div></div><i class="fas fa-chart-bar opacity-50"></i></div></div>
+                            <div class="col"><div class="rounded p-2 text-white d-flex justify-content-between align-items-center" style="background:#0dcaf0;"><div><div class="fw-bold" id="statStdDev">--</div><div style="font-size:0.75rem;">標準差</div></div><i class="fas fa-wave-square opacity-50"></i></div></div>
+                            <div class="col d-none" id="statDiffCol"><div class="rounded p-2 text-white d-flex justify-content-between align-items-center" style="background:#6f42c1;"><div><div class="fw-bold" id="statDiff">--</div><div style="font-size:0.75rem;">差異值</div></div><i class="fas fa-exchange-alt opacity-50"></i></div></div>
+                        </div>
+                    </div>
+                    <div id="multiStatsWrapper" style="display:none; padding:0.75rem 0.75rem 0;">
+                        <div class="table-responsive rounded border">
+                            <table class="table table-sm table-hover table-bordered mb-0">
+                                <thead class="table-dark"><tr><th>點位</th><th class="text-end">最小值</th><th class="text-end">最大值</th><th class="text-end">平均值</th><th class="text-end">標準差</th><th class="text-end d-none" id="multiStatsThDiff">差異值</th></tr></thead>
+                                <tbody id="multiStatsTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="chartContainer" style="position:relative; height:380px; padding:0.75rem; display:none;"><canvas id="trendChart"></canvas></div>
+                    <div id="stackedChartsContainer" style="display:none;"></div>
+                </div>
+                <div class="card-footer bg-light text-muted">
+                    <div class="d-flex justify-content-between">
+                        <small><i class="fas fa-info-circle me-1"></i>每個點位最多顯示 5000 筆；品質不良以紅色標示（單點模式）</small>
+                        <small id="footerQueryTime"></small>
+                    </div>
+                </div>
+            </div>
+            <div class="card shadow-sm mt-3 d-none" id="dataTableCard">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                    <h6 class="mb-0"><i class="fas fa-table text-primary me-2"></i>資料明細 (<span id="tableCount">0</span> 筆)</h6>
+                    <button class="btn btn-outline-secondary btn-sm" id="btnToggleTable"><i class="fas fa-chevron-down me-1"></i>展開</button>
+                </div>
+                <div class="card-body p-0 d-none" id="tableBody">
+                    <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
+                        <table class="table table-sm table-striped table-hover mb-0">
+                            <thead class="table-dark sticky-top"><tr><th>時間戳記</th><th class="text-end">數值</th><th>品質</th></tr></thead>
+                            <tbody id="dataTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script src="{{WWWROOT}}/lib/chartjs/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/flatpickr/flatpickr.min.js"></script>
+    <script src="{{WWWROOT}}/lib/flatpickr/zh-tw.js"></script>
+    <script src="{{WWWROOT}}/js/flatpickr-init.js"></script>
+    <script>
+        window.__historyConfig = {
+            points: PT.map(function (p) { return { sid: p[0], name: p[1], unit: p[2], groupName: '', deviceGroup: null }; }),
+            coordinators: COORDS,
+            initialCoordId: 1,
+            calcLabel: '計算點位'
+        };
+        // driver（須在 history.js 之前註冊，DOMContentLoaded 才會先於深連結查詢執行）
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('selInterval').value = '5';
+            setTimeout(function () {
+                if (SCENE === 'single') {
+                    document.getElementById('btnToggleTable').click();
+                    return;
+                }
+                document.getElementById('tg2').click();
+                document.getElementById('sub2_1').click();
+                ['131329-S4', '131329-S5'].forEach(function (sid) {
+                    var cb = document.querySelector('.point-checkbox[value="' + sid + '"]');
+                    if (cb) cb.checked = true;
+                });
+            }, 600);
+        });
+    </script>
+    <script src="{{WWWROOT}}/js/common/point-grouping.js"></script>
+    <script src="{{WWWROOT}}/js/history.js"></script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

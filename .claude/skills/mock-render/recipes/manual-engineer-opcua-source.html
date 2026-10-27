@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<!-- 工程師手冊 opcua-source-01：/OpcUaCoordinator（Engineer 視角）。資料走 window._opcuaData（server: id/name/endpointUrl/username/hasPassword/pollingInterval/connectTimeout/monitorEnabled/devices[{name,tags[{seq,name,tagName,controlType,ratio,unit,min,max}]}]）；SID 由 JS 組 OPC{id}-S{seq} -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OPC UA 來源 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/opcuacoordinator.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/source-excel-import.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/OpcUaCoordinator/FolderWorkbooks': function () { return []; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-hard-hat me-1"></i>工程師模式</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>engineer</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<link rel="stylesheet" href="{{WWWROOT}}/css/opcuacoordinator.css" />
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h4 class="mb-0"><i class="fas fa-plug me-2"></i>OPC UA 來源</h4>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            
+<link rel="stylesheet" href="{{WWWROOT}}/css/source-excel-import.css" />
+
+<div class="srcxl-toolbar d-inline-flex flex-wrap gap-2 align-items-center"
+     data-srcxl-base="/OpcUaCoordinator" data-srcxl-kind="opcua">
+    <a class="btn btn-outline-secondary btn-sm" href="/OpcUaCoordinator/ImportTemplate" title="下載空白 Excel 範本（一張工作表 = 一台設備）">
+        <i class="fas fa-file-download me-1"></i>下載範本
+    </a>
+    <!-- 匯出：主按鈕寫進 Engine 來源資料夾（固定檔名覆寫）；下拉保留「下載到瀏覽器」供遠端操作取檔 -->
+    <div class="btn-group">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="srcxlBtnExport" title="把現行設定匯出為 Excel 並存進 Engine 來源資料夾（固定檔名，覆寫前一份並留 .bak；可修改後再匯入）">
+            <i class="fas fa-file-export me-1"></i>匯出 Excel
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split"
+                data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="visually-hidden">依來源 Excel 檔匯出</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            
+            <li><h6 class="dropdown-header">下載到瀏覽器</h6></li>
+            <li><a class="dropdown-item small" href="/OpcUaCoordinator/ExportExcel">全部設定</a></li>
+            
+        </ul>
+    </div>
+    <!-- 匯入：主按鈕從瀏覽器選檔；下拉列出來源資料夾內的 Excel（開啟時才向伺服器讀清單） -->
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary btn-sm" id="srcxlBtnImport" title="上傳 .xlsx / .xlsm，先預覽差異再確認寫入">
+            <i class="fas fa-file-upload me-1"></i>匯入 Excel
+        </button>
+        <button type="button" class="btn btn-primary btn-sm dropdown-toggle dropdown-toggle-split" id="srcxlBtnFolderMenu"
+                data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="visually-hidden">從來源資料夾匯入</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end srcxl-folder-menu" id="srcxlFolderMenu">
+            <li><h6 class="dropdown-header">從來源資料夾匯入</h6></li>
+        </ul>
+    </div>
+    <input type="file" id="srcxlFileInput" accept=".xlsx,.xlsm" class="d-none" />
+    <!-- 資料夾內有「匯出後又在 Excel 存檔、尚未匯入」的檔案時顯示（Engine 只讀 JSON，Excel 存檔不會生效） -->
+    <span class="small text-warning-emphasis" id="srcxlPendingHint" style="display:none;">
+        <i class="fas fa-exclamation-triangle me-1"></i>來源資料夾內的 Excel 有尚未匯入的修改（Engine 只讀設定檔，在 Excel 存檔不會生效，請點檔名匯入）：<span id="srcxlPendingList"></span>
+    </span>
+</div>
+
+<!-- 預覽 Modal：上傳後先比對，不寫檔；使用者勾選確認後才提交 -->
+<div class="modal fade" id="srcxlPreviewModal" tabindex="-1" aria-labelledby="srcxlPreviewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="srcxlPreviewTitle">
+                    <i class="fas fa-file-excel me-1"></i>匯入預覽
+                    <span class="text-muted fw-normal ms-2 small" id="srcxlWorkbookName"></span>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="srcxlPreviewLoading" class="text-center text-muted py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>解析中…
+                </div>
+
+                <div id="srcxlPreviewBody" style="display:none;">
+                    <div class="alert alert-danger py-2 small" id="srcxlPreviewError" style="display:none;"></div>
+
+                    <p class="small text-muted mb-1">以下為解析結果與既有設定的比對，尚未寫入任何檔案。勾選要匯入／刪除的項目後按「確認匯入」。</p>
+                    <!-- 活頁簿匯出時間（ScadaExportedAt）；沒有 = 範本 / 手工建立，覆寫網頁修改時會要求確認 -->
+                    <p class="small text-muted mb-2" id="srcxlExportedAt"></p>
+
+                    <!-- 沒有任何可勾選項目（全部錯誤／無變更、無刪除候選）時說明原因，文字由 JS 依預覽結果填入 -->
+                    <div class="alert alert-warning py-2 small fw-bold" id="srcxlNoSelectableBox" style="display:none;"></div>
+
+                    <!-- 工作表比對 -->
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle srcxl-table mb-3">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="srcxl-col-check"><input type="checkbox" class="form-check-input" id="srcxlCheckAllSheets" title="全選可匯入的工作表" /></th>
+                                    <th>工作表（設備）</th>
+                                    <th class="srcxl-col-kind">狀態</th>
+                                    <th class="srcxl-col-points">點位數</th>
+                                    <th>差異／問題</th>
+                                </tr>
+                            </thead>
+                            <tbody id="srcxlSheetsBody"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 刪除候選（同一來源 Excel、這次沒帶到；預設勾選） -->
+                    <div id="srcxlDeleteSection" style="display:none;">
+                        <h6 class="mb-1"><i class="fas fa-trash-alt me-1 text-danger"></i>刪除候選（同一份 Excel 先前匯入、這次沒有的設備）</h6>
+                        <p class="small text-muted mb-2">預設勾選；取消勾選即保留。刪除 = Engine 停止採集、設定檔搬到 _deleted 備份，資料庫與歷史資料保留。</p>
+                        <table class="table table-sm align-middle srcxl-table mb-3">
+                            <tbody id="srcxlDeleteBody"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 其他未包含的設備（預設不勾、收合） -->
+                    <div id="srcxlOtherSection" style="display:none;">
+                        <a class="small text-decoration-none" data-bs-toggle="collapse" href="#srcxlOtherCollapse" role="button" aria-expanded="false">
+                            <i class="fas fa-chevron-right me-1 srcxl-collapse-icon"></i>其他未包含在這份 Excel 的既有設定（<span id="srcxlOtherCount">0</span>）
+                        </a>
+                        <div class="collapse mt-2" id="srcxlOtherCollapse">
+                            <p class="small text-muted mb-2">其他盤或舊流程手動放入的設定，預設不刪；只有勾選才會刪除。</p>
+                            <table class="table table-sm align-middle srcxl-table mb-3">
+                                <tbody id="srcxlOtherBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- SID 位移高風險確認 -->
+                    <div class="alert alert-warning py-2 small mb-2" id="srcxlSidShiftBox" style="display:none;">
+                        <div><i class="fas fa-exclamation-triangle me-1"></i>有工作表的點位在中間插入、刪除或換順序，SID 會從該點起位移：歷史趨勢、警報規則、計算點位、控制、ScadaPage 綁點都會對到錯的點位。建置期重排可接受，上線後請務必確認。</div>
+                        <div class="form-check mt-2 mb-0">
+                            <input class="form-check-input" type="checkbox" id="srcxlAckSidShift" />
+                            <label class="form-check-label fw-bold" for="srcxlAckSidShift">我了解歷史資料與控制對應會錯位，仍要覆寫</label>
+                        </div>
+                    </div>
+
+                    <!-- 會蓋掉網頁修改（拿修改前匯出的舊 Excel 重匯）確認 -->
+                    <div class="alert alert-danger py-2 small mb-0" id="srcxlWebEditBox" style="display:none;">
+                        <div><i class="fas fa-exclamation-triangle me-1"></i>有工作表的設定在網頁修改過，而這份 Excel 是在那之前匯出的（或來源不明，例如範本或手工建立）。匯入會蓋掉網頁上的修改。建議取消，先「匯出 Excel」取得最新版再編輯。</div>
+                        <div class="form-check mt-2 mb-0">
+                            <input class="form-check-input" type="checkbox" id="srcxlAckWebEdit" />
+                            <label class="form-check-label fw-bold" for="srcxlAckWebEdit">我了解會覆寫網頁上的修改，仍要匯入</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <span id="srcxlPreviewStatus" class="small me-auto"></span>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary btn-sm" id="srcxlBtnCommit" disabled>
+                    <i class="fas fa-check me-1"></i>確認匯入
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 確認 Modal：列出將被覆寫 / 刪除的名稱 -->
+<div class="modal fade" id="srcxlConfirmModal" tabindex="-1" aria-labelledby="srcxlConfirmTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="srcxlConfirmTitle"><i class="fas fa-exclamation-circle me-1 text-warning"></i>請確認</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body small" id="srcxlConfirmBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger btn-sm" id="srcxlBtnConfirmYes">確定執行</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+            <button class="btn btn-primary btn-sm" onclick="window._opcua.newServer()">
+                <i class="fas fa-plus me-1"></i>新增 Server
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左側：Server 清單 -->
+        <div class="col-md-3 pe-0">
+            <div class="card">
+                <div class="card-header py-2">
+                    <i class="fas fa-server me-1"></i>Server 清單
+                </div>
+                <div class="list-group list-group-flush" id="opcuaServerList"></div>
+            </div>
+        </div>
+
+        <!-- 右側：連線設定 + 點位編輯 -->
+        <div class="col-md-9">
+            <div id="emptyDetail" class="text-center text-muted py-5">
+                <i class="fas fa-plug fa-2x mb-2 d-block"></i>
+                <p>請從左側選擇 Server，或按「新增 Server」建立</p>
+            </div>
+
+            <div id="fullDetail" style="display:none;">
+                <!-- 連線設定卡 -->
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span id="serverDetailTitle"><i class="fas fa-cog me-1"></i>連線設定</span>
+                        <button class="btn btn-outline-danger btn-sm" id="btnDeleteServer" onclick="window._opcua.deleteServer()">
+                            <i class="fas fa-trash me-1"></i>刪除 Server
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">名稱</label>
+                                <input type="text" class="form-control form-control-sm" id="fieldName"
+                                       placeholder="OpcUa1" autocomplete="off" />
+                                <div class="form-text small">僅限英數、_、-（建立後不可更改）</div>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small mb-1">Endpoint URL</label>
+                                <input type="text" class="form-control form-control-sm" id="fieldEndpointUrl"
+                                       placeholder="opc.tcp://192.168.1.10:4840" autocomplete="off" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">帳號</label>
+                                <input type="text" class="form-control form-control-sm" id="fieldUsername" autocomplete="off" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">密碼</label>
+                                <input type="password" class="form-control form-control-sm" id="fieldPassword"
+                                       autocomplete="new-password" />
+                                <div class="form-text small" id="passwordHint"></div>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">掃描週期 (ms)</label>
+                                <input type="number" class="form-control form-control-sm" id="fieldPollingInterval"
+                                       min="200" step="100" value="1000" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">逾時 (ms)</label>
+                                <input type="number" class="form-control form-control-sm" id="fieldConnectTimeout"
+                                       min="1000" step="500" value="5000" />
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="fieldMonitorEnabled" checked />
+                                    <label class="form-check-label small" for="fieldMonitorEnabled">啟用監控</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end justify-content-end">
+                                <button class="btn btn-primary btn-sm" id="btnSaveServer" onclick="window._opcua.saveServer()">
+                                    <i class="fas fa-save me-1"></i>儲存連線設定
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 點位編輯卡 -->
+                <div class="card" id="pointsCard" style="display:none;">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-map-marker-alt me-1"></i>點位設定</span>
+                        <div>
+                            <button class="btn btn-outline-primary btn-sm me-2" onclick="window._opcua.addDevice()">
+                                <i class="fas fa-plus me-1"></i>新增設備
+                            </button>
+                            <button class="btn btn-success btn-sm" id="btnSavePoints" onclick="window._opcua.savePoints()">
+                                <i class="fas fa-save me-1"></i>儲存點位
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" id="deviceContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+    // i18n stub（只含本頁用到的 key，取自 Resources/*.resx zh-TW）
+    window.i18n = (function () {
+        var D = {"opcuacoord.title": "OPC UA 來源", "opcuacoord.btn.new_server": "新增 Server", "opcuacoord.card.server_list": "Server 清單", "opcuacoord.card.server_setting": "連線設定", "opcuacoord.card.points": "點位設定", "opcuacoord.empty.select": "請從左側選擇 Server，或按「新增 Server」建立", "opcuacoord.empty.no_server": "尚無 OPC UA Server", "opcuacoord.empty.no_device": "尚無設備 — 按「新增設備」開始建立點位", "opcuacoord.label.name": "名稱", "opcuacoord.hint.name": "僅限英數、_、-（建立後不可更改）", "opcuacoord.label.endpoint": "Endpoint URL", "opcuacoord.label.username": "帳號", "opcuacoord.label.password": "密碼", "opcuacoord.placeholder.password_keep": "已設定密碼，留空 = 不變更", "opcuacoord.label.polling": "掃描週期 (ms)", "opcuacoord.label.timeout": "逾時 (ms)", "opcuacoord.label.enabled": "啟用監控", "opcuacoord.btn.save_server": "儲存連線設定", "opcuacoord.btn.delete_server": "刪除 Server", "opcuacoord.btn.add_device": "新增設備", "opcuacoord.btn.add_point": "新增點位", "opcuacoord.btn.save_points": "儲存點位", "opcuacoord.btn.test": "測試讀取", "opcuacoord.device.name": "設備名稱", "opcuacoord.th.name": "名稱", "opcuacoord.th.tagname": "TagName (NodeId)", "opcuacoord.th.controltype": "控制類型", "opcuacoord.th.ratio": "倍數", "opcuacoord.th.unit": "單位", "opcuacoord.th.min": "Min", "opcuacoord.th.max": "Max", "opcuacoord.value.readonly": "唯讀", "opcuacoord.value.disabled": "停用", "opcuacoord.value.new_point": "（新）", "opcuacoord.confirm.delete_server": "確定刪除 Server「{name}」？其點位設定將一併刪除（歷史資料保留）", "opcuacoord.confirm.delete_device": "確定刪除設備「{name}」與其所有點位？", "opcuacoord.msg.success_default": "操作成功", "opcuacoord.msg.failure_default": "操作失敗", "opcuacoord.msg.call_failed": "呼叫失敗：{error}", "srcxl.btn.template": "下載範本", "srcxl.btn.template_hint": "下載空白 Excel 範本（一張工作表 = 一台設備）", "srcxl.btn.export_all": "匯出 Excel", "srcxl.btn.export_hint": "把現行設定匯出為 Excel 並存進 Engine 來源資料夾（固定檔名，覆寫前一份並留 .bak；可修改後再匯入）", "srcxl.export.by_workbook": "依來源 Excel 檔匯出", "srcxl.btn.import": "匯入 Excel", "srcxl.btn.import_hint": "上傳 .xlsx / .xlsm，先預覽差異再確認寫入", "srcxl.preview.title": "匯入預覽", "srcxl.preview.loading": "解析中…", "srcxl.preview.hint": "以下為解析結果與既有設定的比對，尚未寫入任何檔案。勾選要匯入／刪除的項目後按「確認匯入」。", "srcxl.preview.check_all": "全選可匯入的工作表", "srcxl.col.sheet": "工作表（設備）", "srcxl.col.kind": "狀態", "srcxl.col.points": "點位數", "srcxl.col.detail": "差異／問題", "srcxl.preview.delete_candidates": "刪除候選（同一份 Excel 先前匯入、這次沒有的設備）", "srcxl.preview.delete_candidates_hint": "預設勾選；取消勾選即保留。刪除 = Engine 停止採集、設定檔搬到 _deleted 備份，資料庫與歷史資料保留。", "srcxl.preview.others": "其他未包含在這份 Excel 的既有設定", "srcxl.preview.others_hint": "其他盤或舊流程手動放入的設定，預設不刪；只有勾選才會刪除。", "srcxl.sidshift.warning": "有工作表的點位在中間插入、刪除或換順序，SID 會從該點起位移：歷史趨勢、警報規則、計算點位、控制、ScadaPage 綁點都會對到錯的點位。建置期重排可接受，上線後請務必確認。", "srcxl.sidshift.ack": "我了解歷史資料與控制對應會錯位，仍要覆寫", "srcxl.btn.cancel": "取消", "srcxl.btn.commit": "確認匯入", "srcxl.confirm.title": "請確認", "srcxl.confirm.yes": "確定執行", "srcxl.kind.added": "新增", "srcxl.kind.overwrite": "覆寫", "srcxl.kind.unchanged": "無變更", "srcxl.kind.error": "錯誤", "srcxl.detail.more": "…還有 {count} 項", "srcxl.detail.rename_hint": "點位與刪除候選「{from}」完全相同，可能是工作表改名：將建立新設備（新 CoordinatorId），舊設備刪除後歷史資料不會接上", "srcxl.detail.source_workbook": "來源：{name}", "srcxl.detail.source_unknown": "來源：未知（手動放入）", "srcxl.detail.sid_shift": "第 {index} 點起 SID 位移（高風險，需另外勾選）", "srcxl.detail.tail_removed": "尾端移除 {count} 點（該 SID 的歷史資料將孤立）", "srcxl.change.added": "(新增)", "srcxl.change.removed": "(移除)", "srcxl.msg.preview_failed": "預覽失敗（HTTP {status}）", "srcxl.msg.call_failed_with": "呼叫失敗：{error}", "srcxl.msg.nothing_selected": "尚未勾選任何項目", "srcxl.msg.no_selectable_errors": "沒有可匯入的項目：{count} 張工作表有錯誤（勾選框已鎖住）。請依「明細」欄紅字修正 Excel（例如填入 IP、至少一筆點位）後重新上傳。", "srcxl.msg.no_selectable_unchanged": "沒有可匯入或刪除的項目：所有工作表皆與既有設定相同。", "srcxl.msg.selection_summary": "將匯入 {imports} 張工作表、刪除 {deletes} 個設定", "srcxl.msg.committing": "寫入中…", "srcxl.msg.commit_success": "匯入完成，頁面即將重新整理", "srcxl.msg.commit_failed": "匯入失敗（HTTP {status}）", "srcxl.confirm.overwrite_list": "以下 {count} 台設備的設定將被覆寫：", "srcxl.confirm.delete_list": "以下 {count} 個設定將被刪除：", "srcxl.confirm.delete_note": "刪除後 Engine 停止採集；設定檔備份於 _deleted 資料夾，資料庫與歷史資料保留，重新匯入同名工作表即可恢復。", "srcxl.confirm.delete_one": "確定要刪除「{name}」的設定？", "srcxl.msg.delete_success": "已刪除", "srcxl.msg.delete_failed": "刪除失敗（HTTP {status}）", "srcxl.msg.waiting_engine": "已寫入設定，等待 Engine 載入中（剩 {count} 台）…", "srcxl.webedit.warning": "有工作表的設定在網頁修改過，而這份 Excel 是在那之前匯出的（或來源不明，例如範本或手工建立）。匯入會蓋掉網頁上的修改。建議取消，先「匯出 Excel」取得最新版再編輯。", "srcxl.webedit.ack": "我了解會覆寫網頁上的修改，仍要匯入", "srcxl.detail.web_edited": "此設定於 {time} 在網頁修改過，匯入會覆寫；建議先匯出最新版再編輯", "srcxl.detail.keyed_removed": "將移除 {count} 個點位（Seq 不回收，該 SID 的歷史資料將孤立）", "srcxl.preview.exported_at": "Excel 匯出時間：{time}", "srcxl.preview.exported_unknown": "這份 Excel 沒有匯出時間（範本或手工建立）", "srcxl.export.to_folder_by_workbook": "依來源 Excel 檔匯出到資料夾", "srcxl.export.download": "下載到瀏覽器", "srcxl.export.download_all": "全部設定", "srcxl.import.from_folder": "從來源資料夾匯入", "srcxl.import.folder_loading": "讀取中…", "srcxl.import.folder_empty": "來源資料夾內沒有 Excel 檔", "srcxl.import.unimported": "未匯入", "srcxl.import.modified_at": "修改於 {time}", "srcxl.msg.export_failed": "匯出失敗（HTTP {status}）", "srcxl.msg.folder_list_failed": "無法讀取來源資料夾內的 Excel 清單", "srcxl.pending.hint": "來源資料夾內的 Excel 有尚未匯入的修改（Engine 只讀設定檔，在 Excel 存檔不會生效，請點檔名匯入）：", "opcuacoord.svc.name_invalid": "名稱僅允許英數、底線、連字號（1~50 字，將作為檔名與 MQTT 主題）", "opcuacoord.svc.name_duplicate": "名稱已存在，請改用其他名稱", "opcuacoord.svc.endpoint_invalid": "Endpoint URL 必須以 opc.tcp:// 開頭", "opcuacoord.svc.interval_invalid": "掃描週期不可小於 200 毫秒", "opcuacoord.svc.timeout_invalid": "連線逾時不可小於 1000 毫秒", "opcuacoord.svc.not_found": "找不到指定的 OPC UA Server", "opcuacoord.svc.save_success": "連線設定已儲存，Engine 將自動套用", "opcuacoord.svc.delete_success": "Server 已刪除，Engine 將自動停止採集", "opcuacoord.svc.points_saved": "點位已儲存（共 {0} 點），Engine 將自動套用", "opcuacoord.svc.device_name_required": "設備名稱不可為空", "opcuacoord.svc.device_name_duplicate": "設備名稱重複：{0}", "opcuacoord.svc.tag_name_required": "點位名稱不可為空（設備 {0}）", "opcuacoord.svc.nodeid_required": "TagName (NodeId) 不可為空：{0}", "opcuacoord.svc.nodeid_invalid": "NodeId 格式錯誤：{0}", "opcuacoord.svc.controltype_invalid": "控制類型僅允許空白/AO/DO：{0}", "opcuacoord.svc.ratio_zero": "倍數 Ratio 不可為 0：{0}", "opcuacoord.svc.minmax_invalid": "Min 必須小於 Max：{0}", "opcuacoord.svc.seq_duplicate": "點位序號重複：{0}", "opcuacoord.svc.json_write_failed": "設定檔寫入失敗：{0}", "opcuacoord.svc.folder_not_configured": "OPC UA 設定資料夾未設定 — 請在 appsettings.json 設定 EngineOpcUaConfig:WatchedFolder", "opcuacoord.svc.test_success": "讀取成功 — 原始值 {0}，工程值 {1}", "opcuacoord.svc.test_success_nonnumeric": "讀取成功 — 值為 {0}（非數值型別，無法納入採集）", "opcuacoord.svc.test_bad_status": "Server 回應非 Good：{0}", "opcuacoord.svc.test_failed": "讀取失敗：{0}", "srcxl.svc.folder_not_configured": "設定資料夾未設定（appsettings {0}:WatchedFolder）", "srcxl.svc.file_unreadable": "無法讀取 Excel 檔，請確認為 .xlsx / .xlsm 格式且未損壞", "srcxl.svc.no_sheets": "Excel 內沒有任何工作表", "srcxl.svc.preview_expired": "預覽已過期或不存在，請重新上傳", "srcxl.svc.preview_user_mismatch": "此預覽不屬於目前使用者，請重新上傳", "srcxl.svc.invalid_selection": "勾選的項目不在預覽內：{0}", "srcxl.svc.sheet_has_errors": "工作表「{0}」有格式錯誤，無法匯入", "srcxl.svc.sid_shift_unacknowledged": "「{0}」會造成 SID 位移，請先勾選「我了解歷史資料與控制對應會錯位」", "srcxl.svc.changed_since_preview": "以下設定在預覽後已被更動，請重新上傳預覽：{0}", "srcxl.svc.commit_success": "已匯入 {0} 個、刪除 {1} 個設定，Engine 將於數秒內生效", "srcxl.svc.nothing_selected": "沒有勾選任何項目", "srcxl.svc.delete_not_found": "找不到設定檔「{0}」", "srcxl.svc.delete_success": "已移除「{0}」的設定檔（備份於 _deleted 資料夾；採集將停止，資料庫與歷史資料保留）", "srcxl.svc.write_failed": "寫入失敗：{0}", "srcxl.svc.existing_unreadable": "既有設定檔無法解析，匯入時將整份覆寫", "srcxl.issue.format": "第 {0} 列 {1} 欄：{2}", "srcxl.err.sheet_name_invalid": "工作表名稱不能作為檔名（含非法字元或「..」）", "srcxl.err.no_points": "沒有任何點位資料", "srcxl.err.header_ip_required": "IP 必填且不可含空白", "srcxl.err.header_port_invalid": "Port 必須是 1~65535 的整數", "srcxl.err.header_modbusid_required": "ModbusID 必填（多站號以逗號分隔）", "srcxl.err.header_modbusid_invalid": "ModbusID 必須是 0~255 的整數（多站號以逗號分隔）", "srcxl.err.header_timeout_invalid": "ConnectTimeout 必須是正整數（毫秒）", "srcxl.err.header_polling_invalid": "PollingInterval 必須是正整數（毫秒）", "srcxl.err.header_monitor_invalid": "MonitorEnabled 只能是 TRUE / FALSE", "srcxl.err.name_too_long": "名稱不可超過 {0} 字", "srcxl.err.unit_too_long": "單位不可超過 {0} 字", "srcxl.err.address_invalid": "位址格式錯誤（5 位數 0xxxx/1xxxx/3xxxx/4xxxx 或 6 位數擴充慣例）", "srcxl.err.datatype_unsupported": "不支援的 DataType（請用下拉清單中的型態）", "srcxl.err.bit_type_needs_register": "BIT 型別只能配 Holding (4xxxx) / Input (3xxxx) 暫存器位址", "srcxl.err.numeric_required": "{0} 必須是數字", "srcxl.err.too_many_points": "點位超過上限 {0} 點", "srcxl.warn.blank_row_skipped": "名稱空白，該列已略過", "srcxl.svc.web_edit_unacknowledged": "「{0}」在網頁修改過，匯入會蓋掉這些修改，請先勾選「我了解會覆寫網頁上的修改」", "srcxl.svc.delete_not_supported": "此來源不支援由匯入流程刪除，請用頁面上的「刪除 Server」按鈕", "srcxl.err.opcua_name_invalid": "工作表名稱（= Server 名稱）只能用英數字、底線、連字號，1～50 字", "srcxl.err.header_endpoint_invalid": "EndpointUrl 必須以 opc.tcp:// 開頭且不含空白", "srcxl.err.header_timeout_min": "ConnectTimeout 不可小於 {0} 毫秒", "srcxl.err.header_polling_min": "PollingInterval 不可小於 {0} 毫秒", "srcxl.err.header_maxnodes_invalid": "MaxNodesPerRead 必須是 0 或正整數（0 = 依 Server 限制）", "srcxl.err.nodeid_required": "TagName（NodeId）必填", "srcxl.err.nodeid_invalid": "TagName 不是合法的 NodeId（例：ns=2;s=D1.T）", "srcxl.err.controltype_invalid": "ControlType 只能留空、AO 或 DO", "srcxl.err.ratio_zero": "Ratio 不可為 0", "srcxl.err.minmax_invalid": "Min 必須小於 Max", "srcxl.err.seq_invalid": "Seq 必須是正整數；新增點位請留空", "srcxl.err.seq_duplicate": "Seq {0} 在同一工作表重複", "srcxl.err.seq_unknown": "未知的 Seq {0}（既有設定中沒有此點位）；新增點位請留空", "srcxl.warn.seq_matched_by_nodeid": "未填 Seq，已依 TagName 對回既有點位 Seq {0}", "srcxl.svc.folder_name_invalid": "無法以「{0}」作為匯出檔名", "srcxl.svc.folder_exported": "已匯出到 {0}", "srcxl.svc.folder_locked": "「{0}」正在 Excel 中開啟，請先關閉 Excel 再匯出", "srcxl.svc.folder_confirm_unimported": "資料夾內的「{0}」有尚未匯入的修改，覆寫會遺失這些修改（舊檔會另存為 .bak）。確定要覆寫？", "srcxl.svc.folder_confirm_not_exported": "資料夾內已有「{0}」且不是本系統匯出的檔案，覆寫後原檔會另存為 .bak。確定要覆寫？", "srcxl.svc.folder_file_not_found": "來源資料夾內找不到「{0}」", "srcxl.svc.folder_refresh_skipped": "設定已存檔，但資料夾內的 Excel 未自動更新：{0}", "srcxl.svc.folder_reason_locked": "{0}（Excel 開啟中）", "srcxl.svc.folder_reason_unimported": "{0}（有尚未匯入的修改）", "srcxl.svc.folder_reason_not_exported": "{0}（非本系統匯出的檔案）", "srcxl.svc.folder_no_matching": "沒有來源 Excel 為「{0}」的設定可匯出", "srcxl.svc.folder_exported_skipped": "已匯出到 {0}，但以下設定未納入：{1}", "srcxl.svc.skip_reason_unparseable": "{0}（JSON 無法解析，請檢查檔案內容）", "srcxl.svc.skip_reason_name_unsafe": "{0}（檔名含「..」或非法字元，無法解析路徑）", "srcxl.warn.sheet_name_whitespace": "工作表名稱頭尾有空白，會原樣作為設備名稱／檔名（與去掉空白的名稱視為不同設備）", "srcxl.svc.skip_reason_sheet_name": "{0}（名稱超過 31 字或含 [ ] : * ? / \\，不能作為工作表名稱）"};
+        return { t: function (k, a) { var v = D[k] || k; if (a) Object.keys(a).forEach(function (n) { v = v.split("{" + n + "}").join(a[n]); }); return v; },
+                 ready: function (cb) { cb(); }, currentCulture: function () { return "zh-TW"; } };
+    })();
+    </script>
+    <script>
+        window._opcuaData = [{"id": 1, "name": "PLC-01", "endpointUrl": "opc.tcp://192.168.1.50:4840", "username": "opcuser", "hasPassword": true, "pollingInterval": 1000, "connectTimeout": 5000, "monitorEnabled": true, "devices": [{"name": "空調箱 AHU-01", "tags": [{"seq": 1, "name": "回風溫度", "tagName": "ns=2;s=AHU01.RA_Temp", "controlType": "", "ratio": 1, "unit": "°C", "min": 0, "max": 50}, {"seq": 2, "name": "送風溫度", "tagName": "ns=2;s=AHU01.SA_Temp", "controlType": "", "ratio": 1, "unit": "°C", "min": 0, "max": 50}, {"seq": 3, "name": "風機運轉", "tagName": "ns=2;s=AHU01.Fan_Run", "controlType": "", "ratio": 1, "unit": "", "min": null, "max": null}, {"seq": 4, "name": "風機啟停", "tagName": "ns=2;s=AHU01.Fan_Cmd", "controlType": "DO", "ratio": 1, "unit": "", "min": null, "max": null}, {"seq": 5, "name": "冰水閥開度設定", "tagName": "ns=2;s=AHU01.CHW_Valve_SP", "controlType": "AO", "ratio": 1, "unit": "%", "min": 0, "max": 100}]}, {"name": "冰水泵 P-01", "tags": [{"seq": 6, "name": "運轉狀態", "tagName": "ns=2;s=P01.Run", "controlType": "", "ratio": 1, "unit": "", "min": null, "max": null}, {"seq": 7, "name": "運轉頻率", "tagName": "ns=2;s=P01.Freq", "controlType": "", "ratio": 0.1, "unit": "Hz", "min": 0, "max": 60}, {"seq": 9, "name": "頻率設定", "tagName": "ns=2;s=P01.Freq_SP", "controlType": "AO", "ratio": 0.1, "unit": "Hz", "min": 0, "max": 60}]}]}, {"id": 2, "name": "PLC-02", "endpointUrl": "opc.tcp://192.168.1.51:4840", "username": "", "hasPassword": false, "pollingInterval": 2000, "connectTimeout": 5000, "monitorEnabled": true, "devices": [{"name": "冷卻水塔 CT-01", "tags": [{"seq": 1, "name": "出水溫度", "tagName": "ns=2;s=CT01.Out_Temp", "controlType": "", "ratio": 1, "unit": "°C", "min": 0, "max": 60}]}]}, {"id": 3, "name": "Gateway-01", "endpointUrl": "opc.tcp://192.168.1.52:4840", "username": "", "hasPassword": false, "pollingInterval": 1000, "connectTimeout": 5000, "monitorEnabled": false, "devices": []}];
+    </script>
+    <script>
+    </script>
+    <script src="{{WWWROOT}}/js/common/source-excel-import.js"></script>
+    <script src="{{WWWROOT}}/js/opcuacoordinator.js"></script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

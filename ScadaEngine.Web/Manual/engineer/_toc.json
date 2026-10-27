@@ -1,0 +1,128 @@
+[
+  {
+    "slug": "roles-accounts",
+    "title": "角色體系與帳號 SOP",
+    "titleEn": "Roles & Account SOP",
+    "group": "入門",
+    "groupEn": "Getting Started"
+  },
+  {
+    "slug": "modbus-source",
+    "title": "Modbus 來源",
+    "titleEn": "Modbus Sources",
+    "group": "資料來源",
+    "groupEn": "Data Sources",
+    "routes": [
+      "/ModbusCoordinator"
+    ]
+  },
+  {
+    "slug": "db-source",
+    "title": "DB 來源",
+    "titleEn": "Database Sources",
+    "group": "資料來源",
+    "groupEn": "Data Sources",
+    "routes": [
+      "/DbCoordinator"
+    ]
+  },
+  {
+    "slug": "opcua-source",
+    "title": "OPC UA 來源",
+    "titleEn": "OPC UA Sources",
+    "group": "資料來源",
+    "groupEn": "Data Sources",
+    "routes": [
+      "/OpcUaCoordinator"
+    ]
+  },
+  {
+    "slug": "calc-point",
+    "title": "計算點位",
+    "titleEn": "Calculated Points",
+    "group": "資料來源",
+    "groupEn": "Data Sources",
+    "routes": [
+      "/CalcPoint"
+    ]
+  },
+  {
+    "slug": "designer",
+    "title": "畫面設計",
+    "titleEn": "Page Designer",
+    "group": "畫面與控制",
+    "groupEn": "Pages & Control",
+    "routes": [
+      "/Designer"
+    ]
+  },
+  {
+    "slug": "logic-flow",
+    "title": "流程圖控制與演算法",
+    "titleEn": "Logic Flow & Algorithms",
+    "group": "畫面與控制",
+    "groupEn": "Pages & Control",
+    "routes": [
+      "/LogicFlow"
+    ]
+  },
+  {
+    "slug": "system-parameter",
+    "title": "系統參數",
+    "titleEn": "System Parameters",
+    "group": "畫面與控制",
+    "groupEn": "Pages & Control",
+    "routes": [
+      "/SystemParameter"
+    ]
+  },
+  {
+    "slug": "deployment",
+    "title": "部署與升級",
+    "titleEn": "Deployment & Upgrade",
+    "group": "部署維運",
+    "groupEn": "Operations"
+  },
+  {
+    "slug": "database-backup",
+    "title": "資料庫建立與備份",
+    "titleEn": "Database Setup & Backup",
+    "group": "部署維運",
+    "groupEn": "Operations"
+  },
+  {
+    "slug": "license",
+    "title": "授權加密狗",
+    "titleEn": "License Dongle",
+    "group": "部署維運",
+    "groupEn": "Operations"
+  },
+  {
+    "slug": "https",
+    "title": "內網 HTTPS",
+    "titleEn": "Intranet HTTPS",
+    "group": "部署維運",
+    "groupEn": "Operations"
+  },
+  {
+    "slug": "modbus-gateway",
+    "title": "對外 Modbus TCP Gateway",
+    "titleEn": "Modbus TCP Gateway",
+    "group": "對外整合",
+    "groupEn": "Integration"
+  },
+  {
+    "slug": "mqtt-integration",
+    "title": "MQTT 即時資料訂閱",
+    "titleEn": "MQTT Data Subscription",
+    "group": "對外整合",
+    "groupEn": "Integration"
+  },
+  {
+    "slug": "troubleshooting",
+    "title": "疑難排解",
+    "titleEn": "Troubleshooting",
+    "group": "其他",
+    "groupEn": "More"
+  }
+]

@@ -27,7 +27,7 @@
 
     var _loadPromise = null;
     var _devices = [];
-    var _points = [];          // [{ szSid, szName, szUnit, szGroupName, szDeviceGroup, szDeviceLabel }]
+    var _points = [];          // [{ szSid, szName, szUnit, szGroupName, szDeviceGroup, szDeviceLabel, isCoordLabel }]
 
     var _modal = null, _el = null;
     var _opts = {};
@@ -47,7 +47,10 @@
             .then(function (arr) {
                 _devices = arr[0] || [];
                 _points = arr[1] || [];
-                _points.forEach(function (p) { p.szDeviceLabel = deviceLabelOf(p); });
+                _points.forEach(function (p) {
+                    p.szDeviceLabel = deviceLabelOf(p);
+                    p.isCoordLabel = isCoordLabelOf(p);
+                });
                 return { devices: _devices, points: _points };
             })
             .catch(function (err) { _loadPromise = null; throw err; });
@@ -71,6 +74,19 @@
             if (PG().coordContainsSid(p.szSid, _devices[i])) return PG().pointDeviceLabel(p.szSid, p.szDeviceGroup, _devices[i]);
         }
         return '';
+    }
+
+    // Modbus 點位標籤是否只是 level 3 的 Coordinator 名（未定義 Tag.Device、亦非多站號具名子站）。
+    // 設備效率掃描據此只認通訊端明確定義的子設備（equipment-scan.js）。非 Modbus 點位回 undefined
+    function isCoordLabelOf(p) {
+        if (sourceOf(p.szSid) !== SRC_DEVICE) return undefined;
+        if (PG().getDeviceGroup(p)) return false;
+        for (var i = 0; i < _devices.length; i++) {
+            if (!PG().coordContainsSid(p.szSid, _devices[i])) continue;
+            var sub = PG().subOfSid(p.szSid, _devices[i]);
+            return !(sub && sub.subName);
+        }
+        return undefined;
     }
 
     function candidates() {

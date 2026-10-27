@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<!-- 工程師手冊 designer-01：/Designer 畫面設計（Engineer 視角）。cshtml 由 razor 轉換代入 zh-TW resx；/Designer/Load 沿用 manual-scada-scada-page 的冰水系統圖；driver 選取冷卻水出水溫 AI 點位顯示屬性面板 -->
+<!-- SCADA 模式外殼（深藍主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>畫面設計 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/designer.css">
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        // ── 冰水系統示意圖（背景 SVG：標題、管路、區塊標示；設備與數值由 widget 疊上）──
+        //   畫布 1300×680；冷卻水迴路（綠）CT-01 ⇄ CWP-01 ⇄ CH-01 冷凝器；冰水迴路（藍）CH-01 蒸發器 → CHP-01/02 → 空調負載 → 回 CH-01
+        function buildChwSvg() {
+            var CW = '#20a37a', CHS = '#0d6efd', CHR = '#6ea8fe';
+            var s = '<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="680" viewBox="0 0 1300 680">' +
+                '<rect width="1300" height="680" fill="#ffffff"/>' +
+                '<text x="650" y="52" text-anchor="middle" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="30" font-weight="700" fill="#1d3557">冰水系統監控</text>' +
+                '<rect x="610" y="64" width="80" height="4" rx="2" fill="#0d6efd"/>' +
+                // 區塊底
+                '<rect x="40" y="90" width="500" height="560" rx="12" fill="#f1f8f5" stroke="#cfe8dd"/>' +
+                '<text x="60" y="118" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="16" font-weight="600" fill="#20a37a">冷卻水側</text>' +
+                '<rect x="860" y="90" width="410" height="560" rx="12" fill="#f1f5fd" stroke="#d3e0f8"/>' +
+                '<text x="880" y="118" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="16" font-weight="600" fill="#0d6efd">冰水側</text>' +
+                // 冷卻水管：CH-01 上筒 → CT-01 頂（出水）；CT-01 底 → CWP-01 → CH-01 下筒（進水）
+                pipe('M572 309 H430 V150 H180 V166', CW) +
+                pipe('M180 262 V462', CW) +
+                pipe('M215 474 H500 V352 H572', CW) +
+                // 冰水管：CH-01 上筒 → 集管 → CHP-01/02 → 空調負載 → 回水 → CH-01 下筒
+                pipe('M725 309 H900 M900 226 V465 M900 226 H958 M900 465 H958', CHS) +
+                pipe('M1013 203 V175 H1110 M1013 442 V415 H1110 M1110 175 V415 M1110 300 H1150', CHS) +
+                pipe('M1200 370 V610 H780 V352 H725', CHR) +
+                // 空調負載方塊
+                '<rect x="1150" y="260" width="100" height="110" rx="10" fill="#ffffff" stroke="#adb5bd" stroke-width="2"/>' +
+                '<text x="1200" y="308" text-anchor="middle" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="15" fill="#495057">空調負載</text>' +
+                '<text x="1200" y="332" text-anchor="middle" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="13" fill="#6c757d">AHU / FCU</text>' +
+                // 設備名稱
+                nameEnd(128, 205, '冷卻水塔') + nameEnd(128, 226, 'CT-01') + name(195, 578, '冷卻水泵 CWP-01') + name(648, 452, '冰機 CH-01') +
+                name(1000, 312, '冰水泵 CHP-01') + name(1000, 552, '冰水泵 CHP-02') +
+                // 數值標籤
+                label(250, 136, '冷卻水出水溫') + label(290, 500, '冷卻水進水溫') +
+                label(745, 292, '冰水出水溫') + label(900, 596, '冰水回水溫') +
+                label(575, 488, '電表 M-01 有效功率') +
+                // 圖例
+                '<rect x="40" y="664" width="0" height="0"/>' +
+                '</svg>';
+            function pipe(d, c) {
+                return '<path d="' + d + '" stroke="' + c + '" stroke-width="8" fill="none" stroke-linejoin="round" stroke-linecap="round"/>';
+            }
+            function name(x, y, sz) {
+                return '<text x="' + x + '" y="' + y + '" text-anchor="middle" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="15" font-weight="600" fill="#343a40">' + sz + '</text>';
+            }
+            function nameEnd(x, y, sz) {   // 右對齊（CT-01 下方有管路，名稱放左側）
+                return name(x, y, sz).replace('text-anchor="middle"', 'text-anchor="end"');
+            }
+            function label(x, y, sz) {
+                return '<text x="' + x + '" y="' + y + '" font-family="Segoe UI,Microsoft JhengHei,sans-serif" font-size="14" fill="#6c757d">' + sz + '</text>';
+            }
+            // renderScadaCanvas 以無引號 url(...) 塞 CSS → 括號與單引號要再編碼
+            return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s)
+                .replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/'/g, '%27');
+        }
+
+        var PN = { 'MB013-AI-004': '冰機 CH-01 / 冷卻水出水溫', 'MB013-AI-003': '冰機 CH-01 / 冷卻水進水溫',
+                   'MB013-AI-002': '冰機 CH-01 / 冰水出水溫', 'MB013-AI-005': '冰機 CH-01 / 冰水回水溫', 'MB016-AI-001': '電表 M-01 / 有效功率' };
+        function rt(x, y, sid, unit, dec) {
+            return { szType: 'realtimeValue', nX: x, nY: y, nW: 150, nH: 34,
+                     props: { szSid: sid, szPointName: PN[sid] || '', szTitle: PN[sid] || '', szUnit: unit, nDecimalPlaces: dec, isDecimalAuto: true, nFontSize: 24, szFontColor: '#212529', szBgColor: 'transparent' } };
+        }
+        function pump(x, y, title, n) {
+            return { szType: 'pump', nX: x, nY: y, nW: 130, nH: 120,
+                     props: { szTitle: title,
+                              szSidRun: 'MB' + n + '-DI-001', szSidFault: 'MB' + n + '-DI-002', szSidMode: 'MB' + n + '-DI-003', szSidFreq: 'MB' + n + '-AI-001',
+                              szCidStartStop: 'MB' + n + '-DO-001', szCidFreqSet: 'MB' + n + '-AO-001',
+                              nFreqSetMin: 30, nFreqSetMax: 60, nFreqMax: 60, szOutletDir: 'right' } };
+        }
+        function chwWidgets() {
+            return [
+                { szType: 'coolingTower', nX: 130, nY: 140, nW: 150, nH: 150,
+                  props: { szTitle: '冷卻水塔 CT-01', szSidRun: 'MB011-DI-001', szSidFault: 'MB011-DI-002', szSidMode: 'MB011-DI-003', szSidFreq: 'MB011-AI-001',
+                           szCidStartStop: 'MB011-DO-001', szCidFreqSet: 'MB011-AO-001', nFreqSetMin: 20, nFreqSetMax: 60, nFreqMax: 60 } },
+                pump(130, 435, '冷卻水泵 CWP-01', '012'),
+                { szType: 'chiller', nX: 560, nY: 240, nW: 180, nH: 190,
+                  props: { szTitle: '冰機 CH-01', szSidRun: 'MB013-DI-001', szSidFault: 'MB013-DI-002', szSidMode: 'MB013-DI-003', szSidLoad: 'MB013-AI-001',
+                           szSidChwOut: 'MB013-AI-002', szCidStartStop: 'MB013-DO-001', szCidSetTemp: 'MB013-AO-001', nLoadMax: 100 } },
+                pump(935, 170, '冰水泵 CHP-01', '014'),
+                pump(935, 410, '冰水泵 CHP-02', '015'),
+                rt(250, 158, 'MB013-AI-004', '°C', 1),   // 冷卻水出水溫
+                rt(290, 508, 'MB013-AI-003', '°C', 1),   // 冷卻水進水溫
+                rt(745, 316, 'MB013-AI-002', '°C', 1),   // 冰水出水溫
+                rt(900, 618, 'MB013-AI-005', '°C', 1),   // 冰水回水溫
+                rt(575, 496, 'MB016-AI-001', 'kW', 1)    // 電表 M-01 有效功率
+            ];
+        }
+        function emptyPage(sid, name, icon, parent, n) {
+            return { szPageSid: sid, szPageName: name, szPageIcon: icon, szParentPageSid: parent, nSortOrder: n,
+                     nCanvasW: 1300, nCanvasH: 680, szBgDataUrl: null, szWidgetStateJson: '[]' };
+        }
+
+        // 即時值：CH-01 運轉中負載 72%、CHP-01 自動 45.0 Hz 運轉、CHP-02 故障（→ 警報面板 DI 警報）、
+        //         冷卻水出水溫 35.2 ≥ 上限 35.0（→ 紅字 + 警報）、冰水回水溫 12.1 ≥ 上限 12.0（→ 紅字 + 已確認警報）
+        var NOW_TS = '2026-09-09T15:42:10';
+        var RT = [
+            ['MB011-DI-001', '冷卻水塔 CT-01 運轉', '1'], ['MB011-DI-002', '冷卻水塔 CT-01 故障', '0'],
+            ['MB011-DI-003', '冷卻水塔 CT-01 手自動', '1'], ['MB011-AI-001', '冷卻水塔 CT-01 風扇頻率', '42.0', 'Hz'],
+            ['MB012-DI-001', '冷卻水泵 CWP-01 運轉', '1'], ['MB012-DI-002', '冷卻水泵 CWP-01 故障', '0'],
+            ['MB012-DI-003', '冷卻水泵 CWP-01 手自動', '1'], ['MB012-AI-001', '冷卻水泵 CWP-01 頻率', '48.0', 'Hz'],
+            ['MB013-DI-001', '冰機 CH-01 運轉', '1'], ['MB013-DI-002', '冰機 CH-01 故障', '0'],
+            ['MB013-DI-003', '冰機 CH-01 遠端/現場', '1'], ['MB013-AI-001', '冰機 CH-01 負載率', '72.0', '%'],
+            ['MB013-AI-002', '冰水出水溫', '7.2', '°C'], ['MB013-AI-003', '冷卻水進水溫', '30.5', '°C'],
+            ['MB013-AI-004', '冷卻水出水溫', '35.2', '°C'], ['MB013-AI-005', '冰水回水溫', '12.1', '°C'],
+            ['MB014-DI-001', '冰水泵 CHP-01 運轉', '1'], ['MB014-DI-002', '冰水泵 CHP-01 故障', '0'],
+            ['MB014-DI-003', '冰水泵 CHP-01 手自動', '1'], ['MB014-AI-001', '冰水泵 CHP-01 頻率', '45.0', 'Hz'],
+            ['MB015-DI-001', '冰水泵 CHP-02 運轉', '0'], ['MB015-DI-002', '冰水泵 CHP-02 故障', '1'],
+            ['MB015-DI-003', '冰水泵 CHP-02 手自動', '1'], ['MB015-AI-001', '冰水泵 CHP-02 頻率', '0.0', 'Hz'],
+            ['MB016-AI-001', '電表 M-01 有效功率', '286.4', 'kW']
+        ].map(function (r) {
+            return { sid: r[0], name: r[1], value: r[2], unit: r[3] || '', quality: 'GOOD', timestamp: NOW_TS,
+                     isAuto: /-(DO|AO)-/.test(r[0]) ? true : null };
+        });
+
+        var T0 = new Date(2026, 8, 9, 15, 42, 10).getTime();
+        function alarm(minAgo, sid, type, sev, msg, ackBy) {
+            var ms = T0 - minAgo * 60000, d = new Date(ms);
+            function p(n) { return (n < 10 ? '0' : '') + n; }
+            return { sid: sid, type: type, severity: sev,
+                     severityLabel: ['Critical', 'High', 'Medium', 'Low'][sev], severityColor: ['#dc3545', '#fd7e14', '#ffc107', '#6c757d'][sev],
+                     message: msg, occurredAtMs: ms,
+                     occurredAt: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()),
+                     isAcknowledged: !!ackBy, acknowledgedBy: ackBy || null };
+        }
+
+        var MOCK = {
+            '/Designer/Load': function () {
+                return {
+                    hasData: true,
+                    pages: [
+                        { szPageSid: 'PG-CHW', szPageName: '冰水系統', szPageIcon: 'fa-snowflake', szParentPageSid: null, nSortOrder: 1,
+                          nCanvasW: 1300, nCanvasH: 680, szBgDataUrl: buildChwSvg(), szBgFileName: 'chw.svg',
+                          szWidgetStateJson: JSON.stringify(chwWidgets()) },
+                        emptyPage('PG-AHU', '空調箱', 'fa-wind', null, 2),
+                        emptyPage('PG-PWR', '電力系統', 'fa-bolt', null, 3),
+                        emptyPage('PG-PWR-LV', '低壓配電盤', 'fa-plug', 'PG-PWR', 1),
+                        emptyPage('PG-PWR-UPS', 'UPS 不斷電系統', 'fa-car-battery', 'PG-PWR', 2),
+                        emptyPage('PG-WTR', '給排水系統', 'fa-tint', null, 4),
+                        emptyPage('PG-AIR', '空壓系統', 'fa-compress-arrows-alt', null, 5)
+                    ]
+                };
+            },
+            '/api/realtime/latest': function () { return { success: true, data: RT }; },
+            '/api/scadapage/accumulation': function () { return { success: true, results: [] }; },
+            '/api/scadapage/circuit-metric': function () { return { success: true, results: [] }; },
+            '/Realtime/ActiveAlarms': function () {
+                return { success: true, isConnected: true, data: [
+                    alarm(6,  'MB015-DI-002', 'di',   1, '冰水泵 CHP-02 故障 狀態為 ON 觸發警報', null),
+                    alarm(18, 'MB013-AI-004', 'high', 2, '冷卻水出水溫 超過上限 35.0', null),
+                    alarm(47, 'MB013-AI-005', 'high', 2, '冰水回水溫 超過上限 12.0', 'admin')
+                ] };
+            },
+            '/api/alarm-rules': function () {
+                return [
+                    { szSID: 'MB013-AI-004', isEnabled: true, isAlarmHigh: true, dAlarmHighValue: 35.0, isAlarmLow: false },
+                    { szSID: 'MB013-AI-005', isEnabled: true, isAlarmHigh: true, dAlarmHighValue: 12.0, isAlarmLow: false },
+                    { szSID: 'MB015-DI-002', isEnabled: true, isDiAlarm: true, szDiTriggerState: 'ON' }
+                ];
+            },
+            '/api/control/manual-values': function () { return {
+                'MB014-DO-001': { value: 1, isAuto: true }, 'MB014-AO-001': { value: 45, isAuto: true },
+                'MB013-AO-001': { value: 7.0, isAuto: true }   // 冰機 CH-01 冰水設定溫度（畫面右下「設定 7°C」）
+            }; },
+            '/api/schedules': function () { return []; },
+            '/Designer/Devices': function () { return []; },
+            '/Designer/Points': function () { return []; },
+            '/Designer/api/circuits': function () { return []; },
+            '/Designer/Templates': function () { return []; },
+            '/Designer/gallery': function () { return []; }
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+<style>*,*::before,*::after{transition:none!important;animation:none!important;}</style>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-hard-hat me-1"></i>工程師模式</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>engineer</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+
+
+
+<!-- Designer 主容器 -->
+<div class="designer-outer" id="designerOuter">
+
+        <!-- ===== 工具列 ===== -->
+        <div class="designer-toolbar">
+            <i class="fas fa-paint-brush text-primary me-1"></i>
+            <span class="text-white fw-semibold" style="font-size:13px;">畫面設計</span>
+
+            <div style="width:1px;height:16px;background:#555;margin:0 4px;"></div>
+
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:12px;"
+                    onclick="clearCanvas()" title="清除所有元件">
+                <i class="fas fa-trash-alt me-1"></i>清除
+            </button>
+
+            <button class="btn btn-sm btn-outline-warning py-0 px-2" style="font-size:12px;"
+                    onclick="triggerImportImage()" title="匯入圖檔作為畫布背景">
+                <i class="fas fa-file-image me-1"></i>匯入圖片
+            </button>
+
+            <!-- 隱藏的 file input，僅接受圖片格式 -->
+            <input type="file" id="imgFileInput" accept="image/*" style="display:none"
+                   onchange="onImageFileSelected(this)">
+
+            <!-- 已匯入圖片時顯示的資訊列 -->
+            <span id="bgImgBadge" style="display:none;align-items:center;gap:6px;
+                  background:#3a3a1a;border:1px solid #665500;border-radius:4px;
+                  padding:2px 8px;font-size:11px;color:#ffc107;">
+                <i class="fas fa-image"></i>
+                <span id="bgImgName"></span>
+                <span id="bgImgSize" style="color:#aaa;"></span>
+                <button onclick="clearBgImage()" style="background:none;border:none;
+                        color:#ff8888;cursor:pointer;padding:0 2px;font-size:12px;"
+                        title="移除背景圖">✕</button>
+            </span>
+
+            <button id="btnSave" class="btn btn-sm btn-success py-0 px-2" style="font-size:12px;"
+                    onclick="saveDesign()" title="儲存所有頁面至資料庫">
+                <i class="fas fa-save me-1"></i>儲存
+            </button>
+
+            <!-- ===== 對齊工具群組（≥ 2 選取時顯示） ===== -->
+            <div id="alignToolGroup" class="align-tool-group" style="display:none;">
+                <div class="align-tool-sep"></div>
+                <button type="button" class="align-tool-btn" onclick="alignLeft()"
+                        title="選取項目靠左對齊（取最小 X）"
+                        aria-label="靠左">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="1" y1="1" x2="1" y2="15" stroke="currentColor" stroke-width="1.4"/>
+                        <rect x="2" y="3" width="11" height="3"/>
+                        <rect x="2" y="9" width="7" height="3"/>
+                    </svg>
+                </button>
+                <button type="button" class="align-tool-btn" onclick="alignCenterH()"
+                        title="選取項目以群組水平中心對齊（同一 X 中心）"
+                        aria-label="水平置中">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="8" y1="1" x2="8" y2="15" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1"/>
+                        <rect x="2" y="3" width="12" height="3"/>
+                        <rect x="4" y="9" width="8" height="3"/>
+                    </svg>
+                </button>
+                <button type="button" class="align-tool-btn" onclick="alignRight()"
+                        title="選取項目靠右對齊（取最大右緣）"
+                        aria-label="靠右">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="15" y1="1" x2="15" y2="15" stroke="currentColor" stroke-width="1.4"/>
+                        <rect x="3" y="3" width="11" height="3"/>
+                        <rect x="7" y="9" width="7" height="3"/>
+                    </svg>
+                </button>
+                <div class="align-tool-divider"></div>
+                <button type="button" class="align-tool-btn" onclick="alignTop()"
+                        title="選取項目靠上對齊（取最小 Y）"
+                        aria-label="靠上">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="1" y1="1" x2="15" y2="1" stroke="currentColor" stroke-width="1.4"/>
+                        <rect x="3" y="2" width="3" height="11"/>
+                        <rect x="9" y="2" width="3" height="7"/>
+                    </svg>
+                </button>
+                <button type="button" class="align-tool-btn" onclick="alignCenterV()"
+                        title="選取項目以群組垂直中心對齊（同一 Y 中心）"
+                        aria-label="垂直置中">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1"/>
+                        <rect x="3" y="2" width="3" height="12"/>
+                        <rect x="9" y="4" width="3" height="8"/>
+                    </svg>
+                </button>
+                <button type="button" class="align-tool-btn" onclick="alignBottom()"
+                        title="選取項目靠下對齊（取最大下緣）"
+                        aria-label="靠下">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="1" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="1.4"/>
+                        <rect x="3" y="3" width="3" height="11"/>
+                        <rect x="9" y="7" width="3" height="7"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- ===== 等距分布工具群組（≥ 3 選取時顯示） ===== -->
+            <div id="distToolGroup" class="dist-tool-group" style="display:none;">
+                <div class="align-tool-divider"></div>
+                <button type="button" class="align-tool-btn" onclick="distributeHorizontally()"
+                        title="固定最左 / 最右元件，中間元件水平等間距排列（≥ 3 選取）"
+                        aria-label="水平等距分布">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="1" y="3" width="2.5" height="10"/>
+                        <rect x="6.75" y="3" width="2.5" height="10"/>
+                        <rect x="12.5" y="3" width="2.5" height="10"/>
+                    </svg>
+                </button>
+                <button type="button" class="align-tool-btn" onclick="distributeVertically()"
+                        title="固定最上 / 最下元件，中間元件垂直等間距排列（≥ 3 選取）"
+                        aria-label="垂直等距分布">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="1" width="10" height="2.5"/>
+                        <rect x="3" y="6.75" width="10" height="2.5"/>
+                        <rect x="3" y="12.5" width="10" height="2.5"/>
+                    </svg>
+                </button>
+            </div>
+
+            <span class="ms-auto text-secondary" style="font-size:11px;">
+                <i class="fas fa-info-circle me-1"></i>
+                從左側拖曳元件至畫布 • 點選元件可調整屬性 • Del 鍵刪除
+            </span>
+        </div>
+
+        <!-- ===== 主體區域 ===== -->
+        <div class="designer-body">
+
+            <!-- 頁面清單 -->
+            <div class="page-panel">
+                <div class="page-panel-header">
+                    <i class="fas fa-sitemap me-1"></i> 頁面
+                    <button class="btn-add-root" onclick="addPage(null)" title="新增根頁面">＋</button>
+                </div>
+                <div class="page-tree-wrap" id="pageTreeWrap">
+                    <!-- 由 JS 動態產生 -->
+                </div>
+            </div>
+
+            <!-- 元件庫展開按鈕 -->
+            <div class="comp-expand-tab" id="compExpandTab" style="display:none;" onclick="toggleComponentPanel()" title="展開元件庫">
+                <i class="fas fa-chevron-right"></i>
+                <span class="tab-label">元件庫</span>
+            </div>
+
+            <!-- 元件庫 -->
+            <div class="component-panel" id="componentPanel">
+                <div class="panel-header" style="display:flex;align-items:center;">
+                    <i class="fas fa-th-large me-1"></i> 元件庫
+                    <button class="comp-panel-toggle" onclick="toggleComponentPanel()" title="收起元件庫">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+
+                <div class="widget-cat">
+                    <div class="widget-cat-title">顯示元件</div>
+                    <div class="widget-cat-items">
+
+                <!-- 表格 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="table"
+                     title="拖曳至畫布以新增資料表格">
+                    <i class="fas fa-table text-info"></i>
+                    <span>表格</span>
+                </div>
+
+                <!-- 儀錶板 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="gauge"
+                     title="拖曳至畫布以新增儀錶板">
+                    <i class="fas fa-tachometer-alt text-warning"></i>
+                    <span>儀錶板</span>
+                </div>
+
+                <!-- 即時曲線（滾動趨勢圖） -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="trendChart"
+                     title="拖曳至畫布以新增即時曲線；綁一個點位，執行期呈現會自己往左滾動的「近 N 分鐘」趨勢">
+                    <i class="fas fa-chart-line" style="color:#4dabf7;"></i>
+                    <span>即時曲線</span>
+                </div>
+
+                <!-- 文字 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="text"
+                     title="拖曳至畫布以新增文字標籤">
+                    <i class="fas fa-font" style="color:#a78bfa;"></i>
+                    <span>文字</span>
+                </div>
+
+                    </div>
+                </div>
+
+                <div class="widget-cat">
+                    <div class="widget-cat-title">點位與控制</div>
+                    <div class="widget-cat-items">
+
+                <!-- 控制按鈕 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="controlBtn"
+                     title="拖曳至畫布以新增控制按鈕（可綁定 CID）">
+                    <i class="fas fa-toggle-on" style="color:#20c997;"></i>
+                    <span>控制按鈕</span>
+                </div>
+
+                <!-- AI 點位 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="realtimeValue"
+                     title="拖曳至畫布以新增 AI 點位（可綁定 SID）">
+                    <i class="fas fa-digital-tachograph" style="color:#ff6b6b;"></i>
+                    <span>AI 點位</span>
+                </div>
+
+                <!-- DI 點位 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="diPoint"
+                     title="拖曳至畫布以新增 DI 點位指示燈（可綁定 SID）">
+                    <i class="fas fa-circle" style="color:#28a745;"></i>
+                    <span>DI 點位</span>
+                </div>
+
+                <!-- AO 點位 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="aoPoint"
+                     title="拖曳至畫布以新增 AO 點位（可綁定 CID，寫入類比輸出值）">
+                    <i class="fas fa-sliders-h" style="color:#0dcaf0;"></i>
+                    <span>AO 點位</span>
+                </div>
+
+                <!-- DO 點位 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="doPoint"
+                     title="拖曳至畫布以新增 DO 點位（可綁定 CID，ON/OFF 切換寫入）">
+                    <i class="fas fa-toggle-on" style="color:#ffc107;"></i>
+                    <span>DO 點位</span>
+                </div>
+
+                    </div>
+                </div>
+
+                <div class="widget-cat">
+                    <div class="widget-cat-title">設備與動畫</div>
+                    <div class="widget-cat-items">
+
+                <!-- 水泵 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="pump"
+                     title="拖曳至畫布以新增水泵圖示（可綁定 SID，運轉時旋轉）">
+                    <svg viewBox="0 0 50 40" width="28" height="23" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                        <!-- 底座 -->
+                        <rect x="12" y="33" width="16" height="2.5" rx="1" fill="#4a4a4a"/>
+                        <rect x="12" y="35" width="16" height="1.5" rx=".5" fill="#333"/>
+                        <rect x="15" y="27.5" width="3" height="6" rx=".5" fill="#4a4a4a"/>
+                        <rect x="22" y="27.5" width="3" height="6" rx=".5" fill="#4a4a4a"/>
+                        <!-- 泵體 -->
+                        <path d="M 20,4 L 46,4 L 46,12 L 33,12 A 14,14 0 1,1 20,4 Z"
+                              fill="#555" stroke="#3a3a3a" stroke-width="1.5" stroke-linejoin="round"/>
+                        <rect x="22" y="5" width="22" height="2" rx=".5" fill="rgba(255,255,255,.12)"/>
+                        <!-- 葉片 -->
+                        <circle cx="20" cy="18" r="4.5" fill="#6c757d" stroke="#444" stroke-width=".8"/>
+                        <path d="M 19.3,17 C 18.5,15.5 19,14 20,13.5 C 21,14 21.5,15.5 20.7,17 Z" fill="rgba(255,255,255,.4)"/>
+                        <path d="M 20.8,18.5 C 22,20 23,20.5 23.2,21 C 22.3,21.8 21,21 20.3,19.5 Z" fill="rgba(255,255,255,.4)"/>
+                        <path d="M 19.2,18.5 C 18,20 17,20.5 16.8,21 C 17.7,21.8 19,21 19.7,19.5 Z" fill="rgba(255,255,255,.4)"/>
+                        <circle cx="20" cy="18" r="1.2" fill="#3a3a3a"/>
+                    </svg>
+                    <span>水泵</span>
+                </div>
+
+                <!-- 管路 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="pipe"
+                     title="拖曳至畫布以新增管路（直管段，可綁定 DI 或 類比量＋閾值，符合條件時流動）">
+                    <svg viewBox="0 0 28 16" width="28" height="16" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                        <rect x="1" y="6" width="26" height="4" rx="2" fill="#adb5bd"/>
+                        <rect x="2" y="6.5" width="6" height="3" rx="1.5" fill="#0d6efd"/>
+                        <rect x="11" y="6.5" width="6" height="3" rx="1.5" fill="#0d6efd"/>
+                        <rect x="20" y="6.5" width="6" height="3" rx="1.5" fill="#0d6efd"/>
+                    </svg>
+                    <span>管路</span>
+                </div>
+
+                <!-- 冷卻水塔 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="coolingTower"
+                     title="拖曳至畫布以新增冷卻水塔（可綁定 SID，運轉時風扇旋轉，含 VFD 頻率控制）">
+                    <svg viewBox="0 0 32 32" width="26" height="26" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                        <ellipse cx="16" cy="28.5" rx="11" ry="2" fill="rgba(0,0,0,.2)"/>
+                        <path d="M6,11 L16,16 L16,28 L6,23 Z" fill="#6c757d" stroke="#3a3a3a" stroke-width="1" stroke-linejoin="round"/>
+                        <line x1="9" y1="13.7" x2="9" y2="25.7" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
+                        <line x1="12" y1="15.2" x2="12" y2="27.2" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
+                        <path d="M16,16 L26,11 L26,23 L16,28 Z" fill="#565e66" stroke="#3a3a3a" stroke-width="1" stroke-linejoin="round"/>
+                        <line x1="17.5" y1="17" x2="24.5" y2="21.8" stroke="rgba(255,255,255,.3)" stroke-width="1"/>
+                        <line x1="24.5" y1="13.5" x2="17.5" y2="25.5" stroke="rgba(255,255,255,.3)" stroke-width="1"/>
+                        <path d="M16,6 L26,11 L16,16 L6,11 Z" fill="#8a9199" stroke="#3a3a3a" stroke-width="1" stroke-linejoin="round"/>
+                        <polyline points="6,8 16,3 26,8" fill="none" stroke="#e8a812" stroke-width="1.2"/>
+                        <polyline points="6,8 16,13 26,8" fill="none" stroke="#e8a812" stroke-width="1.2"/>
+                        <line x1="6" y1="11" x2="6" y2="8" stroke="#e8a812" stroke-width="1.2"/>
+                        <line x1="26" y1="11" x2="26" y2="8" stroke="#e8a812" stroke-width="1.2"/>
+                        <line x1="16" y1="16" x2="16" y2="13" stroke="#e8a812" stroke-width="1.2"/>
+                        <ellipse cx="16" cy="10.5" rx="5" ry="2.5" fill="#5a5a5a" stroke="#333" stroke-width="1"/>
+                        <path d="M16,10.5 L16,8.6 C17.6,8.9 17.6,10 16,10.3 Z" fill="rgba(255,255,255,.5)"/>
+                        <path d="M16,10.5 L19.6,11.2 C18.6,12 16.9,11.6 16.3,10.8 Z" fill="rgba(255,255,255,.5)"/>
+                        <path d="M16,10.5 L12.4,11.2 C12.9,9.9 14.7,9.6 15.6,10.2 Z" fill="rgba(255,255,255,.5)"/>
+                        <circle cx="16" cy="10.5" r="1" fill="#3a3a3a"/>
+                    </svg>
+                    <span>冷卻水塔</span>
+                </div>
+
+                <!-- 空調箱風扇 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="ahuFan"
+                     title="拖曳至畫布以新增空調箱風扇（可綁定 SID，運轉時風扇旋轉，含 VFD 頻率控制）">
+                    <svg viewBox="0 0 32 32" width="26" height="26" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                        <rect x="4" y="6" width="24" height="20" rx="3" fill="#6c757d" stroke="#3a3a3a" stroke-width="1"/>
+                        <rect x="1.5" y="12" width="2.5" height="8" rx="1" fill="#5a5a5a"/>
+                        <rect x="28" y="12" width="2.5" height="8" rx="1" fill="#5a5a5a"/>
+                        <circle cx="16" cy="16" r="7.5" fill="#6c757d" stroke="#333" stroke-width="1"/>
+                        <path d="M16,16 L16,9.5 C17.6,10.6 17.6,13.2 16,14.5 Z" fill="rgba(255,255,255,.5)"/>
+                        <path d="M16,16 L21.6,12.8 C21.6,14.7 19.4,16.1 17.4,15.5 Z" fill="rgba(255,255,255,.5)"/>
+                        <path d="M16,16 L21.6,19.2 C20,20.2 17.8,19.3 17.4,17.3 Z" fill="rgba(255,255,255,.5)"/>
+                        <path d="M16,16 L16,22.5 C14.4,21.4 14.4,18.8 16,17.5 Z" fill="rgba(255,255,255,.5)"/>
+                        <path d="M16,16 L10.4,19.2 C10.4,17.3 12.6,15.9 14.6,16.5 Z" fill="rgba(255,255,255,.5)"/>
+                        <path d="M16,16 L10.4,12.8 C12,11.8 14.2,12.7 14.6,14.7 Z" fill="rgba(255,255,255,.5)"/>
+                        <circle cx="16" cy="16" r="1.8" fill="#3a3a3a"/>
+                    </svg>
+                    <span>空調箱風扇</span>
+                </div>
+
+                <!-- 冰機 -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="chiller"
+                     title="拖曳至畫布以新增冰機（可綁定 SID，顯示負載%，右下角設定溫度可雙擊編輯）">
+                    <svg viewBox="0 0 32 32" width="26" height="26" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                        <rect x="6" y="27" width="21" height="1.8" rx=".8" fill="#4a4a4a"/>
+                        <rect x="16.5" y="6" width="8.5" height="3.6" rx="1.8" fill="#565b60" stroke="#3a3a3a" stroke-width=".6"/>
+                        <rect x="6" y="17.5" width="21" height="7.5" rx="3.7" fill="#6c757d" stroke="#3a3a3a" stroke-width=".8"/>
+                        <rect x="10" y="9.5" width="17" height="6.5" rx="3.2" fill="#6c757d" stroke="#3a3a3a" stroke-width=".8"/>
+                        <rect x="7" y="4.5" width="9" height="13.5" rx=".8" fill="#61666b" stroke="#3a3a3a" stroke-width=".8"/>
+                        <rect x="8.2" y="6.3" width="5" height="3.8" rx=".5" fill="#243640"/>
+                        <rect x="8.8" y="7" width="2.6" height=".8" rx=".4" fill="rgba(120,220,180,.8)"/>
+                        <circle cx="9.3" cy="12.5" r=".8" fill="#e57373"/>
+                        <circle cx="11.5" cy="12.5" r=".8" fill="#81c784"/>
+                        <circle cx="13.7" cy="12.5" r=".8" fill="#ffd54f"/>
+                        <circle cx="11.5" cy="3.8" r="1.2" fill="#81c784" stroke="#3a3a3a" stroke-width=".5"/>
+                    </svg>
+                    <span>冰機</span>
+                </div>
+
+                <!-- 圖片/動畫（自訂 GIF） -->
+                <div class="widget-lib-item"
+                     draggable="true"
+                     data-widget-type="image"
+                     title="拖曳至畫布以新增自訂圖片/動畫（GIF）；可綁定點位，依狀態切換動畫圖與靜止圖">
+                    <i class="fas fa-film" style="font-size:22px;color:#8ab4f8;"></i>
+                    <span>圖片/動畫</span>
+                </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- 畫布 -->
+            <div class="canvas-wrapper" id="canvasWrapper">
+                <div id="canvas"></div>
+                <div class="canvas-statusbar" id="canvasStatusbar"></div>
+            </div>
+
+            <!-- 屬性面板 -->
+            <div class="property-panel collapsed">
+                <div class="panel-header">
+                    <i class="fas fa-sliders-h me-1"></i> 屬性
+                </div>
+                <div class="prop-body" id="propBody">
+                    <div class="no-sel-hint" id="noSelHint">
+                        <i class="fas fa-mouse-pointer"></i>
+                        點選元件以編輯屬性
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /.designer-body -->
+    </div><!-- /.designer-outer -->
+
+<!-- 右鍵選單（fixed，掛在 body 層） -->
+<div id="ctxMenu"></div>
+
+<!-- ===== 點位選擇 Modal（兩步驟） ===== -->
+<div class="modal fade" id="pointPickerModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:460px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" style="font-size:13px;display:flex;align-items:center;gap:4px;">
+                    <i class="fas fa-tachometer-alt text-warning"></i>
+                    <span id="ppModalTitle">選擇設備</span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:12px 16px;">
+
+                <!-- 來源類型切換（僅 DI widget 開啟 picker 時顯示，仿 LogicFlow） -->
+                <div id="ppSourceToggle" style="display:none;margin-bottom:8px;">
+                    <div class="btn-group btn-group-sm w-100">
+                        <button type="button" class="btn btn-outline-warning active" id="ppBtnPoint"
+                                onclick="switchPickerSource('point')">
+                            <i class="fas fa-server me-1"></i>點位
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" id="ppBtnSchedule"
+                                onclick="switchPickerSource('schedule')">
+                            <i class="fas fa-calendar-alt me-1"></i>排程
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 0: 選擇來源類型 -->
+                <div id="ppStep0">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div class="point-list-item" onclick="showDeviceStep()" style="cursor:pointer;padding:14px 16px;">
+                            <i class="fas fa-server" style="font-size:18px;color:#7ecfff;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="point-name" style="font-size:14px;">設備點位</div>
+                                <div class="point-sid">從 Modbus 設備選擇原始點位</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#555;font-size:12px;"></i>
+                        </div>
+                        <div class="point-list-item" onclick="showCalcPointStep()" style="cursor:pointer;padding:14px 16px;">
+                            <i class="fas fa-calculator" style="font-size:18px;color:#ffc107;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="point-name" style="font-size:14px;">計算點位</div>
+                                <div class="point-sid">從公式衍生的計算點位</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#555;font-size:12px;"></i>
+                        </div>
+                        <div class="point-list-item" onclick="showDbPointStep()" style="cursor:pointer;padding:14px 16px;">
+                            <i class="fas fa-database" style="font-size:18px;color:#6ec1a3;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="point-name" style="font-size:14px;">DB 來源點位</div>
+                                <div class="point-sid">從外部資料庫寫入的點位</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#555;font-size:12px;"></i>
+                        </div>
+                        <div class="point-list-item" onclick="showDemandPointStep()" style="cursor:pointer;padding:14px 16px;">
+                            <i class="fas fa-bolt" style="font-size:18px;color:#ff8787;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="point-name" style="font-size:14px;">需量點位</div>
+                                <div class="point-sid">電表迴路 15 分鐘需量（kW，每分鐘更新）</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#555;font-size:12px;"></i>
+                        </div>
+                        <!-- 迴路來源（僅 AI 點位 / 表格資料 cell 顯示；plan 2026-07-23 迴路指標） -->
+                        <div class="point-list-item" id="ppSrcCircuit" onclick="showCircuitStep()" style="cursor:pointer;padding:14px 16px;display:none;">
+                            <i class="fas fa-sitemap" style="font-size:18px;color:#69db7c;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="point-name" style="font-size:14px;">迴路</div>
+                                <div class="point-sid">能源迴路指標（本日/本月用電、電費）</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#555;font-size:12px;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: 設備清單 -->
+                <div id="ppStep1" style="display:none;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <button class="pp-back-btn" onclick="goBackToStep0()" title="返回來源選擇">
+                            <i class="fas fa-arrow-left"></i> 返回
+                        </button>
+                        <span class="pp-device-tag"><i class="fas fa-server me-1"></i>設備清單</span>
+                    </div>
+                    <input type="text" id="ppDeviceSearch"
+                           class="form-control form-control-sm mb-2"
+                           placeholder="搜尋設備 / 子設備…"
+                           style="background:#3c3c3c;border:1px solid #555;color:#c8c8c8;"
+                           oninput="filterDeviceList(this.value)">
+                    <div id="deviceListContainer" style="max-height:262px;overflow-y:auto;"></div>
+                </div>
+
+                <!-- Step 2: 點位清單 -->
+                <div id="ppStep2" style="display:none;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <button class="pp-back-btn" onclick="goBackToDevices()" title="返回">
+                            <i class="fas fa-arrow-left"></i> 返回
+                        </button>
+                        <span class="pp-device-tag"><i class="fas fa-server me-1" id="ppDeviceIcon"></i><span id="ppDeviceName"></span></span>
+                    </div>
+                    <input type="text" id="ppPointSearch"
+                           class="form-control form-control-sm mb-2"
+                           placeholder="搜尋點位名稱…"
+                           style="background:#3c3c3c;border:1px solid #555;color:#c8c8c8;"
+                           oninput="filterPointList(this.value)">
+                    <div id="pointListContainer" style="max-height:270px;overflow-y:auto;"></div>
+                </div>
+
+                <!-- Step 3: 排程清單（DI widget 切「排程」分頁時顯示） -->
+                <div id="ppStep3" style="display:none;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <span class="pp-device-tag"><i class="fas fa-calendar-alt me-1"></i>選擇排程</span>
+                    </div>
+                    <div id="scheduleListContainer" style="max-height:320px;overflow-y:auto;"></div>
+                </div>
+
+            </div>
+            <div class="modal-footer" style="gap:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning btn-sm" id="btnConfirmPoint"
+                        onclick="confirmPointPick()" disabled>確認</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 列範本建議 Modal（plan 2026-06-01-designer-row-template） ===== -->
+<div class="modal fade" id="rowTemplateModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:460px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" style="font-size:13px;display:flex;align-items:center;gap:4px;">
+                    <i class="fas fa-magic text-info"></i>
+                    <span>列範本建議</span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body row-template-body" id="rowTemplateBody" style="padding:12px 16px;">
+                <!-- 由 JS 動態渲染：suggest view 或 adjust view -->
+            </div>
+            <div class="modal-footer" id="rowTemplateFooter" style="gap:8px;">
+                <!-- 由 JS 動態渲染按鈕 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 迴路自動帶入確認 Modal（plan 2026-07-23 表頭驅動整列帶入；body 複用 row-template-body 樣式） ===== -->
+<div class="modal fade" id="cmetricFillModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" style="font-size:13px;display:flex;align-items:center;gap:4px;">
+                    <i class="fas fa-sitemap" style="color:#69db7c;"></i>
+                    <span>迴路自動帶入</span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body row-template-body" id="cmetricFillBody" style="padding:12px 16px;">
+                <!-- 由 JS 動態渲染：欄名 → 帶入內容 勾選清單 -->
+            </div>
+            <div class="modal-footer" id="cmetricFillFooter" style="gap:8px;">
+                <!-- 由 JS 動態渲染按鈕 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 匯入頁面檔 Modal（plan 2026-10-21-designer-layout-import；表格由 page-import.js 渲染） ===== -->
+<input type="file" id="pageImportFile" accept=".json,application/json" style="display:none;">
+<div class="modal fade" id="pageImportModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:680px;">
+        <div class="modal-content page-import-content">
+            <div class="modal-header">
+                <h6 class="modal-title" style="font-size:13px;display:flex;align-items:center;gap:4px;">
+                    <i class="fas fa-file-import text-info"></i>
+                    <span>匯入頁面檔</span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:12px 16px;">
+                <div class="pi-summary" id="pageImportSummary"></div>
+                <table class="pi-table">
+                    <thead>
+                        <tr>
+                            <th style="width:24px;"></th>
+                            <th>設備</th>
+                            <th>型別</th>
+                            <th>對應 Device</th>
+                            <th style="width:72px;">命中</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pageImportRows"></tbody>
+                </table>
+                <div class="pi-total" id="pageImportTotal"></div>
+                <div class="form-check pi-keep">
+                    <input class="form-check-input" type="checkbox" id="pageImportKeepMissing">
+                    <label class="form-check-label" for="pageImportKeepMissing">保留未命中的座位（之後手動綁點）</label>
+                </div>
+                <div class="pi-hint">未命中的座位不建立元件，整欄都未命中時收掉該欄；感測器與面板的佔位元件不綁點，需手動綁定。按「儲存」後才寫入資料庫。</div>
+            </div>
+            <div class="modal-footer" style="gap:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-info btn-sm" onclick="confirmPageImport()">建立頁面</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 頁面編輯 Modal ===== -->
+<div class="modal fade" id="pageEditModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+        <div class="modal-content" style="background:#2d2d2d;border:1px solid #555;color:#c8c8c8;">
+            <div class="modal-header" style="border-bottom:1px solid #444;padding:10px 16px;">
+                <h6 class="modal-title" style="font-size:13px;">
+                    <i class="fas fa-pen text-info me-2"></i>編輯頁面
+                </h6>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:12px 16px;">
+                <div style="margin-bottom:12px;">
+                    <div style="color:#9d9d9d;font-size:11px;margin-bottom:4px;">頁面名稱</div>
+                    <input type="text" id="editPageNameInput"
+                           class="form-control form-control-sm"
+                           style="background:#3c3c3c;border:1px solid #555;color:#c8c8c8;"
+                           placeholder="輸入頁面名稱">
+                </div>
+                <div>
+                    <div style="color:#9d9d9d;font-size:11px;margin-bottom:6px;">頁面圖示</div>
+                    <div id="iconPickerGrid" class="icon-picker-grid"></div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #444;padding:8px 16px;gap:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-info btn-sm" onclick="confirmPageEdit()">確認</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+<script>window.i18n={_d:{"designer.title": "畫面設計", "designer.toolbar.clear": "清除", "designer.toolbar.clear_tooltip": "清除所有元件", "designer.toolbar.import_image": "匯入圖片", "designer.toolbar.import_image_tooltip": "匯入圖檔作為畫布背景", "designer.toolbar.save": "儲存", "designer.toolbar.save_tooltip": "儲存所有頁面至資料庫", "designer.toolbar.saving": "儲存中…", "designer.toolbar.bg_remove": "移除背景圖", "designer.toolbar.hint": "從左側拖曳元件至畫布 • 點選元件可調整屬性 • Del 鍵刪除", "designer.toolbar.align_left": "靠左", "designer.toolbar.align_left_tooltip": "選取項目靠左對齊（取最小 X）", "designer.toolbar.align_right": "靠右", "designer.toolbar.align_right_tooltip": "選取項目靠右對齊（取最大右緣）", "designer.toolbar.align_top": "靠上", "designer.toolbar.align_top_tooltip": "選取項目靠上對齊（取最小 Y）", "designer.toolbar.align_bottom": "靠下", "designer.toolbar.align_bottom_tooltip": "選取項目靠下對齊（取最大下緣）", "designer.toolbar.align_center_h": "水平置中", "designer.toolbar.align_center_h_tooltip": "選取項目以群組水平中心對齊（同一 X 中心）", "designer.toolbar.align_center_v": "垂直置中", "designer.toolbar.align_center_v_tooltip": "選取項目以群組垂直中心對齊（同一 Y 中心）", "designer.toolbar.distribute_h": "水平等距分布", "designer.toolbar.distribute_h_tooltip": "固定最左 / 最右元件，中間元件水平等間距排列（≥ 3 選取）", "designer.toolbar.distribute_v": "垂直等距分布", "designer.toolbar.distribute_v_tooltip": "固定最上 / 最下元件，中間元件垂直等間距排列（≥ 3 選取）", "designer.page_panel.title": "頁面", "designer.page_panel.add_root_tooltip": "新增根頁面", "designer.component_panel.title": "元件庫", "designer.component_panel.expand_tooltip": "展開元件庫", "designer.component_panel.collapse_tooltip": "收起元件庫", "designer.component_panel.cat_display": "顯示元件", "designer.component_panel.cat_point": "點位與控制", "designer.component_panel.cat_equip": "設備與動畫", "designer.widget.table": "表格", "designer.widget.gauge": "儀錶板", "designer.widget.text": "文字", "designer.widget.controlBtn": "控制按鈕", "designer.widget.realtimeValue": "AI 點位", "designer.widget.diPoint": "DI 點位", "designer.widget.aoPoint": "AO 點位", "designer.widget.doPoint": "DO 點位", "designer.widget.pump": "水泵", "designer.widget.pipe": "管路", "designer.widget.coolingTower": "冷卻水塔", "designer.widget.ahuFan": "空調箱風扇", "designer.widget.chiller": "冰機", "designer.widget.trendChart": "即時曲線", "designer.widget_tooltip.trendChart": "拖曳至畫布以新增即時曲線；綁一個點位，執行期呈現會自己往左滾動的「近 N 分鐘」趨勢", "designer.default.trendChart_title": "即時曲線", "designer.prop.trend.window_min": "時間窗（分鐘）", "designer.prop.trend.window_badge": "近 {0} 分鐘", "designer.prop.trend.sample_sec": "畫點間隔（秒）", "designer.prop.trend.point_count_hint": "約 {0} 點", "designer.prop.trend.capped_hint": "已達 {0} 點上限，畫點間隔自動放大為 {1} 秒", "designer.prop.trend.y_max": "Y 軸上限", "designer.prop.trend.y_min": "Y 軸下限", "designer.prop.trend.y_auto_hint": "留空＝自動（依資料範圍上下各留 10%）", "designer.prop.trend.auto": "自動", "designer.prop.trend.grid_count": "格線數", "designer.prop.trend.unit": "單位", "designer.prop.trend.line_color": "線色", "designer.prop.trend.line_width": "線寬", "designer.prop.trend.grid_color": "格線色", "designer.prop.trend.border_color": "邊框色", "designer.prop.trend.show_legend": "顯示圖例", "designer.widget.image": "圖片/動畫", "designer.widget_tooltip.image": "拖曳至畫布以新增自訂圖片/動畫（GIF）；可綁定點位，依狀態切換動畫圖與靜止圖", "designer.default.image_title": "圖片/動畫", "designer.prop.image.sources": "圖片來源", "designer.prop.image.anim": "動畫圖（GIF）", "designer.prop.image.still": "靜止圖", "designer.prop.image.upload": "上傳", "designer.prop.image.still_hint": "建議上傳靜止圖；未提供時停止狀態會以灰階顯示動畫圖", "designer.prop.image.gallery": "內建圖庫", "designer.prop.image.binding": "狀態綁定", "designer.prop.image.binding_hint": "DI 與類比二擇一；未綁定＝純裝飾固定播放", "designer.prop.image.fit": "縮放方式", "designer.prop.image.fit_contain": "完整顯示（contain）", "designer.prop.image.fit_cover": "填滿裁切（cover）", "designer.prop.image.fit_fill": "拉伸填滿（fill）", "designer.image.no_image": "尚未選圖", "designer.image.gallery_loading": "載入圖庫中…", "designer.image.gallery_empty": "圖庫尚無圖片", "designer.image.gallery_error": "圖庫載入失敗", "designer.image.upload_failed": "圖片上傳失敗", "designer.widget_tooltip.table": "拖曳至畫布以新增資料表格", "designer.widget_tooltip.gauge": "拖曳至畫布以新增儀錶板", "designer.widget_tooltip.text": "拖曳至畫布以新增文字標籤", "designer.widget_tooltip.controlBtn": "拖曳至畫布以新增控制按鈕（可綁定 CID）", "designer.widget_tooltip.realtimeValue": "拖曳至畫布以新增 AI 點位（可綁定 SID）", "designer.widget_tooltip.diPoint": "拖曳至畫布以新增 DI 點位指示燈（可綁定 SID）", "designer.widget_tooltip.aoPoint": "拖曳至畫布以新增 AO 點位（可綁定 CID，寫入類比輸出值）", "designer.widget_tooltip.doPoint": "拖曳至畫布以新增 DO 點位（可綁定 CID，ON/OFF 切換寫入）", "designer.widget_tooltip.pump": "拖曳至畫布以新增水泵圖示（可綁定 SID，運轉時旋轉）", "designer.widget_tooltip.pipe": "拖曳至畫布以新增管路（直管段，可綁定 DI 或 類比量＋閾值，符合條件時流動）", "designer.widget_tooltip.coolingTower": "拖曳至畫布以新增冷卻水塔（可綁定 SID，運轉時風扇旋轉，含 VFD 頻率控制）", "designer.widget_tooltip.ahuFan": "拖曳至畫布以新增空調箱風扇（可綁定 SID，運轉時風扇旋轉，含 VFD 頻率控制）", "designer.widget_tooltip.chiller": "拖曳至畫布以新增冰機（可綁定 SID，顯示負載%，右下角設定溫度可雙擊編輯）", "designer.property_panel.title": "屬性", "designer.property_panel.no_sel": "點選元件以編輯屬性", "designer.picker.title.device": "選擇設備", "designer.picker.title.source": "選擇點位來源", "designer.picker.title.point": "選擇點位", "designer.picker.title.calc_group": "選擇計算點位群組", "designer.picker.title.calc_point": "選擇計算點位", "designer.picker.title.db_source": "選擇 DB 來源", "designer.picker.title.db_point": "選擇 DB 來源點位", "designer.picker.source.device": "設備點位", "designer.picker.source.device_desc": "從 Modbus 設備選擇原始點位", "designer.picker.source.calc": "計算點位", "designer.picker.source.calc_desc": "從公式衍生的計算點位", "designer.picker.source.db": "DB 來源點位", "designer.picker.source.db_desc": "從外部資料庫寫入的點位", "designer.picker.back": "返回", "designer.picker.back_to_source": "返回來源選擇", "designer.picker.device_list": "設備清單", "designer.picker.search_placeholder": "搜尋點位名稱…", "designer.picker.device_search_placeholder": "搜尋設備 / 子設備…", "designer.picker.cancel": "取消", "designer.picker.confirm": "確認", "designer.picker.points_count": "{count} 個點位", "designer.picker.ungrouped": "未分組", "designer.picker.db_source_default": "DB 來源", "designer.picker.no_db_points": "尚無 DB 來源點位", "designer.picker.no_devices": "尚無設備", "designer.picker.no_matching_points": "無符合點位", "designer.picker.load_error": "無法載入設備/點位清單，請確認資料庫連線。", "designer.picker.loading": "載入中…", "designer.picker.toggle.point": "點位", "designer.picker.toggle.schedule": "排程", "designer.picker.title.schedule": "選擇排程", "designer.picker.no_schedules": "沒有啟用中的排程", "designer.picker.schedule_load_error": "無法載入排程清單", "designer.picker.schedule.weekly": "每週", "designer.picker.schedule.n_weekly": "N 週循環", "designer.picker.schedule.monthly": "每月", "designer.picker.schedule.n_monthly": "N 月循環", "designer.prop.source_schedule": "來源：排程", "designer.prop.source_point": "來源：點位", "designer.page_modal.title": "編輯頁面", "designer.page_modal.name_label": "頁面名稱", "designer.page_modal.name_placeholder": "輸入頁面名稱", "designer.page_modal.icon_label": "頁面圖示", "designer.page_modal.cancel": "取消", "designer.page_modal.confirm": "確認", "designer.page.default_name": "主頁面", "designer.page.new_name": "新頁面", "designer.page.prompt_name": "請輸入頁面名稱：", "designer.page.must_keep_one": "至少需要保留一個頁面。", "designer.page.copy_suffix": " - 複製", "designer.page.copied": "已複製「{name}」（點位綁定已清空），請在目標位置按右鍵貼上", "designer.page.pasted": "已貼上「{name}」，請重新綁定各元件點位", "designer.page.copy_bg_skipped": "背景圖過大，已略過背景圖後複製", "designer.page.copy_failed": "複製失敗：瀏覽器儲存空間不足", "designer.page.confirm_delete": "確定要刪除「{name}」？", "designer.page.confirm_delete_with_children": "確定要刪除「{name}」及其所有子頁面？", "designer.icon.home": "首頁", "designer.icon.general": "一般", "designer.icon.group": "群組", "designer.icon.trend": "趨勢", "designer.icon.gauge": "儀錶板", "designer.icon.temperature": "溫度", "designer.icon.power": "電力", "designer.icon.water": "水流", "designer.icon.hvac": "空調", "designer.icon.combustion": "燃燒", "designer.icon.refrigeration": "冷凍", "designer.icon.fan": "風機", "designer.icon.pump": "幫浦", "designer.icon.device": "設備", "designer.icon.factory": "工廠", "designer.icon.server": "伺服器", "designer.icon.network": "網路", "designer.icon.plug": "電源", "designer.icon.solar": "太陽能", "designer.icon.map": "地圖", "designer.icon.alarm": "警報", "designer.icon.bell": "通知", "designer.icon.eye": "監控", "designer.icon.database": "資料庫", "designer.icon.tools": "維護", "designer.ctx.add_page": "新增頁面", "designer.ctx.add_subpage": "新增子頁面", "designer.ctx.copy_page": "複製此頁", "designer.ctx.paste_as_subpage": "貼上為子頁面", "designer.ctx.paste_as_root": "貼上為根頁面", "designer.ctx.edit": "編輯", "designer.ctx.delete": "刪除", "designer.ctx.edit_cell": "編輯儲存格", "designer.ctx.bind_point": "綁定點位", "designer.ctx.clear_binding": "清除綁定", "designer.ctx.add_text": "新增文字", "designer.default.table_title": "數據表格", "designer.default.gauge_title": "溫度", "designer.default.text_title": "文字標籤", "designer.default.text_content": "文字內容", "designer.default.controlBtn_title": "控制", "designer.default.controlBtn_label": "執行", "designer.default.realtimeValue_title": "AI 點位", "designer.default.diPoint_title": "DI 點位", "designer.default.aoPoint_title": "AO 點位", "designer.default.aoPoint_menu_manual": "手動控制", "designer.default.aoPoint_menu_auto": "自動控制", "designer.default.doPoint_title": "DO 點位", "designer.default.doPoint_menu_on": "手動ON", "designer.default.doPoint_menu_off": "手動OFF", "designer.default.doPoint_menu_auto": "自動控制", "designer.default.pump_title": "水泵", "designer.default.pipe_title": "管路", "designer.default.coolingTower_title": "冷卻水塔", "designer.default.ahuFan_title": "空調箱風扇", "designer.default.chiller_title": "冰機", "designer.table.header.name": "名稱", "designer.table.header.value": "數值", "designer.table.header.status": "狀態", "designer.table.header.timestamp": "時間戳", "designer.widget.unbound_cid": "未綁定 CID", "designer.widget.unbound_sid": "未綁定 SID", "designer.widget.unbound": "（未綁定）", "designer.widget.delete_widget_tooltip": "刪除元件", "designer.widget.resize_tooltip": "拖曳縮放", "designer.widget.delete_text_tooltip": "刪除文字", "designer.prop.title": "標題", "designer.prop.pos_x": "X 位置", "designer.prop.pos_y": "Y 位置", "designer.prop.width": "寬度", "designer.prop.height": "高度", "designer.prop.multi_selected": "已選取 {count} 個元件", "designer.prop.multi_size_hint": "調整寬高會套用到所有選取的元件", "designer.prop.font_size": "字體大小", "designer.prop.font_color": "字色", "designer.prop.font_family": "字體", "designer.prop.unit": "單位", "designer.prop.unit_from_point": "單位（來自點位）", "designer.prop.background_color": "背景色", "designer.prop.transparent_bg": "透明背景", "designer.prop.reselect": "重選", "designer.prop.bind": "綁定", "designer.prop.clear": "清除", "designer.prop.rows": "列數", "designer.prop.cols": "欄數", "designer.prop.header_color": "標題列顏色", "designer.prop.text_content": "文字內容", "designer.prop.alignment": "對齊", "designer.prop.weight": "粗細", "designer.prop.weight.normal": "一般", "designer.prop.weight.bold": "粗體", "designer.prop.weight.medium": "中粗", "designer.prop.align.left": "靠左", "designer.prop.align.center": "置中", "designer.prop.align.right": "靠右", "designer.prop.point_type": "點位屬性", "designer.prop.point_type.ai": "AI 點位", "designer.prop.point_type.di": "DI 點位", "designer.prop.col_decimals": "小數位數（整欄）", "designer.prop.col_decimals_placeholder": "不限", "designer.prop.cell_back": "返回表格屬性", "designer.prop.cell_header_row": "標題列", "designer.prop.cell_data_row": "資料列", "designer.prop.text_color": "文字顏色", "designer.prop.default_row_height": "預設列高", "designer.prop.default_col_width": "預設欄寬", "designer.prop.col_width": "該欄寬度", "designer.prop.row_height": "該列高度", "designer.prop.size_placeholder_default": "留空=用預設", "designer.prop.table_size_locked": "大小由欄列決定", "designer.prop.table_style": "表格樣式", "designer.prop.body_bg_odd": "奇數列底色", "designer.prop.body_bg_even": "偶數列底色", "designer.prop.border_color": "框線色", "designer.preset.classic": "經典深灰", "designer.preset.scada_blue": "SCADA 藍", "designer.preset.ems_green": "EMS 綠", "designer.preset.dark": "深色", "designer.preset.minimal": "極簡白", "designer.prop.bound_point": "綁定點位", "designer.prop.current_value": "當前值", "designer.prop.min_value": "最小值", "designer.prop.max_value": "最大值", "designer.prop.main_color_normal": "主色（正常範圍）", "designer.prop.high_color": "上限顏色", "designer.prop.low_color": "下限顏色", "designer.prop.bound_cid": "綁定 CID", "designer.prop.btn_label": "按鈕文字", "designer.prop.btn_icon": "按鈕圖示", "designer.prop.btn_icon.finger": "✉ 手指", "designer.prop.btn_icon.play": "▶ 啟動", "designer.prop.btn_icon.power": "⏻ 電源", "designer.prop.btn_icon.send": "✈ 發送", "designer.prop.btn_icon.bolt": "⚡ 閃電", "designer.prop.ctrl_value": "控制值", "designer.prop.btn_color": "按鈕顏色", "designer.prop.bound_sid": "綁定 SID", "designer.prop.value_mode.realtime": "即時值", "designer.prop.value_mode.acc_day": "當日累積", "designer.prop.value_mode.acc_month": "當月累積", "designer.prop.acc_kind": "累積計算方式", "designer.prop.acc_kind.meter": "累積讀值型（電錶）", "designer.prop.acc_kind.integrate": "瞬時值積分型", "designer.prop.acc_max_value": "溢位上限", "designer.prop.acc_unit": "累積單位", "designer.prop.acc_decimals": "小數位數", "designer.widget.acc_day_badge": "日累", "designer.widget.acc_month_badge": "月累", "designer.prop.display_mode": "顯示模式", "designer.prop.display_mode.indicator": "燈號", "designer.prop.display_mode.text": "文字", "designer.prop.indicator_size": "指示燈大小", "designer.prop.on_color": "ON 顏色", "designer.prop.off_color": "OFF 顏色", "designer.prop.on_label": "ON 文字", "designer.prop.off_label": "OFF 文字", "designer.prop.alarm_color": "警報顏色", "designer.prop.alarm_text_color": "警報字色", "designer.prop.display_name": "顯示名稱", "designer.prop.default_write_value": "預設寫入值", "designer.prop.step_value": "步進值", "designer.prop.decimal_places": "小數點位數", "designer.prop.menu_manual": "「手動控制」選單文字", "designer.prop.menu_auto": "「自動控制」選單文字", "designer.prop.menu_on": "「手動ON」選單文字", "designer.prop.menu_off": "「手動OFF」選單文字", "designer.prop.menu_blank_hint": "留空則不顯示", "designer.prop.on_write_value": "ON 寫入值", "designer.prop.off_write_value": "OFF 寫入值", "designer.prop.block_color": "方塊顏色", "designer.prop.pump.sid_monitor": "SID 監控點位", "designer.prop.pump.cid_control": "CID 控制點位", "designer.prop.pump.run_status": "運轉狀態", "designer.prop.pump.fault_status": "故障狀態", "designer.prop.pump.mode_status": "手自動狀態", "designer.prop.pump.frequency": "頻率", "designer.prop.pump.start_stop": "啟動停止", "designer.prop.pump.freq_set": "頻率設定", "designer.prop.pump.outlet_dir": "出水口方向", "designer.prop.pump.outlet_right": "右", "designer.prop.pump.outlet_left": "左", "designer.prop.pump.outlet_up": "上", "designer.prop.pump.run_color": "運轉顏色", "designer.prop.pump.stop_color": "停止顏色", "designer.prop.pump.fault_color": "故障顏色", "designer.prop.pump.manual_color": "手動顏色", "designer.prop.pump.auto_color": "自動顏色", "designer.prop.motor.load": "負載", "designer.prop.motor.chw_out": "冰水出水溫", "designer.prop.motor.water_temp": "出水溫", "designer.prop.motor.set_temp": "冰水設定溫度", "designer.prop.motor.remote_local": "遠端/現場", "designer.prop.motor.local_color": "現場面板顏色", "designer.motor.set_temp_prefix": "設定", "designer.prop.pipe.binding": "綁定（二擇一）", "designer.prop.pipe.binding_hint": "DI 或 類比量＋閾值，僅能擇一；切換時會提示清除另一個", "designer.prop.pipe.bind_di": "DI 綁定", "designer.prop.pipe.bind_analog": "類比綁定", "designer.prop.pipe.compare": "流動條件", "designer.prop.pipe.compare_gt": "大於閾值（>）", "designer.prop.pipe.compare_gte": "大於等於閾值（≥）", "designer.prop.pipe.threshold": "閾值", "designer.prop.pipe.orient": "方向", "designer.prop.pipe.orient_h": "水平", "designer.prop.pipe.orient_v": "垂直", "designer.prop.pipe.direction": "流向", "designer.prop.pipe.dir_fwd": "正向", "designer.prop.pipe.dir_rev": "逆向", "designer.prop.pipe.thickness": "管線粗細", "designer.prop.pipe.speed": "流速（1-5）", "designer.prop.pipe.flow_color": "流動色", "designer.prop.pipe.stop_color": "停止色", "designer.prop.pipe.bad_color": "斷線色", "designer.pipe.confirm_switch_to_analog": "目前為 DI 綁定，改為類比綁定會清除原本的 DI 綁定，確定？", "designer.pipe.confirm_switch_to_di": "目前為類比綁定，改為 DI 綁定會清除原本的類比綁定，確定？", "designer.prop.pipe.size_hint": "大小由節點自動決定（拖曳節點調整走向）", "designer.prop.pipe.nodes_hint": "選取後拖曳節點折彎／延長；Ctrl+點擊管身於滑鼠處插入節點；Ctrl+點擊或右鍵節點刪除", "designer.pipe.node_tooltip": "拖曳折彎／延長；Ctrl+點擊或右鍵刪除節點", "designer.prop.text.bold": "粗體", "designer.prop.text.italic": "斜體", "designer.prop.text.bold.normal": "正常", "designer.prop.text.bold.bold": "粗體", "designer.prop.text.italic.no": "否", "designer.prop.text.italic.yes": "是", "designer.prop.text.font.default": "預設", "designer.prop.text.font.msjh": "微軟正黑體", "designer.io.saved_success": "已成功儲存至資料庫", "designer.io.save_failed": "儲存失敗：{error}", "designer.io.network_error": "網路錯誤：{error}", "designer.io.unknown_error": "未知錯誤", "designer.io.load_failed": "載入已發布設計失敗：{error}", "designer.canvas.confirm_clear": "確定要清除畫布上所有元件？", "designer.row_template.modal_title": "列範本建議", "designer.row_template.detected_role": "已偵測到角色「{role}」於前綴「{prefix}」", "designer.row_template.preview_title": "預覽（依目前範本順序）", "designer.row_template.preview_found": "找到", "designer.row_template.preview_missing": "未找到", "designer.row_template.btn_fill": "直接帶入", "designer.row_template.btn_adjust": "調整順序", "designer.row_template.btn_skip": "不帶入", "designer.row_template.adjust_title": "角色順序", "designer.row_template.adjust_hint": "使用上下箭頭調整順序，或從下方未使用角色追加", "designer.row_template.unused_roles": "未使用角色", "designer.row_template.btn_apply_once": "套用一次", "designer.row_template.btn_apply_save": "套用並存為預設", "designer.row_template.btn_back": "返回", "designer.row_template.toast_filled": "已帶入 {count} 格", "designer.row_template.toast_filled_with_missing": "已帶入 {count} 格，{missing} 格未找到對應點位", "designer.row_template.save_failed": "範本儲存失敗", "designer.row_template.move_up": "上移", "designer.row_template.move_down": "下移", "designer.row_template.remove_role": "移除", "designer.row_template.add_role": "加入", "designer.row_template.preview_target_col": "帶入欄「{col}」", "designer.row_template.preview_no_col": "欄位不足", "designer.picker.source.circuit": "迴路", "designer.picker.source.circuit_desc": "能源迴路指標（本日/本月用電、電費）", "designer.picker.title.circuit": "選擇迴路", "designer.picker.no_circuits": "尚無迴路，請先於能源管理建立迴路階層", "designer.picker.circuit_virtual": "虛擬", "designer.prop.bound_circuit": "綁定迴路", "designer.prop.circuit_metric": "顯示指標", "designer.metric.day_kwh": "本日度數", "designer.metric.month_kwh": "本月度數（曆月）", "designer.metric.period_kwh": "本月電度（期別）", "designer.metric.period_cost": "本月電費（期別）", "designer.metric.demand_kw": "即時需量", "designer.metric.badge.day_kwh": "日度", "designer.metric.badge.month_kwh": "月度", "designer.metric.badge.period_kwh": "期度", "designer.metric.badge.period_cost": "期費", "designer.metric.badge.demand_kw": "需量", "designer.metric.unit_cost": "元", "designer.cmetric.autofill_toast": "已依表頭帶入 {count} 個即時點位", "designer.cmetric.autofill_toast_metrics": "已帶入 {count} 個迴路指標欄", "designer.cmetric.fill_modal_title": "迴路自動帶入", "designer.cmetric.fill_detected": "依表頭偵測到迴路「{name}」可帶入以下欄位，請勾選後確認：", "designer.cmetric.fill_preview_title": "欄名 → 帶入內容", "designer.cmetric.fill_tag_realtime": "即時值", "designer.cmetric.fill_tag_metric": "指標", "designer.cmetric.fill_tag_missing": "未找到對應點位", "designer.cmetric.fill_tag_bound": "已綁定不覆蓋", "designer.cmetric.fill_row_mismatch": "注意：此列列名「{row}」與迴路名「{name}」不同，請確認帶入內容是否正確", "designer.cmetric.fill_btn_skip": "不帶入", "designer.cmetric.fill_btn_apply": "帶入勾選項目", "designer.picker.source.demand": "需量點位", "designer.picker.source.demand_desc": "電表迴路 15 分鐘需量（kW，每分鐘更新）", "designer.picker.title.demand_point": "選擇需量點位", "designer.equip.title.device": "選擇設備", "designer.equip.reassign_btn": "重新指定設備", "designer.equip.preview_hits": "命中 {n} / {m} 個槽位", "designer.equip.preview_title": "槽位 → 命中點位", "designer.equip.preview_hint": "依點位名稱比對；未命中的槽位可於屬性面板逐一「重選」補綁。", "designer.equip.not_found": "未找到", "designer.equip.multi_hit": "多筆命中（取第一筆）", "designer.equip.no_candidates": "此設備的點位名稱皆無法對應角色，請改選其他設備或於 Modbus 來源頁填妥 Device 欄。", "designer.equip.confirm_overwrite": "將以「{device}」的點位覆蓋目前綁定，未命中的槽位會清空。確定？", "designer.equip.toast_applied": "已帶入 {n} / {m} 個槽位", "designer.page.move_cycle": "不能把頁面搬到自己的子頁面底下", "designer.page.home_changed": "首頁已變更為「{name}」（監控頁預設開啟第一個根頁面），按「儲存」後生效", "designer.ctx.import_page": "匯入頁面檔…", "designer.import.modal_title": "匯入頁面檔", "designer.import.summary": "「{name}」：{groups} 台設備、{placeholders} 個未綁定佔位，畫布 {w} × {h}", "designer.import.col_equip": "設備", "designer.import.col_type": "型別", "designer.import.col_device": "對應 Device", "designer.import.col_hits": "命中", "designer.import.details": "展開角色明細", "designer.import.device_none": "（未指定）", "designer.import.no_groups": "此頁面檔沒有設備群組，只會建立底圖與佔位元件", "designer.import.total_hits": "合計命中 {n} / {m} 個角色", "designer.import.keep_missing": "保留未命中的座位（之後手動綁點）", "designer.import.hint": "未命中的座位不建立元件，整欄都未命中時收掉該欄；感測器與面板的佔位元件不綁點，需手動綁定。按「儲存」後才寫入資料庫。", "designer.import.confirm": "建立頁面", "designer.import.cancel": "取消", "designer.import.done": "已匯入「{name}」：帶入 {n} / {m} 個角色，確認後請按「儲存」", "designer.import.too_large": "檔案超過 {mb} MB，無法匯入", "designer.import.invalid": "不是有效的頁面檔：{reason}", "designer.import.reason.json": "JSON 格式錯誤", "designer.import.reason.format": "格式名稱不是 {format}", "designer.import.reason.version": "版本 {v} 不支援（最高 {max}）", "designer.import.reason.field": "缺少或錯誤的欄位 {field}", "designer.import.reason.widget_type": "未知的元件型別 {type}", "designer.import.reason.group": "元件引用了不存在的設備群組 {group}", "designer.import.type.pump": "泵", "designer.import.type.chiller": "冰機", "designer.import.type.coolingTower": "冷卻水塔", "designer.import.role.FAULT": "故障", "designer.import.role.MODE": "手自動", "designer.import.role.MODE_REMOTE": "遠端/現場", "designer.import.role.RUN": "運轉", "designer.import.role.FREQ": "頻率", "designer.import.role.LOAD": "負載", "designer.import.role.CHWOUT": "冰水出水溫", "designer.import.role.WATERTEMP": "出水溫", "designer.import.role.STARTSTOP": "啟停", "designer.import.role.FREQSET": "頻率設定", "designer.import.role.SETTEMP": "溫度設定", "designer.import.label.FAULT": "故障", "designer.import.label.MODE": "模式", "designer.import.label.MODE_REMOTE": "遠端", "designer.import.label.RUN": "運轉", "designer.import.label.FREQ": "頻率", "designer.import.label.LOAD": "負載", "designer.import.label.CHWOUT": "水溫", "designer.import.label.WATERTEMP": "水溫", "designer.import.label.STARTSTOP": "啟停", "designer.import.label.FREQSET": "頻設", "designer.import.label.SETTEMP": "溫設", "app.title": "SCADA 監控系統", "app.brand": "SCADA 監控系統", "lang.zh-TW": "繁體中文", "lang.en": "English", "lang.switch": "語系", "shared.button.save": "儲存", "shared.button.cancel": "取消", "shared.button.confirm": "確認", "shared.button.ok": "確定", "shared.button.delete": "刪除", "shared.button.add": "新增", "shared.button.edit": "編輯", "shared.button.query": "查詢", "shared.button.export": "匯出", "shared.button.import": "匯入", "shared.button.refresh": "重新整理", "shared.button.close": "關閉", "shared.button.search": "搜尋", "shared.button.reset": "重設", "shared.button.apply": "套用", "shared.status.loading": "載入中…", "shared.status.connecting": "連線中…", "shared.status.connected": "已連線", "shared.status.disconnected": "已斷線", "shared.status.success": "成功", "shared.status.error": "錯誤", "shared.status.warning": "警告", "shared.status.info": "資訊", "shared.status.no_data": "無資料", "shared.status.processing": "處理中", "shared.label.start_time": "起始時間", "shared.label.end_time": "結束時間", "shared.label.timestamp": "時間戳記", "shared.label.value": "數值", "shared.label.unit": "單位", "shared.label.quality": "品質", "shared.label.name": "名稱", "shared.label.description": "說明", "shared.label.status": "狀態", "shared.label.actions": "操作", "shared.label.settings": "設定", "shared.quality.good": "良好", "shared.quality.bad": "不良", "shared.confirm.delete": "確定要刪除嗎？", "validation.required": "此欄位為必填", "validation.invalid": "輸入內容無效", "validation.too_long": "輸入內容過長", "validation.range": "數值超出允許範圍", "alarm.high_exceed": "{0} 超過上限 {1}", "alarm.low_below": "{0} 低於下限 {1}", "alarm.di_triggered": "{0} 狀態為 {1} 觸發警報", "control.action.button_pressed": "{0} 觸發按鈕「{1}」，控制值={2}", "control.action.ao_manual_set": "{0} 手動寫入 AO「{1}」={2}", "control.action.ao_switch_auto": "{0} 將 AO「{1}」切換為自動", "control.action.do_set_on": "{0} 將 DO「{1}」設為 ON", "control.action.do_set_off": "{0} 將 DO「{1}」設為 OFF", "control.action.do_switch_auto": "{0} 將 DO「{1}」切換為自動", "control.action.pump_start": "{0} 啟動泵浦「{1}」", "control.action.pump_stop": "{0} 停止泵浦「{1}」", "control.action.pump_freq_set": "{0} 將泵浦「{1}」頻率設為 {2} Hz", "control.action.pump_switch_auto": "{0} 將泵浦「{1}」切換為自動", "control.action.point_config_changed": "{0} 修改點位「{1}」組態：{2}"},t:function(k,a){var v=this._d[k]||k;if(a)for(var i in a)v=v.split("{"+i+"}").join(a[i]);return v;},ready:function(cb){if(cb)setTimeout(cb,0);},getCulture:function(){return "zh-TW";}};</script>
+    <script src="{{WWWROOT}}/js/common/point-grouping.js"></script>
+    <script src="{{WWWROOT}}/js/common/schedule-eval.js"></script>
+    <script src="{{WWWROOT}}/js/common/motor-equip-svg.js"></script>
+    <script src="{{WWWROOT}}/js/common/pipe-svg.js"></script>
+    <script src="{{WWWROOT}}/js/common/image-widget.js"></script>
+    <script src="{{WWWROOT}}/js/common/trend-window.js"></script>
+    <script src="{{WWWROOT}}/js/common/tree-dnd.js"></script>
+    <script src="{{WWWROOT}}/js/common/decimal-rule.js"></script>
+    <script src="{{WWWROOT}}/js/designer/state.js"></script>
+    <script src="{{WWWROOT}}/js/designer/widget-defs.js"></script>
+    <script src="{{WWWROOT}}/js/designer/widget-core.js"></script>
+    <script src="{{WWWROOT}}/js/designer/align.js"></script>
+    <script src="{{WWWROOT}}/js/designer/prop-panel.js"></script>
+    <script src="{{WWWROOT}}/js/designer/picker.js"></script>
+    <script src="{{WWWROOT}}/js/role-aliases.js"></script>
+    <script src="{{WWWROOT}}/js/designer/equip-autobind.js"></script>
+    <script src="{{WWWROOT}}/js/designer/row-template.js"></script>
+    <script src="{{WWWROOT}}/js/designer/canvas.js"></script>
+    <script src="{{WWWROOT}}/js/designer/page-tree.js"></script>
+    <script src="{{WWWROOT}}/js/designer/page-clipboard.js"></script>
+    <script src="{{WWWROOT}}/js/designer/role-resolve.js"></script>
+    <script src="{{WWWROOT}}/js/designer/page-import.js"></script>
+    <script src="{{WWWROOT}}/js/designer/ctx-menu.js"></script>
+    <script src="{{WWWROOT}}/js/designer/io.js"></script>
+    <script src="{{WWWROOT}}/js/designer/index.js"></script>
+    <script>
+    // ── driver：載入完成後選取「冷卻水出水溫」AI 點位 → 右側屬性面板（含小數點位數）──
+    (function () {
+        function when(fn, cb, n) { n = n || 0; if (fn()) return cb(); if (n > 100) return; setTimeout(function () { when(fn, cb, n + 1); }, 50); }
+        when(function () { return document.querySelectorAll('.canvas-widget[data-type="realtimeValue"]').length >= 5; }, function () {
+            var el = [].slice.call(document.querySelectorAll('.canvas-widget[data-type="realtimeValue"]'))
+                .filter(function (w) { return w.widgetProps && w.widgetProps.szSid === 'MB013-AI-004'; })[0];
+            if (!el) return;
+            if (typeof selectedWidgetIds !== 'undefined') { selectedWidgetIds.clear(); selectedWidgetIds.add(el.id); }
+            selectWidget(el);
+            if (typeof updateWidgetSelectionVisual === 'function') updateWidgetSelectionVisual();
+        });
+    })();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

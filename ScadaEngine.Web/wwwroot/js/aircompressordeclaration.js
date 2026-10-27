@@ -267,6 +267,9 @@
     function staleMark(isStale, tipRaw) {
         return isStale ? UiState.staleMarkHtml('acd-stale-mark', tipRaw) : '';
     }
+    function partialMark(isPartial, tipRaw) {
+        return isPartial ? UiState.partialMarkHtml('acd-partial-mark', tipRaw) : '';
+    }
 
     function renderTable(data) {
         const tbody = document.getElementById('acdTableBody');
@@ -275,13 +278,15 @@
         } else {
             const totalLabel = escapeHtml(t('airdeclaration.table.total'));
             const kwhTipRaw = t('airdeclaration.tooltip.kwh_stale');
+            const kwhPartialTipRaw = t('airdeclaration.tooltip.kwh_partial');
             const nm3TipRaw = t('airdeclaration.tooltip.nm3_stale');
             const kwhTip = escapeHtml(kwhTipRaw);
+            const kwhPartialTip = escapeHtml(kwhPartialTipRaw);
             const nm3Tip = escapeHtml(nm3TipRaw);
             tbody.innerHTML = data.buckets.map(b => `
                 <tr>
                     <td>${escapeHtml(b.szLabel)}</td>
-                    <td class="text-end"${b.isKwhStale ? ` title="${kwhTip}"` : ''}>${fmt1(b.dKwh)}${staleMark(b.isKwhStale, kwhTipRaw)}</td>
+                    <td class="text-end"${b.isKwhStale ? ` title="${kwhTip}"` : b.isKwhPartial ? ` title="${kwhPartialTip}"` : ''}>${fmt1(b.dKwh)}${b.isKwhStale ? staleMark(true, kwhTipRaw) : partialMark(b.isKwhPartial, kwhPartialTipRaw)}</td>
                     <td class="text-end"${b.isNm3Stale ? ` title="${nm3Tip}"` : ''}>${fmt1(b.dNm3)}${staleMark(b.isNm3Stale, nm3TipRaw)}</td>
                     <td class="text-end">${fmtEff(b.dKwhPerNm3)}</td>
                 </tr>`).join('') +
@@ -383,6 +388,7 @@
                                 if (!b) return undefined;
                                 const notes = [];
                                 if (b.isKwhStale) notes.push(t('airdeclaration.tooltip.kwh_stale'));
+                                else if (b.isKwhPartial) notes.push(t('airdeclaration.tooltip.kwh_partial'));
                                 if (b.isNm3Stale) notes.push(t('airdeclaration.tooltip.nm3_stale'));
                                 return notes.length ? notes : undefined;
                             }

@@ -9,7 +9,7 @@ namespace ScadaEngine.Tests.Common;
 /// </summary>
 public class LicenseBridgePathTests
 {
-    [Theory]
+    [WindowsOnlyTheory]
     [InlineData(@"C:\JOULARIS\Engine\App\", @"C:\JOULARIS\LicenseBridge\ScadaEngine.LicenseBridge.exe")]
     [InlineData(@"C:\JOULARIS\Engine\App", @"C:\JOULARIS\LicenseBridge\ScadaEngine.LicenseBridge.exe")]
     [InlineData(@"D:\Site\Engine\App\", @"D:\Site\LicenseBridge\ScadaEngine.LicenseBridge.exe")]
@@ -18,7 +18,7 @@ public class LicenseBridgePathTests
         Assert.Equal(szExpected, LicenseService.ResolveBridgeExePath(szBaseDir));
     }
 
-    [Fact]
+    [WindowsOnlyFact]
     public void Dev_Bin_Path_Resolves_Without_Throwing_Even_If_Missing()
     {
         // 開發 bin（repo\ScadaEngine.Engine\bin\Debug\net8.0\）推算出的路徑不存在屬正常，只供 log

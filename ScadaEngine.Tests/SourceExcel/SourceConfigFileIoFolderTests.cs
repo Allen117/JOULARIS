@@ -26,7 +26,7 @@ public class SourceConfigFileIoFolderTests
         return new SourceConfigFileIo(config, new StubEnv(szContentRoot), NullLogger<SourceConfigFileIo>.Instance);
     }
 
-    [Fact]
+    [ScadaEngine.Tests.Common.WindowsOnlyFact]
     public void Relative_WatchedFolder_Resolves_Against_ContentRoot()
     {
         var io = CreateIo(@"C:\JOULARIS\Web\App\", new Dictionary<string, string?>
@@ -45,7 +45,7 @@ public class SourceConfigFileIoFolderTests
         Assert.Null(io.GetWatchedFolder(SourceConfigFileIo.MODBUS_SECTION));
     }
 
-    [Theory]
+    [ScadaEngine.Tests.Common.WindowsOnlyTheory]
     [InlineData("appsettings.json", @"C:\JOULARIS\Web\App\", @"C:\JOULARIS\Engine\App\", false)]
     [InlineData("appsettings.Development.json", @"C:\repo\ScadaEngine.Web\", @"C:\repo\ScadaEngine.Engine\", true)]
     public void Repo_Appsettings_WatchedFolders_Are_Relative_And_Land_In_Engine(

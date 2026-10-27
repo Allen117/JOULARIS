@@ -368,6 +368,11 @@ function renderPropPanel(el) {
             <input type="text" value="${escHtml(props.szUnit || '')}"
                    oninput="setProp('szUnit', this.value)">
         </div>
+        <div class="prop-group">
+            <label>${escHtml(t('designer.prop.decimal_places'))}</label>
+            <input type="number" value="${props.nDecimalPlaces ?? 2}" min="0" max="6" step="1"
+                   oninput="setProp('nDecimalPlaces', Math.max(0, Math.min(6, parseInt(this.value) || 0)))">
+        </div>
         ${buildRtValueModeHtml(props)}
         <div class="prop-group">
             <label>${escHtml(t('designer.prop.high_color'))}</label>
@@ -532,8 +537,8 @@ function renderPropPanel(el) {
         </div>
         <div class="prop-group">
             <label>${escHtml(t('designer.prop.decimal_places'))}</label>
-            <input type="number" value="${props.nDecimalPlaces ?? 2}" min="0" max="6" step="1"
-                   oninput="setProp('nDecimalPlaces', +this.value)">
+            <input type="number" value="${props.nDecimalPlaces ?? 1}" min="0" max="6" step="1"
+                   oninput="setProp('nDecimalPlaces', Math.max(0, Math.min(6, parseInt(this.value) || 0)))">
         </div>
         <div class="prop-group">
             <label>${escHtml(t('designer.prop.unit'))}</label>
@@ -1469,6 +1474,8 @@ function _syncDiAlarmColorToSid(szSid, szAlarmColor, elExclude) {
 function setProp(szKey, val) {
     if (!selectedEl) return;
     selectedEl.widgetProps[szKey] = val;
+    // 手動改小數位數 → 之後重選點位不再自動覆蓋
+    if (szKey === 'nDecimalPlaces') selectedEl.widgetProps.isDecimalAuto = false;
     // 當列數/欄數改變時同步 arrCells
     if (selectedEl.dataset.type === 'table' && (szKey === 'nRows' || szKey === 'nCols')) {
         syncArrCellsSize(selectedEl.widgetProps);
@@ -1656,11 +1663,12 @@ function renderTableCellPropPanel(el, nRow, nCol) {
         </div>
         <div class="prop-group">
             <label>${escHtml(t('designer.prop.alignment'))}</label>
-            <select onchange="setCellProp('szAlign', this.value)">
-                <option value="left" ${(cell.szAlign||'left')==='left'?'selected':''}>${escHtml(t('designer.prop.align.left'))}</option>
-                <option value="center" ${cell.szAlign==='center'?'selected':''}>${escHtml(t('designer.prop.align.center'))}</option>
-                <option value="right" ${cell.szAlign==='right'?'selected':''}>${escHtml(t('designer.prop.align.right'))}</option>
-            </select>
+            <div class="btn-group btn-group-sm w-100" id="cellAlignGroup">
+                ${['left', 'center', 'right'].map(a => `
+                <button type="button" data-align="${a}"
+                        class="btn ${(cell.szAlign || 'left') === a ? 'btn-primary' : 'btn-outline-secondary'}"
+                        onclick="setCellAlign('${a}')">${escHtml(t('designer.prop.align.' + a))}</button>`).join('')}
+            </div>
         </div>`;
 
     if (!isHeader && cell.nCircuitId != null) {
@@ -1802,9 +1810,29 @@ function setCellProp(szKey, val) {
     if (!selectedEl || nSelectedCellRow < 0) return;
     const props = selectedEl.widgetProps;
     if (!props.arrCells || nSelectedCellRow >= props.arrCells.length) return;
-    // 字體大小、對齊、粗細 → 整欄同步修改（標題列與資料列各自獨立）
-    const arrColWideKeys = ['nFontSize', 'szAlign', 'szFontWeight', 'szPointType'];
-    if (arrColWideKeys.includes(szKey)) {
+    // 字體大小、對齊、粗細：
+    //   首列（標題列）改 → 整欄同步；首欄（資料列第 0 欄）改 → 整列同步
+    //   其他格自己改 → 只改該格並記入 arrOwnKeys，之後首列/首欄同步會跳過它
+    //   [0,0] 同時屬首列與首欄，依首列規則同步整欄
+    const arrStyleKeys = ['nFontSize', 'szAlign', 'szFontWeight'];
+    if (arrStyleKeys.includes(szKey)) {
+        const nRow = nSelectedCellRow, nCol = nSelectedCellCol;
+        const self = props.arrCells[nRow][nCol];
+        self[szKey] = val;
+        const _applyUnlessOwn = (cell) => {
+            if (cell && !(cell.arrOwnKeys || []).includes(szKey)) cell[szKey] = val;
+        };
+        if (nRow === 0) {
+            for (let ri = 1; ri < props.arrCells.length; ri++) _applyUnlessOwn(props.arrCells[ri][nCol]);
+        } else if (nCol === 0) {
+            const row = props.arrCells[nRow];
+            for (let ci = 1; ci < row.length; ci++) _applyUnlessOwn(row[ci]);
+        } else {
+            if (!Array.isArray(self.arrOwnKeys)) self.arrOwnKeys = [];
+            if (!self.arrOwnKeys.includes(szKey)) self.arrOwnKeys.push(szKey);
+        }
+    } else if (szKey === 'szPointType') {
+        // 點位屬性 → 整欄同步（標題列與資料列各自獨立）
         const nCol = nSelectedCellCol;
         const isHeader = nSelectedCellRow === 0;
         for (let ri = 0; ri < props.arrCells.length; ri++) {
@@ -1848,6 +1876,16 @@ function setCellProp(szKey, val) {
     if (arrReRenderKeys.includes(szKey)) {
         renderTableCellPropPanel(selectedEl, nSelectedCellRow, nSelectedCellCol);
     }
+}
+
+// 對齊用按鈕而非 select：標題列預設已置中，select 再選同值不觸發 change，首列同步整欄就不會跑
+function setCellAlign(szAlign) {
+    setCellProp('szAlign', szAlign);
+    document.querySelectorAll('#cellAlignGroup [data-align]').forEach(btn => {
+        const isActive = btn.dataset.align === szAlign;
+        btn.classList.toggle('btn-primary', isActive);
+        btn.classList.toggle('btn-outline-secondary', !isActive);
+    });
 }
 
 function setColDecimals(nCol, val) {
@@ -1915,6 +1953,24 @@ function clearCellCircuit(nRow, nCol) {
     const sel = selectedEl.querySelector(`.w-table [data-row="${nRow}"][data-col="${nCol}"]`);
     if (sel) sel.classList.add('selected-cell');
     renderTableCellPropPanel(selectedEl, nRow, nCol);
+}
+
+// ============================================================
+// 小數位數自動帶入（plan 2026-10-23-designer-auto-decimals）
+// 規則單一真相在 js/common/decimal-rule.js；只在綁點位當下判斷一次
+// ============================================================
+function _applyAutoDecimals(props, szName, szUnit) {
+    if (!window.DecimalRule || props.isDecimalAuto === false) return;
+    props.nDecimalPlaces = window.DecimalRule.guess(szName, szUnit);
+    props.isDecimalAuto  = true;
+}
+
+// 表格：位數是「每欄」設定 — 該欄仍為 null 時才依綁入的 AI 點位帶入，已設定不覆蓋
+function _applyAutoColDecimals(props, nCol, cell, szName, szUnit) {
+    if (!window.DecimalRule || !cell || (cell.szPointType || 'AI') !== 'AI') return;
+    if (!props.arrColDecimals) props.arrColDecimals = [];
+    if (props.arrColDecimals[nCol] != null) return;
+    props.arrColDecimals[nCol] = window.DecimalRule.guess(szName, szUnit);
 }
 
 // ============================================================
@@ -2022,6 +2078,7 @@ function createRealtimeValueWithPoint(point, x, y) {
         szTitle:     szFullName,
         szUnit:      point.szUnit || ''
     };
+    _applyAutoDecimals(el.widgetProps, szFullName, point.szUnit);
 
     renderWidget(el);
     canvas.appendChild(el);
@@ -2129,6 +2186,7 @@ function createAoPointWithPoint(point, x, y) {
         fMin:          point.fMin ?? 0,
         fMax:          point.fMax ?? 100
     };
+    _applyAutoDecimals(el.widgetProps, szFullName, point.szUnit);
 
     renderWidget(el);
     canvas.appendChild(el);

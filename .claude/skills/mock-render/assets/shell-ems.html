@@ -11,6 +11,8 @@
     <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
     <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
     <!-- 頁面自己的 css 加在這裡：<link rel="stylesheet" href="{{WWWROOT}}/css/xxx.css"> -->
 
@@ -31,6 +33,10 @@
             padding: 8px 0;
             margin-top: auto;
         }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
         main { min-height: calc(100vh - 140px); }
         .card {
             border: none;
@@ -91,6 +97,9 @@
                         <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
                     </li>
                     <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
                     </li>
                     <li class="nav-item">
@@ -110,9 +119,27 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
                     </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-search me-1"></i><span class="d-none d-lg-inline">搜尋</span>
-                            <span class="gs-nav-kbd d-none d-xl-inline ms-1"><kbd>Ctrl</kbd> <kbd>K</kbd></span>
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
                         </a>
                     </li>
                     <li class="nav-item dropdown">
@@ -145,7 +172,7 @@
                     </svg>
                 </span>
                 <span class="me-3 d-inline-flex align-items-center">
-                    <i class="fas fa-code me-1"></i>版本 2.2.3
+                    <i class="fas fa-code me-1"></i>版本 26.19.1
                     <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
                 </span>
             </div>

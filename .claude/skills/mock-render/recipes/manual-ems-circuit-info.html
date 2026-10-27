@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<!-- Recipe: /ElectricityCircuitInfo 電力迴路用電資訊（EMS 綠）— 左迴路樹（總表 + 五個子迴路）
+     右三卡：年(各月 kWh) / 月(各日 kWh) / 日(各時 kWh)。預設選總表；驅動 pivot 到完整期間：
+       年=2025 全 12 月、月=2026-08 全 31 日、日=2026-09-08 全 24 時。
+     API：/EMS/api/circuit-tree [{id,name,parentId,sortOrder}]
+          /EMS/api/circuit-energy?granularity=month|day|hour&pivot=... → {labels,values}
+          label 格式：month→yyyy-MM、day→MM/dd、hour→HH:00（同 EnergyReportService.BuildLabels） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>電力迴路資訊 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; }
+    
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定 2026-09-09 15:42:10 ─────────────────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，餵前端與正式後端相同格式的假資料 ──
+    (function () {
+        function pad2(n) { return n < 10 ? '0' + n : String(n); }
+
+        // 年（各月 kWh）：2025 全 12 月，辦公型夏高冬低
+        var YEAR_LABELS = [];
+        for (var mo = 1; mo <= 12; mo++) YEAR_LABELS.push('2025-' + pad2(mo));
+        var YEAR_VALUES = [468000, 412000, 476000, 498000, 552000, 628000,
+                           704000, 690000, 596000, 534000, 486000, 492000];
+
+        // 月（各日 kWh）：2026-08 全 31 日，平日高、週末低（Aug 2026：1=六）
+        // 週末索引（1-based 日）：1,2,8,9,15,16,22,23,29,30
+        var WEEKEND = { 1:1, 2:1, 8:1, 9:1, 15:1, 16:1, 22:1, 23:1, 29:1, 30:1 };
+        var WEEKDAY_KWH = [22800, 23600, 24100, 23400, 22900, 23200, 24000, 24600,
+                           23800, 23100, 22700, 23900, 24400, 23700, 23000, 22600,
+                           23500, 24200, 23600, 22800, 22500];
+        var WEEKEND_KWH = [12800, 11500, 13100, 11900, 12600, 11700, 13000, 12100, 12900, 11600];
+        var MONTH_LABELS = [], MONTH_VALUES = [];
+        var wdIdx = 0, weIdx = 0;
+        for (var d = 1; d <= 31; d++) {
+            MONTH_LABELS.push('08/' + pad2(d));
+            if (WEEKEND[d]) { MONTH_VALUES.push(WEEKEND_KWH[weIdx++]); }
+            else { MONTH_VALUES.push(WEEKDAY_KWH[wdIdx++]); }
+        }
+
+        // 日（各時 kWh）：2026-09-08 全 24 時，辦公型單峰（11 時尖峰 ~1,135）
+        var HOUR_LABELS = [];
+        for (var h = 0; h < 24; h++) HOUR_LABELS.push(pad2(h) + ':00');
+        var HOUR_VALUES = [402, 388, 380, 384, 396, 440, 560, 760,
+                           940, 1060, 1120, 1135, 1030, 1045, 1085, 1060,
+                           1015, 940, 720, 620, 560, 510, 468, 430];
+
+        var MOCK = {
+            '/EMS/api/circuit-tree': function () {
+                return [
+                    { id: 1, name: '總表',            parentId: null, sortOrder: 1 },
+                    { id: 2, name: '空調系統',            parentId: 1,    sortOrder: 1 },
+                    { id: 3, name: '照明插座',   parentId: 1,    sortOrder: 2 },
+                    { id: 4, name: '給排水設備',        parentId: 1,    sortOrder: 3 },
+                    { id: 5, name: '其他負載',            parentId: 1,    sortOrder: 4 },
+                    { id: 6, name: '動力設備',   parentId: 1,    sortOrder: 5 }
+                ];
+            },
+            '/EMS/api/circuit-energy': function (url) {
+                var qs = String(url).split('?')[1] || '';
+                var m = qs.match(/granularity=([^&]+)/);
+                var g = m ? m[1] : 'hour';
+                if (g === 'month') return { labels: YEAR_LABELS, values: YEAR_VALUES };
+                if (g === 'day')   return { labels: MONTH_LABELS, values: MONTH_VALUES };
+                return { labels: HOUR_LABELS, values: HOUR_VALUES };
+            }
+        };
+
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path](url)), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容：/ElectricityCircuitInfo Index -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT ═══════════ -->
+        <div class="ems-circuit-page" data-kind="electricity">
+            <div class="ems-circuit-layout">
+
+                <!-- 左欄：迴路階層樹 -->
+                <div class="ems-circuit-tree-panel">
+                    <div id="circuitTree"></div>
+                </div>
+
+                <!-- 右欄：三張圖表卡片 -->
+                <div class="ems-circuit-chart-panel">
+                    <h6 id="selectedCircuitName" class="ems-circuit-title text-muted">
+                        請選擇左側迴路
+                    </h6>
+
+                    <!-- 年 / 月份 -->
+                    <div class="card ems-chart-card">
+                        <div class="card-header d-flex justify-content-between align-items-center py-1 px-2">
+                            <span class="fw-semibold small">
+                                <i class="fas fa-calendar-alt me-1 text-success"></i>年用電量（各月 kWh）
+                            </span>
+                            <input type="number" id="yearPicker" min="2000" max="2100"
+                                   class="form-control form-control-sm ems-picker" />
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="ems-chart-wrap">
+                                <canvas id="chartMonth"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 月 / 各日 -->
+                    <div class="card ems-chart-card">
+                        <div class="card-header d-flex justify-content-between align-items-center py-1 px-2">
+                            <span class="fw-semibold small">
+                                <i class="fas fa-calendar-day me-1 text-success"></i>月用電量（各日 kWh）
+                            </span>
+                            <input type="month" id="monthPicker"
+                                   class="form-control form-control-sm ems-picker" />
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="ems-chart-wrap">
+                                <canvas id="chartDay"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 日 / 各時 -->
+                    <div class="card ems-chart-card">
+                        <div class="card-header d-flex justify-content-between align-items-center py-1 px-2">
+                            <span class="fw-semibold small">
+                                <i class="fas fa-clock me-1 text-success"></i>日用電量（各時 kWh，60s 自動刷新）
+                            </span>
+                            <input type="date" id="datePicker"
+                                   class="form-control form-control-sm ems-picker" />
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="ems-chart-wrap">
+                                <canvas id="chartHour"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳 -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+
+    <!-- ═══════════ PAGE_SCRIPTS ═══════════ -->
+    <script src="{{WWWROOT}}/js/ems-circuit.js"></script>
+    <script>
+        // 驅動：在 ems-circuit.js 的 init 之後、tree 選取（微任務）之前把 pivot 改成完整期間，
+        // 使 loadAllCharts 讀到 2025 全年 / 2026-08 全月 / 2026-09-08 全日
+        document.addEventListener('DOMContentLoaded', function () {
+            var y = document.getElementById('yearPicker');
+            var mo = document.getElementById('monthPicker');
+            var da = document.getElementById('datePicker');
+            if (y) y.value = '2025';
+            if (mo) mo.value = '2026-08';
+            if (da) da.value = '2026-09-08';
+        });
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

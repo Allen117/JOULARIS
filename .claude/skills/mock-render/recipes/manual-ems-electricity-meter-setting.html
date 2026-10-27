@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<!-- EMS 模式外殼（淡綠主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>電表/迴路設定 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/energymeter.css">
+    <style>*,*::before,*::after{transition:none!important;animation:none!important;}</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            // '/Xxx/api/yyy': function () { return { ... }; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+    <script>(function(){var M={"/EnergyMeter/api/tree": [{"id": 1, "parentId": null, "name": "全廠用電", "sortOrder": 0, "sid": null, "sign": 1, "description": "主要電表：由底下各電表自動聚合", "isMainMeter": true, "maxKwh": null, "isDemandEnabled": false, "voltageSid": null, "currentSid": null, "powerSid": null, "powerFactorSid": null}, {"id": 2, "parentId": 1, "name": "空調系統", "sortOrder": 0, "sid": null, "sign": 1, "description": null, "maxKwh": null, "isDemandEnabled": false, "isMainMeter": false, "voltageSid": null, "currentSid": null, "powerSid": null, "powerFactorSid": null}, {"id": 3, "parentId": 2, "name": "冰水主機 CH-01", "sortOrder": 0, "sid": "65792-S1", "sign": 1, "description": "冰水主機一號機", "maxKwh": 1000000000, "isDemandEnabled": true, "voltageSid": "65793-S2", "currentSid": "65794-S3", "powerSid": "65795-S4", "powerFactorSid": "65796-S5", "isMainMeter": false}, {"id": 4, "parentId": 2, "name": "冰水主機 CH-02", "sortOrder": 1, "sid": "66048-S1", "sign": 1, "description": null, "maxKwh": 1000000000, "voltageSid": "66049-S2", "isDemandEnabled": false, "isMainMeter": false, "currentSid": null, "powerSid": null, "powerFactorSid": null}, {"id": 5, "parentId": 2, "name": "泵浦盤 MCC-01", "sortOrder": 2, "sid": "66304-S1", "sign": 1, "description": null, "maxKwh": 1000000000, "voltageSid": "66305-S2", "currentSid": "66306-S3", "powerSid": "66307-S4", "powerFactorSid": "66308-S5", "isDemandEnabled": false, "isMainMeter": false}, {"id": 6, "parentId": 1, "name": "照明插座", "sortOrder": 1, "sid": null, "sign": 1, "description": null, "maxKwh": null, "isDemandEnabled": false, "isMainMeter": false, "voltageSid": null, "currentSid": null, "powerSid": null, "powerFactorSid": null}, {"id": 7, "parentId": 6, "name": "照明盤 LP-01", "sortOrder": 0, "sid": "66560-S1", "sign": 1, "description": null, "maxKwh": 1000000000, "voltageSid": "66561-S2", "currentSid": "66562-S3", "powerSid": "66563-S4", "powerFactorSid": "66564-S5", "isDemandEnabled": false, "isMainMeter": false}, {"id": 8, "parentId": 6, "name": "插座盤 LP-02", "sortOrder": 1, "sid": "66816-S1", "sign": 1, "description": null, "maxKwh": 1000000000, "isDemandEnabled": false, "isMainMeter": false, "voltageSid": null, "currentSid": null, "powerSid": null, "powerFactorSid": null}, {"id": 9, "parentId": 1, "name": "動力盤 PP-01", "sortOrder": 2, "sid": "67072-S1", "sign": 1, "description": null, "maxKwh": 1000000000, "voltageSid": "67073-S2", "currentSid": "67074-S3", "powerSid": "67075-S4", "powerFactorSid": "67076-S5", "isDemandEnabled": false, "isMainMeter": false}, {"id": 10, "parentId": 1, "name": "太陽能回饋 PV-01", "sortOrder": 3, "sid": "67328-S1", "sign": -1, "description": "自發自用回饋電量，從全廠扣減", "maxKwh": 1000000000, "isDemandEnabled": false, "isMainMeter": false, "voltageSid": null, "currentSid": null, "powerSid": null, "powerFactorSid": null}], "/EnergyMeter/api/sids": [{"sid": "65792-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-01", "name": "累積電能", "unit": "kWh"}, {"sid": "66048-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-02", "name": "累積電能", "unit": "kWh"}, {"sid": "66304-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "MCC-01", "name": "累積電能", "unit": "kWh"}, {"sid": "66560-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-01", "name": "累積電能", "unit": "kWh"}, {"sid": "66816-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-02", "name": "累積電能", "unit": "kWh"}, {"sid": "67072-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PP-01", "name": "累積電能", "unit": "kWh"}, {"sid": "67328-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PV-01", "name": "累積電能", "unit": "kWh"}, {"sid": "3001-S1", "source": "Calculated", "coordName": "計算點位", "deviceName": "", "name": "其他用電推算", "unit": "kWh"}], "/EnergyMeter/api/points": [{"sid": "65792-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-01", "name": "累積電能", "unit": "kWh"}, {"sid": "65793-S2", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-01", "name": "電壓", "unit": "V"}, {"sid": "65794-S3", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-01", "name": "電流", "unit": "A"}, {"sid": "65795-S4", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-01", "name": "有效功率", "unit": "kW"}, {"sid": "65796-S5", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-01", "name": "功因", "unit": "PF"}, {"sid": "66048-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-02", "name": "累積電能", "unit": "kWh"}, {"sid": "66049-S2", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-02", "name": "電壓", "unit": "V"}, {"sid": "66050-S3", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-02", "name": "電流", "unit": "A"}, {"sid": "66051-S4", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-02", "name": "有效功率", "unit": "kW"}, {"sid": "66052-S5", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "CH-02", "name": "功因", "unit": "PF"}, {"sid": "66304-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "MCC-01", "name": "累積電能", "unit": "kWh"}, {"sid": "66305-S2", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "MCC-01", "name": "電壓", "unit": "V"}, {"sid": "66306-S3", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "MCC-01", "name": "電流", "unit": "A"}, {"sid": "66307-S4", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "MCC-01", "name": "有效功率", "unit": "kW"}, {"sid": "66308-S5", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "MCC-01", "name": "功因", "unit": "PF"}, {"sid": "66560-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-01", "name": "累積電能", "unit": "kWh"}, {"sid": "66561-S2", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-01", "name": "電壓", "unit": "V"}, {"sid": "66562-S3", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-01", "name": "電流", "unit": "A"}, {"sid": "66563-S4", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-01", "name": "有效功率", "unit": "kW"}, {"sid": "66564-S5", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-01", "name": "功因", "unit": "PF"}, {"sid": "66816-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-02", "name": "累積電能", "unit": "kWh"}, {"sid": "66817-S2", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-02", "name": "電壓", "unit": "V"}, {"sid": "66818-S3", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-02", "name": "電流", "unit": "A"}, {"sid": "66819-S4", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-02", "name": "有效功率", "unit": "kW"}, {"sid": "66820-S5", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "LP-02", "name": "功因", "unit": "PF"}, {"sid": "67072-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PP-01", "name": "累積電能", "unit": "kWh"}, {"sid": "67073-S2", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PP-01", "name": "電壓", "unit": "V"}, {"sid": "67074-S3", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PP-01", "name": "電流", "unit": "A"}, {"sid": "67075-S4", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PP-01", "name": "有效功率", "unit": "kW"}, {"sid": "67076-S5", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PP-01", "name": "功因", "unit": "PF"}, {"sid": "67328-S1", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PV-01", "name": "累積電能", "unit": "kWh"}, {"sid": "67329-S2", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PV-01", "name": "電壓", "unit": "V"}, {"sid": "67330-S3", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PV-01", "name": "電流", "unit": "A"}, {"sid": "67331-S4", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PV-01", "name": "有效功率", "unit": "kW"}, {"sid": "67332-S5", "source": "Modbus", "coordName": "電力監控盤", "deviceName": "PV-01", "name": "功因", "unit": "PF"}, {"sid": "3001-S1", "source": "Calculated", "coordName": "計算點位", "deviceName": "", "name": "其他用電推算", "unit": "kWh"}]};var f=window.fetch;window.fetch=function(u,o){var p=String(u).split("?")[0];if(Object.prototype.hasOwnProperty.call(M,p))return Promise.resolve(new Response(JSON.stringify(M[p]),{status:200,headers:{"Content-Type":"application/json"}}));return f.apply(this,arguments);};})();</script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="mb-0">
+            <i class="fas fa-sitemap text-primary me-2"></i>電表/迴路設定
+        </h2>
+    </div>
+
+    <div class="row g-3">
+        <!-- 左側樹狀清單 -->
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                    <span><i class="fas fa-folder-tree me-1"></i>迴路階層</span>
+                    <button class="btn btn-sm btn-outline-light py-0" onclick="window._em.openCreateModal(null)">
+                        <i class="fas fa-plus me-1"></i>新增點表/迴路
+                    </button>
+                </div>
+                <div class="card-body p-2" style="height: calc(100vh - 250px); overflow-y: auto;">
+                    <div id="treeContainer">
+                        <div class="text-center mt-5"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側詳情 -->
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light py-2">
+                    <span id="detailTitle"><i class="fas fa-hand-pointer me-1"></i>請從左側選取迴路</span>
+                </div>
+                <div class="card-body" id="detailArea">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-sitemap fa-4x mb-3 d-block" style="opacity:.3"></i>
+                        <p>選取左側的節點即可檢視/編輯詳細資訊</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/編輯 Modal -->
+<div class="modal fade" id="circuitModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-edit me-1"></i><span id="modalTitle">新增迴路</span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="emId">
+                <input type="hidden" id="emParentId">
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-tag me-1"></i>名稱</label>
+                    <input type="text" class="form-control form-control-sm" id="emName" placeholder="例如：空調水系統 / 冰機 1">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-cog me-1"></i>節點類型</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <input type="radio" class="btn-check" name="emType" id="emTypeVirtual" value="virtual" checked>
+                        <label class="btn btn-outline-primary" for="emTypeVirtual">
+                            <i class="fas fa-folder me-1"></i>虛擬迴路
+                        </label>
+                        <input type="radio" class="btn-check" name="emType" id="emTypeMeter" value="meter">
+                        <label class="btn btn-outline-primary" for="emTypeMeter">
+                            <i class="fas fa-bolt me-1"></i>實體電表
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="emSignRow">
+                    <label class="form-label fw-semibold"><i class="fas fa-plus-minus me-1"></i>貢獻方向</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <input type="radio" class="btn-check" name="emSign" id="emSignPos" value="1" checked>
+                        <label class="btn btn-outline-success" for="emSignPos">
+                            <i class="fas fa-plus me-1"></i>正向（加入父）
+                        </label>
+                        <input type="radio" class="btn-check" name="emSign" id="emSignNeg" value="-1">
+                        <label class="btn btn-outline-danger" for="emSignNeg">
+                            <i class="fas fa-minus me-1"></i>反向（從父扣減）
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">用於建立「總表 − 已分配子表」這類算式；根節點不適用</small>
+                </div>
+
+                <!-- 主要電表勾選：實體 / 虛擬皆可（虛擬主表由 EMS 頁自動聚合子孫葉子的 V/I/P/PF） -->
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="emMainMeter">
+                        <label class="form-check-label fw-semibold" for="emMainMeter">
+                            <i class="fas fa-star me-1"></i>主要電表
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">全系統僅能有一顆主要電表；勾選後原本的主要電表會自動取消。虛擬迴路作主表時 V/I/P/PF 由子孫實體電表自動聚合</small>
+                </div>
+
+                <div class="mb-3" id="emMeterFields" style="display:none;">
+                    <label class="form-label fw-semibold"><i class="fas fa-server me-1"></i>通訊設備</label>
+                    <select class="form-select form-select-sm" id="emDevice">
+                        <option value="">-- 請選擇設備 --</option>
+                    </select>
+
+                    <div id="emSubUnitRow" style="display:none;">
+                        <label class="form-label fw-semibold mt-3"><i class="fas fa-microchip me-1"></i>子單元</label>
+                        <select class="form-select form-select-sm" id="emSubUnit">
+                            <option value="">-- 請選擇子單元 --</option>
+                        </select>
+                    </div>
+
+                    <label class="form-label fw-semibold mt-3"><i class="fas fa-plug me-1"></i>度數對應點位</label>
+                    <select class="form-select form-select-sm" id="emSid" disabled>
+                        <option value="">-- 請先選擇設備 --</option>
+                    </select>
+                    <small class="text-muted d-block mt-1">僅列出單位為 kWh 的累積點位（含計算點、DB 來源點位）</small>
+
+                    <label class="form-label fw-semibold mt-3"><i class="fas fa-sort-numeric-up me-1"></i>累積最大值 MaxKwh</label>
+                    <input type="text" inputmode="numeric" class="form-control form-control-sm" id="emMaxKwh" placeholder="例如：1,000,000,000">
+                    <small class="text-muted d-block mt-1">電表累積值溢位/重置時用於計算 delta；留空表示不處理溢位</small>
+
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="emDemandEnabled">
+                        <label class="form-check-label fw-semibold" for="emDemandEnabled">
+                            <i class="fas fa-tachometer-alt me-1"></i>啟用需量計算
+                        </label>
+                    </div>
+
+                    <div id="emMeterInfoRow" class="mt-2" style="display:none;">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="window._em.openMeterInfoModal()">
+                            <i class="fas fa-info-circle me-1"></i>電表資訊設定
+                        </button>
+                        <small class="text-muted d-block mt-1" id="emMeterInfoSummary">電壓/電流/功率/功因 點位綁定</small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="fas fa-comment me-1"></i>說明</label>
+                    <textarea class="form-control form-control-sm" id="emDesc" rows="2" placeholder="選填"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="window._em.saveCircuit()">
+                    <i class="fas fa-save me-1"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 電表資訊設定 Modal（主要電表：電壓/電流/功率/功因 點位綁定） -->
+<div class="modal fade" id="meterInfoModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-info-circle me-1"></i>電表資訊設定 — 電壓/電流/功率/功因</h6>
+                <button type="button" class="btn-close" onclick="window._em.closeMeterInfoModal()"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 自動比對建議區塊（有候選才顯示） -->
+                <div id="miSuggestBox" class="mi-suggest-box" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-semibold"><i class="fas fa-magic me-1 text-primary"></i>依度數點位名稱找到以下建議</span>
+                        <button type="button" class="btn btn-sm btn-success py-0" onclick="window._em.applyAllSuggestions()">
+                            <i class="fas fa-check-double me-1"></i>全部帶入
+                        </button>
+                    </div>
+                    <div id="miSuggestList"></div>
+                </div>
+
+                <!-- 四列綁定 -->
+                <div id="miBindingList"></div>
+
+                <small class="text-muted d-block mt-2">四個點位皆可留空；顯示單位取自綁定點位本身的 Unit。儲存迴路後才會寫入資料庫。</small>
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-sm btn-primary" onclick="window._em.closeMeterInfoModal()">
+                    <i class="fas fa-check me-1"></i>完成
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 兩步驟點位選擇器 Modal（設備 → 點位清單＋搜尋） -->
+<div class="modal fade" id="emPointPickerModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-crosshairs me-1"></i><span id="ppTitle">選擇點位</span></h6>
+                <button type="button" class="btn-close" onclick="window._em.closePointPicker(false)"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <div class="pp-panel-title"><i class="fas fa-server me-1"></i>通訊設備</div>
+                        <div id="ppDeviceList" class="pp-list"></div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="pp-panel-title"><i class="fas fa-plug me-1"></i>點位</div>
+                        <input type="text" class="form-control form-control-sm mb-1" id="ppSearch" placeholder="搜尋點位名稱 / SID..." autocomplete="off">
+                        <div id="ppPointList" class="pp-list"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-sm btn-outline-danger me-auto" onclick="window._em.clearPickedPoint()">
+                    <i class="fas fa-eraser me-1"></i>清除綁定
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="window._em.closePointPicker(false)">取消</button>
+                <button type="button" class="btn btn-sm btn-primary" id="ppConfirmBtn" disabled onclick="window._em.closePointPicker(true)">
+                    <i class="fas fa-check me-1"></i>確定
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{WWWROOT}}/css/energymeter.css" />
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script src="{{WWWROOT}}/js/role-aliases.js"></script>
+    <script src="{{WWWROOT}}/js/common/tree-dnd.js"></script>
+    <script src="{{WWWROOT}}/js/energymeter.js"></script>
+    <script>
+
+    // 情境：(預設) 選取 CH-01 看詳情 / #mi 電表資訊設定視窗（CH-02，電壓已綁、其餘建議）/ #dnd 拖曳落點標示（搭配 --height 700 --selector "#treeContainer" 的父卡片）
+    (function () {
+        var SCENE = (location.hash || '#detail').substring(1);
+        function wait(fn) {
+            var t = setInterval(function () {
+                if (document.querySelector('#treeContainer .tree-node[data-id="3"]')) { clearInterval(t); setTimeout(fn, 150); }
+            }, 50);
+        }
+        wait(function () {
+            if (SCENE === 'detail') {
+                document.querySelector('#treeContainer .tree-node[data-id="3"]').click();
+            } else if (SCENE === 'mi') {
+                document.querySelector('#treeContainer .tree-node[data-id="4"]').click();
+                window._em.openEditModal(4);
+                setTimeout(function () { window._em.openMeterInfoModal(); }, 300);
+            } else if (SCENE === 'dnd') {
+                // 拖曳中：LP-02 半透明；目標 1「照明盤 LP-01」上緣藍線（插到之前）、目標 2「空調系統」虛線框（變成子節點）
+                document.querySelector('#treeContainer .tree-node[data-id="8"]').classList.add('dragging');
+                document.querySelector('#treeContainer .tree-node[data-id="7"]').classList.add('drop-before');
+                document.querySelector('#treeContainer .tree-node[data-id="2"]').classList.add('drop-into');
+                var tip = function (id, text, cls) {
+                    var el = document.querySelector('#treeContainer .tree-node[data-id="' + id + '"]');
+                    var s = document.createElement('span');
+                    s.className = 'badge ms-auto ' + cls; s.style.fontSize = '12px'; s.textContent = text;
+                    el.appendChild(s);
+                };
+                tip(7, '① 上緣藍線：插到之前', 'bg-danger');
+                tip(2, '② 虛線框：變成子節點', 'bg-danger');
+                tip(8, '拖曳中', 'bg-secondary');
+            }
+        });
+    })();
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

@@ -65,6 +65,7 @@
 | Modbus 來源 | Modbus Source | `/ModbusCoordinator` |
 | DB 來源 | DB Source | `/DbCoordinator` |
 | 計算點位 | Calculated Points | `/CalcPoint` |
+| 系統參數 | System Parameters | `/SystemParameter`（工程師專屬） |
 | 氣象資料 | Weather Data | `/WeatherSetting`（選單）；頁標題「氣象資料來源設定 / Weather Data Source」 |
 | 帳號管理 | Account Management | `/AccountSetting` |
 | 個人資料 | Profile | `/Account/Profile` |
@@ -463,6 +464,15 @@
 | 快速趨勢 | Quick Trend | ScadaPage 右鍵浮動小窗 |
 | 歷史趨勢（開新頁） | Historical Trend (new tab) | ScadaPage 右鍵 |
 | 加入趨勢圖清單 | Add to Trend List | ScadaPage 右鍵 |
+| 統計 | Statistics | 匯出 Excel 分頁名（取代舊「統計摘要」） |
+| 圖表 | Charts | 匯出 Excel 分頁名 |
+| 有效值 | Valid Value | Quality=Good 且為有限數的值；Bad 留空 |
+| 有效筆數 | Valid Count | |
+| 差異值 | Difference | 累計值期間增量（分段相加，處理歸零 / 換表） |
+| 即時值 / 累計值 / 期間值 / 狀態值 | Instantaneous / Cumulative / Period / Status | 點位類型（PointKindClassifier） |
+| 歸零 / 換表 | Reset / meter replacement | 累計值大幅下降 |
+| 突波 | Spike | 單筆異常跳升 |
+| 運轉率 | Running ratio | 狀態值平均 |
 
 ## 事件記錄
 
@@ -921,6 +931,14 @@
 | 未找到 | Not found | 設備預覽槽位 tag |
 | 多筆命中（取第一筆） | Multiple matches (first used) | 設備預覽槽位 tag |
 | 已帶入 {n} / {m} 個槽位 | Applied {n} / {m} slots | toast |
+| 匯入頁面檔 | Import Page File | 頁面樹右鍵；檔案 = joularis-layout-gen 產的 `.joularis-page.json`（2026-10-21） |
+| 頁面檔 | Page file | 底圖 + widget 位置 + 角色綁定的可攜 JSON |
+| 座位 | Seat | 匯入頁面檔的固定點位格（有就坐、沒有就空著） |
+| 未綁定佔位 | Unbound placeholder | 感測器 / 面板旁預放、不自動綁點的 AI 元件 |
+| 保留未命中的座位（之後手動綁點） | Keep unmatched seats (bind manually later) | 匯入對話框勾選 |
+| 合計命中 {n} / {m} 個角色 | Total matched: {n} / {m} roles | 匯入對話框 |
+| 手自動 / 啟停 / 冰水出水溫 / 溫度設定 | H/A / Start/Stop / CHW Out / Temp Set | 匯入座位標題短名（widget 僅 100 px 寬） |
+| 模式 / 遠端 / 水溫 / 頻設 / 溫設 | HOA / Rem / CHW·CW / HzSP / TSP | 匯入座位左側 text 標籤（40 px 寬、扣內距只放得下 2 個中文字 / 4 個英文字） |
 
 ## EMS 卡片顯示設定 (EmsCardSetting)
 

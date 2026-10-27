@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<!-- 使用手冊 SCADA「即時數據」/RealTime（SCADA 藍）：左設備清單 + 即時資料表格。
+     SCENE 由 location.hash 決定：預設 'mcc'（電力盤 MCC-01 全 GOOD 白底）或 --hash ahu（展開空調箱 → AHU-02：GOOD / 過舊黃底 / STALE / BAD 紅底 / NO_DATA 灰底對照）。
+     點位資料在 POINTS（[sid, 名稱, 數值, 單位, 品質, 秒數前]），列底色規則照 RealtimeDataItemModel.GetCssRowClass；
+     mock /api/realtime/latest 回同一份資料（1 秒後 realtime.js 首次輪詢會 merge，不改畫面） -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCADA 即時監控儀表板 - SCADA 監控系統</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/realtime.css">
+    <style>*, *::before, *::after { transition: none !important; animation: none !important; }</style>
+    <script>
+    var SCENE = location.hash === '#ahu' ? 'ahu' : 'mcc';   // render_page.py --hash ahu
+    // [sid, 名稱, 數值(null=尚無資料), 單位, 品質, 距現在秒數]
+    var POINTS = [
+        // 電力盤 MCC-01（Coordinator 1，單站號）
+        ['65793-S1', '電壓 R-S', 381.25, 'V', 'GOOD', 2],
+        ['65793-S2', '電壓 S-T', 380.86, 'V', 'GOOD', 2],
+        ['65793-S3', '電壓 T-R', 382.07, 'V', 'GOOD', 2],
+        ['65793-S4', '電流 R 相', 152.43, 'A', 'GOOD', 2],
+        ['65793-S5', '電流 S 相', 149.88, 'A', 'GOOD', 2],
+        ['65793-S6', '電流 T 相', 151.06, 'A', 'GOOD', 2],
+        ['65793-S7', '有效功率', 94.62, 'kW', 'GOOD', 2],
+        ['65793-S8', '功率因數', 0.946, 'PF', 'GOOD', 2],
+        ['65793-S9', '頻率', 59.98, 'Hz', 'GOOD', 2],
+        ['65793-S10', '累積電度', 1285643.5, 'kWh', 'GOOD', 2],
+        // 空調箱 AHU-01 / AHU-02（Coordinator 2，雙站號）
+        ['131329-S1', '運轉狀態', 1, '', 'GOOD', 3],
+        ['131329-S2', '故障狀態', 0, '', 'GOOD', 3],
+        ['131329-S3', '回風溫度', 25.4, '℃', 'GOOD', 3],
+        ['131329-S4', '送風溫度', 16.8, '℃', 'GOOD', 3],
+        ['131329-S5', '回風濕度', 58.2, '%', 'GOOD', 3],
+        ['131329-S6', '風機頻率', 45.0, 'Hz', 'GOOD', 3],
+        ['131585-S1', '運轉狀態', 1, '', 'GOOD', 4],
+        ['131585-S2', '故障狀態', 0, '', 'GOOD', 4],
+        ['131585-S3', '回風溫度', 26.1, '℃', 'GOOD', 95],
+        ['131585-S4', '送風溫度', 17.3, '℃', 'STALE', 412],
+        ['131585-S5', '回風濕度', 0, '%', 'BAD', 4],
+        ['131585-S6', '風機頻率', 42.5, 'Hz', 'GOOD', 4],
+        ['131585-S7', '冰水閥開度', 63.0, '%', 'GOOD', 4],
+        ['131585-S8', '濾網壓差', null, 'Pa', 'NO_DATA', 0],
+        // 冰水泵 P-01 ~ P-03（Coordinator 3，三站號）
+        ['196865-S1', '運轉狀態', 1, '', 'GOOD', 2], ['196865-S2', '運轉頻率', 48.5, 'Hz', 'GOOD', 2],
+        ['197121-S1', '運轉狀態', 1, '', 'GOOD', 2], ['197121-S2', '運轉頻率', 48.5, 'Hz', 'GOOD', 2],
+        ['197377-S1', '運轉狀態', 0, '', 'GOOD', 2], ['197377-S2', '運轉頻率', 0, 'Hz', 'GOOD', 2],
+        // 環境感測（Coordinator 4）
+        ['262401-S1', '外氣溫度', 31.2, '℃', 'GOOD', 5], ['262401-S2', '外氣濕度', 66.0, '%', 'GOOD', 5],
+        // DB 來源
+        ['DB1-S1', '契約容量', 1200, 'kW', 'GOOD', 30], ['DB1-S2', '本月最高需量', 986.4, 'kW', 'GOOD', 30],
+        // 計算點位
+        ['CALC-S1', '冰水泵總頻率', 97.0, 'Hz', 'GOOD', 2], ['CALC-S2', '空調總用電', 58.3, 'kW', 'GOOD', 2]
+    ];
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function fmtTs(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+    function buildRealtimeData() {
+        var now = Date.now();
+        return POINTS.map(function (p) {
+            var hasData = p[2] !== null, q = p[4], isRecent = p[5] <= 60;
+            var isDb = p[0].indexOf('DB') === 0;
+            var css = !hasData ? 'row-nodata'
+                : q === 'STALE' ? 'row-outdated table-warning'
+                : q !== 'GOOD' ? 'row-error table-danger'
+                : (!isRecent && !isDb) ? 'row-outdated table-warning' : 'row-recent';
+            var badge = ({ GOOD: 'bg-success', UNCERTAIN: 'bg-warning', BAD: 'bg-danger', STALE: 'bg-warning' })[q] || 'bg-secondary';
+            return {
+                subTopic: p[0], sid: p[0], name: p[1],
+                value: hasData ? Number(p[2]).toFixed(3) : '--', unit: p[3], quality: q,
+                timestamp: hasData ? fmtTs(new Date(now - p[5] * 1000)) : '--',
+                isRecent: isRecent, cssClass: css, badgeClass: badge
+            };
+        });
+    }
+    window.i18n = { t: function (k, a) { return ({
+        'realtime.connection.ok': '連線正常', 'realtime.connection.bad': '連線異常',
+        'realtime.footer.last_update': '最後更新', 'realtime.empty.no_data': '尚無即時資料，請確認 MQTT 連線狀態'
+    })[k] || k; } };
+    </script>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 8, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            '/api/realtime/latest': function () {
+                return { success: true, timestamp: fmtTs(new Date()), connectionStatus: true, data: buildRealtimeData() };
+            },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path](String(url), opts)), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column">
+    <!-- 導覽列（SCADA 模式，深藍） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-industry me-2"></i>
+                SCADA 監控系統
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-desktop me-1"></i>即時監控</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-tachometer-alt me-1"></i>即時數據</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-microchip me-1"></i>控制邏輯</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cogs me-1"></i>系統設定</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 EMS</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（未恢復警報數：移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0"><i class="fas fa-tachometer-alt text-primary me-2"></i>SCADA 即時監控儀表板</h2>
+        <div class="d-flex align-items-center">
+            <span class="badge bg-success me-3" id="connectionStatus"><i class="fas fa-wifi me-1"></i>連線正常</span>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window._realtime.refreshData()" id="refreshBtn">
+                <i class="fas fa-sync-alt me-1" id="refreshIcon"></i> 重新整理
+            </button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-2 pe-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-dark text-white py-2"><h6 class="mb-0"><i class="fas fa-server me-1"></i>設備清單</h6></div>
+                <div id="coordinatorList">
+                    <a href="#" class="list-group-item list-group-item-action py-2 coordinator-item active" data-id="1" data-modbusid="1" data-name="電力盤 MCC-01">
+                        <i class="fas fa-chevron-right me-1" style="font-size:.7rem;visibility:hidden;"></i><i class="fas fa-plug me-1 text-secondary"></i><span class="small">電力盤 MCC-01</span></a>
+                    <div class="coordinator-group">
+                        <a href="#" class="list-group-item list-group-item-action py-2 coordinator-toggle" id="tgAhu" data-id="2" data-modbusid="1,2" data-name="空調箱">
+                            <i class="fas fa-chevron-right me-1 toggle-icon text-secondary" style="font-size:.7rem;"></i><i class="fas fa-plug me-1 text-secondary"></i><span class="small">空調箱</span></a>
+                        <div class="sub-menu" style="display:none;">
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" data-id="2" data-modbusid="1" data-name="AHU-01"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">AHU-01</span></a>
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" id="subAhu2" data-id="2" data-modbusid="2" data-name="AHU-02"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">AHU-02</span></a>
+                        </div>
+                    </div>
+                    <div class="coordinator-group">
+                        <a href="#" class="list-group-item list-group-item-action py-2 coordinator-toggle" data-id="3" data-modbusid="1,2,3" data-name="冰水泵">
+                            <i class="fas fa-chevron-right me-1 toggle-icon text-secondary" style="font-size:.7rem;"></i><i class="fas fa-plug me-1 text-secondary"></i><span class="small">冰水泵</span></a>
+                        <div class="sub-menu" style="display:none;">
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" data-id="3" data-modbusid="1" data-name="P-01"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">P-01</span></a>
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" data-id="3" data-modbusid="2" data-name="P-02"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">P-02</span></a>
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" data-id="3" data-modbusid="3" data-name="P-03"><i class="fas fa-microchip me-1 text-muted" style="font-size:.75rem;"></i><span class="small">P-03</span></a>
+                        </div>
+                    </div>
+                    <a href="#" class="list-group-item list-group-item-action py-2 coordinator-item" data-id="4" data-modbusid="1" data-name="環境感測">
+                        <i class="fas fa-chevron-right me-1" style="font-size:.7rem;visibility:hidden;"></i><i class="fas fa-plug me-1 text-secondary"></i><span class="small">環境感測</span></a>
+                    <div class="coordinator-group">
+                        <a href="#" class="list-group-item list-group-item-action py-2 coordinator-toggle" data-sid-prefix="DB" data-name="DB">
+                            <i class="fas fa-chevron-right me-1 toggle-icon text-secondary" style="font-size:.7rem;"></i><i class="fas fa-database me-1 text-secondary"></i><span class="small">DB</span></a>
+                        <div class="sub-menu" style="display:none;">
+                            <a href="#" class="list-group-item list-group-item-action py-1 ps-4 sub-item" data-sid-prefix="DB1-" data-name="能源資料庫"><i class="fas fa-database me-1 text-muted" style="font-size:.75rem;"></i><span class="small">能源資料庫</span></a>
+                        </div>
+                    </div>
+                    <a href="#" class="list-group-item list-group-item-action py-2 coordinator-item" data-id="-999" data-modbusid="" data-name="計算點位">
+                        <i class="fas fa-chevron-right me-1" style="font-size:.7rem;visibility:hidden;"></i><i class="fas fa-calculator me-1 text-warning"></i><span class="small">計算點位</span></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-10">
+            <div class="row"><div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-table text-primary me-2"></i>即時資料監控 (<span id="pointCount">0</span> 筆)
+                            <small class="text-muted ms-2" id="currentCoordinatorName">— 電力盤 MCC-01</small></h5>
+                    </div>
+                    <div class="card-body p-0"><div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0" id="realtimeTable">
+                            <thead class="table-dark"><tr>
+                                <th style="width: 25%; cursor: pointer;" onclick="window._realtime.sortTable('name')" id="th-name">名稱 <span class="sort-icon">⇅</span></th>
+                                <th style="width: 20%; cursor: pointer;" onclick="window._realtime.sortTable('subTopic')" id="th-subTopic">SID <span class="sort-icon">⇅</span></th>
+                                <th style="width: 15%; cursor: pointer;" class="text-end" onclick="window._realtime.sortTable('value')" id="th-value">數值 <span class="sort-icon">⇅</span></th>
+                                <th style="width: 10%; cursor: pointer;" onclick="window._realtime.sortTable('unit')" id="th-unit">單位 <span class="sort-icon">⇅</span></th>
+                                <th style="width: 15%; cursor: pointer;" onclick="window._realtime.sortTable('quality')" id="th-quality">品質 <span class="sort-icon">⇅</span></th>
+                                <th style="width: 15%; cursor: pointer;" onclick="window._realtime.sortTable('timestamp')" id="th-timestamp">時間戳記 <span class="sort-icon">⇅</span></th>
+                            </tr></thead>
+                            <tbody id="realtimeTableBody"></tbody>
+                        </table>
+                    </div></div>
+                    <div class="card-footer bg-light text-muted">
+                        <div class="d-flex justify-content-between">
+                            <small><i class="fas fa-info-circle me-1"></i>自動更新週期: 3 秒</small>
+                            <small id="footerLastUpdate">最後更新: 2026-09-09 15:42:10</small>
+                        </div>
+                    </div>
+                </div>
+            </div></div>
+        </div>
+    </div>
+</div>
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.18.1
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+    <script>
+        window._realtimeInitCoordinatorId = 1;
+        window._realtimeInitData = buildRealtimeData();
+        window._realtimeCalcGroupMap = {};
+        window._realtimeDeviceGroupMap = {};
+    </script>
+    <script src="{{WWWROOT}}/js/realtime.js"></script>
+    <script>
+        // driver：SCENE = 'ahu' 時展開「空調箱」並選 AHU-02（含黃 / 紅 / 灰底列）
+        document.addEventListener('DOMContentLoaded', function () {
+            if (SCENE !== 'ahu') return;
+            setTimeout(function () {
+                document.getElementById('tgAhu').click();
+                document.getElementById('subAhu2').click();
+            }, 50);
+        });
+    </script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

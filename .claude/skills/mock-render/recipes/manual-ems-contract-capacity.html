@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<!-- EMS 模式外殼（淡綠主題）：複製本檔為 recipes/<page>.html 後，
+     ① 改 <title> ② 填 MOCK 物件 ③ 把頁面 View/partial 的 HTML 貼進 PAGE_CONTENT
+     ④ 在 PAGE_SCRIPTS 掛頁面 JS（Chart.js 已含，不用的頁面可移除該行） -->
+<!-- 手冊 ems/contract-capacity-01：/ContractCapacity 正式頁 + 真實 contractcapacity.js；mock circuits / analyze（結果由內嵌公式從 MONTHS 推出，形狀照 contractcapacity.js 讀的欄位）；時鐘 2026-10-09 -->
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>契約容量最佳化 - EMS 能源管理</title>
+
+    <link href="{{WWWROOT}}/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{WWWROOT}}/lib/font-awesome/css/all.min.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/navbar-submenu.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/global-search.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/alarm-sound.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/ems.css">
+    <link rel="stylesheet" href="{{WWWROOT}}/css/contractcapacity.css" />
+
+    <style>*,*::before,*::after{transition:none!important;animation:none!important;}</style>
+
+    <!-- 與 _Layout.cshtml 同步的自訂樣式 -->
+    <style>
+        html, body { overflow-x: hidden; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar .nav-link { white-space: nowrap; }
+        .navbar-collapse { flex-wrap: nowrap; }
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 0;
+            margin-top: auto;
+        }
+        .footer-logo { height: 22px; width: auto; display: block; }
+        .footer-logo-word { fill: #ffffff; font: 800 56px 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 3px; }
+        .footer-logo-star { fill: #e0e7ff; }
+        .footer-logo-spark { fill: #c7d2fe; }
+        main { min-height: calc(100vh - 140px); }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #007bff, #0056b3); border: none; }
+        .text-primary { color: #007bff !important; }
+    </style>
+
+    <script>
+    // ── 模擬時鐘：固定頁面時間（要換日期/時刻改這一行） ─────────
+    (function () {
+        var RealDate = Date;
+        var target = new RealDate(2026, 9, 9, 15, 42, 10).getTime();
+        var offset = target - RealDate.now();
+        function MockDate() {
+            if (arguments.length === 0) return new RealDate(RealDate.now() + offset);
+            return new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(arguments))))();
+        }
+        MockDate.prototype = RealDate.prototype;
+        MockDate.now = function () { return RealDate.now() + offset; };
+        MockDate.parse = RealDate.parse;
+        MockDate.UTC = RealDate.UTC;
+        window.Date = MockDate;
+    })();
+
+    // ── 模擬 API：攔截 fetch，key = 去掉 query string 的路徑 ──────
+    (function () {
+        var MOCK = {
+            // '/Xxx/api/yyy': function () { return { ... }; },
+        };
+        var realFetch = window.fetch;
+        window.fetch = function (url, opts) {
+            var path = String(url).split('?')[0];
+            if (MOCK[path]) {
+                return Promise.resolve(new Response(JSON.stringify(MOCK[path]()), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return realFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+</head>
+<body class="d-flex flex-column ems-mode">
+    <!-- 導覽列（EMS 模式） -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>
+                EMS 能源管理
+            </a>
+            <div class="collapse navbar-collapse show" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-plug me-1"></i>迴路資訊</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-gauge-high me-1"></i>設備效率</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-file-alt me-1"></i>報表查詢</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-newspaper me-1"></i>能源日報</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-bullseye me-1"></i>能源基準</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-cog me-1"></i>能管設定</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-chart-line me-1"></i>歷史資料</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0 ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-arrow-left me-1"></i>回 SCADA</a>
+                    </li>
+                    <!-- 全站警報音鈴鐺（有未確認警報：li 加 as-has-pending、移除 as-count 的 d-none 並填數字） -->
+                    <li class="nav-item dropdown" id="alarmSoundNav">
+                        <a class="nav-link dropdown-toggle as-bell" href="#" role="button" title="警報音">
+                            <i class="fas fa-bell"></i><span class="as-count d-none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="搜尋"><i class="fas fa-search"></i></a>
+                    </li>
+                    <!-- 使用手冊（斜書本，同 Views/Shared/_ManualIcon.cshtml） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="使用手冊">
+                            <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <g transform="rotate(-15 12 12) translate(12 12) scale(.86) translate(-12 -12)">
+                                    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H18v14H7.5A2.5 2.5 0 0 0 5 19.5z" />
+                                    <path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H18v-5" />
+                                    <path d="M9.5 7.5h5.5" />
+                                    <path d="M9.5 10.5h3.5" />
+                                </g>
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-globe me-1"></i><span>台灣</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"><i class="fas fa-user me-1"></i>admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <main role="main" class="flex-grow-1">
+        <!-- ═══════════ PAGE_CONTENT：把頁面 View/partial 的 HTML 貼在這裡 ═══════════ -->
+
+
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <h2 class="mb-0">
+            <i class="fas fa-sliders-h text-primary me-2"></i>契約容量最佳化
+        </h2>
+        <span class="text-muted small" id="ccPlanInfo"></span>
+    </div>
+
+    <!-- 回測條件 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light py-2">
+            <i class="fas fa-filter me-1"></i>回測條件
+        </div>
+        <div class="card-body p-3">
+            <div class="cc-filter-bar">
+                <div>
+                    <label class="form-label fw-semibold" for="ccCircuit"><i class="fas fa-plug me-1"></i>計費迴路</label>
+                    <select id="ccCircuit" class="form-select form-select-sm"></select>
+                </div>
+                <div>
+                    <label class="form-label fw-semibold" for="ccFrom"><i class="fas fa-calendar-alt me-1"></i>回測起（計費月）</label>
+                    <input type="month" id="ccFrom" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <label class="form-label fw-semibold" for="ccTo">回測訖（含）</label>
+                    <input type="month" id="ccTo" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <label class="form-label fw-semibold" for="ccRound"><i class="fas fa-ruler-horizontal me-1"></i>保守建議取整</label>
+                    <select id="ccRound" class="form-select form-select-sm">
+                        <option value="1">1 kW</option>
+                        <option value="5">5 kW</option>
+                        <option value="10" selected>10 kW</option>
+                        <option value="50">50 kW</option>
+                        <option value="100">100 kW</option>
+                    </select>
+                </div>
+                <div class="cc-narrow">
+                    <label class="form-label fw-semibold" for="ccThreshold" title="當月有效 15 分鐘窗口占比低於此值時，該月不列入建議">窗口完整率門檻 %</label>
+                    <input type="number" id="ccThreshold" class="form-control form-control-sm text-end" value="95" min="0" max="100" step="1">
+                </div>
+                <div class="cc-narrow">
+                    <label class="form-label fw-semibold" for="ccMaxValid" title="超過此值的需量視為電表跳動並排除（例如填變壓器容量）；留空 = 不排除">異常值上限 kW</label>
+                    <input type="number" id="ccMaxValid" class="form-control form-control-sm text-end" min="0" step="1" placeholder="不排除">
+                </div>
+                <div class="cc-btn">
+                    <button class="btn btn-primary btn-sm" id="ccBtnRun" onclick="window._cc.run()">
+                        <i class="fas fa-calculator me-1"></i>回測
+                    </button>
+                </div>
+                <div class="cc-btn">
+                    <button class="btn btn-success btn-sm" id="ccBtnExport" onclick="window._cc.exportExcel()" disabled>
+                        <i class="fas fa-file-excel me-1"></i>匯出 Excel
+                    </button>
+                </div>
+            </div>
+            <div class="text-muted small mt-2">
+                <i class="fas fa-info-circle me-1"></i>計費月依電費月結週期（未自訂時為曆月）；單價取自電費設定的採用方案，現行契約取自電費設定的「契約容量歷史」。
+                <a href="/TariffSetting" class="ms-1">前往電費設定</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="ccMessage"></div>
+
+    <div id="ccResult" class="d-none">
+        <!-- KPI -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6 col-xl-3">
+                <div class="card shadow-sm cc-kpi cc-cur h-100"><div class="card-body">
+                    <div class="cc-kpi-label"><i class="fas fa-file-contract me-1"></i>現行契約 · 回測期需量費用</div>
+                    <div class="cc-kpi-main" id="kpiCurCost">--</div>
+                    <div class="cc-kpi-sub text-muted" id="kpiCurSub">--</div>
+                </div></div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="card shadow-sm cc-kpi cc-safe h-100"><div class="card-body">
+                    <div class="cc-kpi-label"><i class="fas fa-shield-alt me-1"></i>保守建議 · 回測期零超約</div>
+                    <div class="cc-kpi-main" id="kpiSafeC">--</div>
+                    <div class="cc-kpi-sub" id="kpiSafeSub">--</div>
+                </div></div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="card shadow-sm cc-kpi cc-min h-100"><div class="card-body">
+                    <div class="cc-kpi-label"><i class="fas fa-bullseye me-1"></i>最低成本點 · 容許部分月份超約</div>
+                    <div class="cc-kpi-main" id="kpiMinC">--</div>
+                    <div class="cc-kpi-sub" id="kpiMinSub">--</div>
+                </div></div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="card shadow-sm cc-kpi cc-dq h-100"><div class="card-body">
+                    <div class="cc-kpi-label"><i class="fas fa-check-circle me-1"></i>資料品質 · 台電固定 15 分鐘窗口</div>
+                    <div class="cc-kpi-main" id="kpiDq">--</div>
+                    <div class="cc-kpi-sub text-muted" id="kpiDqSub">--</div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center flex-wrap gap-1">
+                        <span><i class="fas fa-chart-area me-1"></i>需量費用 vs 經常契約容量（成本曲線）</span>
+                        <span class="text-muted small" id="ccFlatNote"></span>
+                    </div>
+                    <div class="card-body"><div class="cc-chart-box"><canvas id="ccCurve"></canvas></div></div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light py-2">
+                        <i class="fas fa-chart-bar me-1"></i>逐月尖峰最高需量 vs 契約線
+                    </div>
+                    <div class="card-body"><div class="cc-chart-box"><canvas id="ccMonthly"></canvas></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center flex-wrap gap-1">
+                <span><i class="fas fa-table me-1"></i>逐月明細（需量費用 = 基本電費 + 超約附加費）</span>
+                <span class="text-muted small">超約附加費：超出 10% 以內按單價 2 倍、超出 10% 部分按 3 倍；跨夏月與非夏月的計費月依日數加權</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered mb-0 cc-table">
+                        <thead class="table-dark">
+                            <tr>
+                                <th rowspan="2" class="align-middle">計費月</th>
+                                <th rowspan="2" class="align-middle text-end">經常契約單價 (元/kW)</th>
+                                <th rowspan="2" class="align-middle text-end">尖峰最高需量 (kW)</th>
+                                <th rowspan="2" class="align-middle">發生窗口</th>
+                                <th rowspan="2" class="align-middle text-end">窗口完整率</th>
+                                <th colspan="2" class="text-center" id="thCur">現行</th>
+                                <th colspan="2" class="text-center" id="thSafe">保守</th>
+                                <th colspan="2" class="text-center" id="thMin">最低成本</th>
+                            </tr>
+                            <tr>
+                                <th class="text-end">超約 kW</th><th class="text-end">費用 (元)</th>
+                                <th class="text-end">超約 kW</th><th class="text-end">費用 (元)</th>
+                                <th class="text-end">超約 kW</th><th class="text-end">費用 (元)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ccBody"></tbody>
+                        <tfoot id="ccFoot"></tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-light text-muted small">
+                <div><i class="fas fa-info-circle me-1"></i>節省金額為「若回測期間即採用該契約容量」的回推值，非未來保證；實際調整契約前請依台電最新營業規章確認調整限制與單價。</div>
+                <div class="mt-1"><i class="fas fa-exclamation-triangle me-1"></i>本版只評估尖峰時間超約（經常契約）；半尖峰、週六半尖峰、離峰時間的超約不計入，其他契約別依現行值固定計入基本費。</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+        <!-- ═══════════ PAGE_CONTENT 結束 ═══════════ -->
+    </main>
+
+    <!-- 頁腳（伺服器時間依需求隱藏；要顯示可加回 <span id="serverClock"> 與更新 script） -->
+    <footer class="footer mt-auto">
+        <div class="container-fluid">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="me-3 d-inline-flex align-items-center">
+                    <svg class="footer-logo" viewBox="0 0 510 120" role="img" aria-label="SCADA 智慧能源管理平台">
+                        <path class="footer-logo-star" d="M57 4 L70 47 L101 60 L70 73 L57 116 L44 73 L13 60 L44 47 Z" />
+                        <path class="footer-logo-spark" d="M100 12 L104 24 L116 28 L104 32 L100 44 L96 32 L84 28 L96 24 Z" />
+                        <text class="footer-logo-word" x="138" y="80" textLength="340" lengthAdjust="spacingAndGlyphs">JOULARIS</text>
+                    </svg>
+                </span>
+                <span class="me-3 d-inline-flex align-items-center">
+                    <i class="fas fa-code me-1"></i>版本 26.19.0
+                    <img src="{{WWWROOT}}/images/itri-logo.svg" alt="ITRI" style="height:18px;vertical-align:middle;" class="ms-2" />
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{WWWROOT}}/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{WWWROOT}}/lib/chartjs/chart.umd.min.js"></script>
+    <script src="{{WWWROOT}}/js/common/chart-defaults.js"></script>
+    <script>if (window.Chart) { Chart.defaults.animation = false; }</script>
+    <!-- ═══════════ PAGE_SCRIPTS：頁面 JS 掛在這裡（順序照該頁 @section Scripts） ═══════════ -->
+
+<script>window.i18n={_d:{"contractcapacity.title": "契約容量最佳化", "contractcapacity.filter.title": "回測條件", "contractcapacity.filter.circuit": "計費迴路", "contractcapacity.filter.no_circuit": "（無啟用需量的電表）", "contractcapacity.filter.from": "回測起（計費月）", "contractcapacity.filter.to": "回測訖（含）", "contractcapacity.filter.round": "保守建議取整", "contractcapacity.filter.threshold": "窗口完整率門檻 %", "contractcapacity.filter.threshold_hint": "當月有效 15 分鐘窗口占比低於此值時，該月不列入建議", "contractcapacity.filter.max_valid": "異常值上限 kW", "contractcapacity.filter.max_valid_hint": "超過此值的需量視為電表跳動並排除（例如填變壓器容量）；留空 = 不排除", "contractcapacity.filter.max_valid_placeholder": "不排除", "contractcapacity.filter.hint": "計費月依電費月結週期（未自訂時為曆月）；單價取自電費設定的採用方案，現行契約取自電費設定的「契約容量歷史」。", "contractcapacity.filter.tariff_link": "前往電費設定", "contractcapacity.button.run": "回測", "contractcapacity.button.export": "匯出 Excel", "contractcapacity.info.current_contract": "現行經常契約", "contractcapacity.kpi.current": "現行契約 · 回測期需量費用", "contractcapacity.kpi.current_sub": "經常契約 {0} kW · 回測期最高需量 {1} kW（{2} 個月）", "contractcapacity.kpi.idle": "閒置 {0} kW", "contractcapacity.kpi.no_contract": "未設定契約容量 — 請至電費設定 → 契約容量歷史", "contractcapacity.kpi.safe": "保守建議 · 回測期零超約", "contractcapacity.kpi.safe_sub": "= 最高需量 {0} kW 進位至 {1} kW", "contractcapacity.kpi.optimum": "最低成本點 · 容許部分月份超約", "contractcapacity.kpi.saving": "省 NT$ {0}（{1}%）", "contractcapacity.kpi.extra_cost": "多付 NT$ {0}（{1}%）", "contractcapacity.kpi.saving_na": "未設定現行契約，無法計算節省金額", "contractcapacity.kpi.over_months": "超約 {0} 個月 · 附加費 NT$ {1} 已計入", "contractcapacity.kpi.no_over": "回測期無超約", "contractcapacity.kpi.quality": "資料品質 · 台電固定 15 分鐘窗口", "contractcapacity.kpi.quality_sub": "{0} / {1} 個月可評估 · 最低單月 {2}%（{3}）", "contractcapacity.kpi.quality_threshold": "門檻 {0}%，低於門檻的月份不列入建議", "contractcapacity.chart.curve": "需量費用 vs 經常契約容量（成本曲線）", "contractcapacity.chart.flat_note": "平底區間 {0}–{1} kW 內，費用與最低點差距 ≤ 1%", "contractcapacity.chart.monthly": "逐月尖峰最高需量 vs 契約線", "contractcapacity.chart.base_fee": "基本電費", "contractcapacity.chart.penalty": "超約附加費", "contractcapacity.chart.x_contract": "經常契約容量 (kW)", "contractcapacity.chart.y_cost": "回測期需量費用（萬元）", "contractcapacity.chart.max_demand": "當月尖峰最高需量", "contractcapacity.table.title": "逐月明細（需量費用 = 基本電費 + 超約附加費）", "contractcapacity.table.rule": "超約附加費：超出 10% 以內按單價 2 倍、超出 10% 部分按 3 倍；跨夏月與非夏月的計費月依日數加權", "contractcapacity.table.month": "計費月", "contractcapacity.table.price": "經常契約單價 (元/kW)", "contractcapacity.table.max_demand": "尖峰最高需量 (kW)", "contractcapacity.table.peak_at": "發生窗口", "contractcapacity.table.completeness": "窗口完整率", "contractcapacity.table.over_kw": "超約 kW", "contractcapacity.table.cost": "費用 (元)", "contractcapacity.table.summer": "夏", "contractcapacity.table.cross_season": "跨季", "contractcapacity.table.excluded": "排除 {0} 筆", "contractcapacity.table.incl_penalty": "含附加 {0}", "contractcapacity.table.n_months": "{0} 個月", "contractcapacity.table.total": "合計（{0} 個可評估月）", "contractcapacity.table.saving": "相較現行節省", "contractcapacity.scenario.current": "現行", "contractcapacity.scenario.safe": "保守", "contractcapacity.scenario.optimum": "最低成本", "contractcapacity.reason.no_plan": "未採用電價方案", "contractcapacity.reason.no_demand_tariff": "方案無經常契約", "contractcapacity.reason.low_completeness": "窗口完整率不足", "contractcapacity.reason.no_data": "無尖峰需量資料", "contractcapacity.note.backtest": "節省金額為「若回測期間即採用該契約容量」的回推值，非未來保證；實際調整契約前請依台電最新營業規章確認調整限制與單價。", "contractcapacity.note.scope": "本版只評估尖峰時間超約（經常契約）；半尖峰、週六半尖峰、離峰時間的超約不計入，其他契約別依現行值固定計入基本費。", "contractcapacity.msg.no_circuit": "沒有啟用需量計算的電表。請先到「電表/迴路設定」勾選需量計算。", "contractcapacity.msg.load_fail": "載入失敗，請重新整理頁面", "contractcapacity.msg.no_evaluable": "回測期間 {0} 個計費月皆不可評估，無法給出建議。", "contractcapacity.msg.no_contract": "尚未設定契約容量歷史 — 仍可參考建議值，但無法計算現行費用與節省金額。", "contractcapacity.msg.multiple_plans": "回測期間曾更換電價方案，逐月依當時方案的單價計算。", "contractcapacity.msg.contract_changed": "回測期間現行契約曾變更，「現行」費用逐月依當時有效的契約計算。", "contractcapacity.msg.no_plan_short": "未採用電價方案", "contractcapacity.msg.export_fail": "匯出失敗：{0}", "contractcapacity.err.invalid_range": "回測期間不正確", "contractcapacity.err.range_too_large": "回測期間最多 24 個計費月", "contractcapacity.err.circuit_not_found": "找不到該迴路，或該迴路未啟用需量計算", "contractcapacity.err.server_error": "伺服器錯誤，請稍後再試", "tariffsetting.title": "電費設定", "tariffsetting.card.active_plan": "目前採用方案", "tariffsetting.card.no_active": "尚未選擇", "tariffsetting.card.acc_kwh": "目前累計用電度數", "tariffsetting.card.acc_cost": "目前累計電費", "tariffsetting.card.acc_hint": "選擇採用方案後自動計算", "tariffsetting.card.acc_period_hint": "本期 {0}・{1}（不含基本電費）", "tariffsetting.unit.ntd": "元", "tariffsetting.select.title": "電價方案選擇", "tariffsetting.select.category": "用電類別", "tariffsetting.select.plan": "電價方案", "tariffsetting.select.empty": "（此類別尚無方案）", "tariffsetting.button.set_active": "設為採用方案", "tariffsetting.badge.active": "採用中", "tariffsetting.editor.loading": "載入中…", "tariffsetting.editor.no_plan": "尚未選擇方案", "tariffsetting.editor.no_plan_hint": "此類別尚無方案，請按「新增方案」建立，或切換到台電類別後按「複製方案」修改。", "tariffsetting.button.save": "儲存", "tariffsetting.button.reset": "還原台電預設", "tariffsetting.button.add_range": "加時段", "tariffsetting.button.del_range": "刪除此時段", "tariffsetting.button.add_tier": "加級距", "tariffsetting.button.del_tier": "刪除此級距", "tariffsetting.button.recalculate": "重新計算電費", "tariffsetting.button.add_plan": "新增方案", "tariffsetting.button.copy_plan": "複製方案", "tariffsetting.button.del_plan": "刪除方案", "tariffsetting.adoption.title": "採用時間軸", "tariffsetting.adoption.hint": "指定「哪天起改用哪個方案」，電費逐日依此選版計算 — 之後修改費率或換方案不會追溯改寫更早的歷史電費。改動後請按「儲存採用時間軸」，再用「重新計算電費」回溯受影響區間。", "tariffsetting.adoption.add": "新增採用", "tariffsetting.adoption.del": "刪除此採用紀錄", "tariffsetting.adoption.save": "儲存採用時間軸", "tariffsetting.adoption.empty": "尚未採用任何方案 — 此狀態不計算電費。請按「新增採用」或到上方選擇方案後按「設為採用方案」。", "tariffsetting.adoption.effective_date": "生效日（含當日）", "tariffsetting.adoption.plan": "採用方案", "tariffsetting.plan.new_name": "自訂方案", "tariffsetting.plan.copy_name": "{0} 複本", "tariffsetting.recalc.title": "重新計算電費", "tariffsetting.recalc.warning": "將以「目前採用方案」的費率覆蓋重算所選區間的電費資料（換方案或修改費率後回溯用）。", "tariffsetting.recalc.start": "起日（含）", "tariffsetting.recalc.end": "訖日（含）", "tariffsetting.recalc.hint": "區間上限 366 天。自動計價每小時執行一次，僅覆蓋近 48 小時；更早的歷史請用此功能回溯。", "tariffsetting.recalc.run": "執行重算", "tariffsetting.recalc.close": "關閉", "tariffsetting.recalc.running": "重算中，請稍候…", "tariffsetting.recalc.done": "重算完成：{0} ~ {1}，處理 {2} 個小時、寫入 {3} 列。", "tariffsetting.recalc.fail": "重算失敗：{0}", "tariffsetting.recalc.no_active": "尚未選擇採用方案，請先設定採用方案再執行重算。", "tariffsetting.recalc.err_range": "請選擇正確的起訖日期（起日不可晚於訖日）。", "tariffsetting.recalc.err_too_large": "重算區間不可超過 366 天。", "tariffsetting.recalc.full": "全量重算（自最早生效日至今日）", "tariffsetting.recalc.full_hint": "全量重算會自動切成多段依序執行（每段最多 365 天），期間請勿關閉此視窗。", "tariffsetting.recalc.progress": "重算中：第 {0} 段 / 共 {1} 段（{2} ~ {3}）…", "tariffsetting.label.summer_range": "夏月期間", "tariffsetting.label.month": "月", "tariffsetting.label.day": "日", "tariffsetting.label.plan_name": "方案名稱", "tariffsetting.label.plan_type": "計價型態", "tariffsetting.section.tiers": "累進級距（流動電費）", "tariffsetting.section.base_fees": "基本電費", "tariffsetting.section.flat": "流動電費（每度）", "tariffsetting.section.flow": "流動電費時段", "tariffsetting.section.surcharge": "每月總度數超額加價", "tariffsetting.col.tier_range": "每月用電度數分段", "tariffsetting.col.summer": "夏月", "tariffsetting.col.nonsummer": "非夏月", "tariffsetting.col.base_item": "項目", "tariffsetting.col.base_unit": "單位", "tariffsetting.col.season": "季節", "tariffsetting.col.period_name": "區間名稱", "tariffsetting.col.time_ranges": "時間區間", "tariffsetting.col.price": "每度單價（元）", "tariffsetting.col.actions": "操作", "tariffsetting.unit.per_kwh": "元/度", "tariffsetting.na": "—", "tariffsetting.tier.kwh": "度", "tariffsetting.tier.kwh_below": "度以下部分", "tariffsetting.tier.kwh_above": "度以上部分", "tariffsetting.daytype.weekday": "週一至週五", "tariffsetting.daytype.sat": "週六", "tariffsetting.daytype.sun_offday": "週日及離峰日", "tariffsetting.season.summer": "夏月", "tariffsetting.season.nonsummer": "非夏月", "tariffsetting.surcharge.over": "超過門檻（度）", "tariffsetting.surcharge.price": "每度加價（元）", "tariffsetting.hint.midnight": "訖時選 00:00 代表 24:00（當日結束）；起時晚於訖時代表跨午夜時段。每組「日別 × 季節」的時段須覆蓋 24 小時且不重疊。", "tariffsetting.confirm.reset": "確定要將「{0}」還原為台電預設值？此方案的所有修改將被覆蓋。", "tariffsetting.confirm.switch_dirty": "尚有未儲存的修改，切換方案將放棄修改，確定繼續？", "tariffsetting.confirm.del_plan": "確定要刪除自建方案「{0}」？此動作無法復原。", "tariffsetting.msg.saved": "已儲存", "tariffsetting.msg.save_fail": "儲存失敗：{0}", "tariffsetting.msg.reset_fail": "還原失敗：{0}", "tariffsetting.msg.active_fail": "切換採用方案失敗：{0}", "tariffsetting.msg.load_fail": "設定載入失敗，請重新整理頁面", "tariffsetting.msg.del_plan_fail": "刪除方案失敗：{0}", "tariffsetting.msg.seed_undeletable": "台電預設方案不可刪除（僅自建方案可刪）", "tariffsetting.msg.plan_in_use": "此方案仍被採用時間軸引用，請先刪除相關採用紀錄再刪除方案。", "tariffsetting.msg.save_plan_first": "此方案尚未儲存，請先按「儲存」再設為採用方案。", "tariffsetting.msg.custom_no_reset": "自建方案無台電預設可還原。", "tariffsetting.err.tier_order": "級距上限必須大於下限且逐級遞增", "tariffsetting.err.price_negative": "單價不可為負數", "tariffsetting.err.name_empty": "自建方案名稱不可為空", "tariffsetting.err.flat_missing": "單一費率不可為空", "tariffsetting.err.range_format": "「{0}」時間區間格式不正確（起訖不可相同）", "tariffsetting.err.group_overlap": "「{0}」時段重疊（{1} 附近）", "tariffsetting.err.group_gap": "「{0}」時段未覆蓋 24 小時（{1} 有空隙）", "tariffsetting.err.adopt_date_format": "採用生效日格式不正確（應為 yyyy-MM-dd）", "tariffsetting.err.adopt_plan_missing": "生效日 {0} 未選擇有效方案", "tariffsetting.err.adopt_date_dup": "採用生效日重複：{0}", "tariff.type.progressive": "非時間電價（累進）", "tariff.type.flat": "非時間電價（單一費率）", "tariff.type.tou": "時間電價", "tariff.category.lighting": "表燈（住商）", "tariff.category.lv": "低壓電力", "tariff.category.hv": "高壓電力", "tariff.category.ehv": "特高壓電力", "tariff.category.custom": "自訂", "tariff.category_desc.lighting": "適用一般住家、機關學校、小型營業場所（夏月 6/1～9/30）", "tariff.category_desc.lv": "適用契約容量未滿 100 瓩之用電場所（夏月 6/1～9/30）", "tariff.category_desc.hv": "適用契約容量 100 瓩以上、以 11.4kV 或 22.8kV 供電（夏月 5/16～10/15）", "tariff.category_desc.ehv": "適用契約容量 1,000 瓩以上、以 69kV 以上供電（夏月 5/16～10/15）", "tariff.category_desc.custom": "使用者自建方案（如轉供、分租計價）— 可從空白建立或複製台電方案再改", "tariff.plan.lighting_res_prog": "非時間電價（累進）住宅用", "tariff.plan.lighting_nonbiz_prog": "非時間電價（累進）非營業用", "tariff.plan.lighting_biz_prog": "非時間電價（累進）營業用", "tariff.plan.lighting_simple_tou2": "簡易型時間電價（二段式）", "tariff.plan.lighting_simple_tou3": "簡易型時間電價（三段式）", "tariff.plan.lighting_std_tou2": "標準型時間電價（二段式）", "tariff.plan.lighting_std_tou3": "標準型時間電價（三段式）", "tariff.plan.lv_nontou": "非時間電價", "tariff.plan.lv_tou2": "時間電價（二段式）", "tariff.plan.lv_tou3": "時間電價（三段式）", "tariff.plan.lv_ev": "電動車充換電設施電價", "tariff.plan.hv_tou2": "二段式時間電價", "tariff.plan.hv_tou3_fixed": "三段式時間電價（尖峰時間固定）", "tariff.plan.hv_tou3_var": "三段式時間電價（尖峰時間可變動）", "tariff.plan.hv_batch": "批次生產時間電價", "tariff.plan.hv_ev": "電動車充換電設施電價", "tariff.plan.ehv_tou2": "二段式時間電價", "tariff.plan.ehv_tou3_fixed": "三段式時間電價（尖峰時間固定）", "tariff.plan.ehv_tou3_var": "三段式時間電價（尖峰時間可變動）", "tariff.plan.ehv_batch": "批次生產時間電價", "tariff.period.peak": "尖峰", "tariff.period.semipeak": "半尖峰", "tariff.period.offpeak": "離峰", "tariff.unit.household": "每戶每月", "tariff.unit.kw": "每瓩每月", "tariff.basefee.per_household": "按戶計收", "tariff.basefee.per_household_1p": "按戶計收（單相）", "tariff.basefee.per_household_3p": "按戶計收（三相）", "tariff.basefee.device_household": "裝置契約－按戶計收", "tariff.basefee.device_kw": "裝置契約", "tariff.basefee.demand_household": "需量契約－按戶計收", "tariff.basefee.regular_kw": "經常契約", "tariff.basefee.nonsummer_kw": "非夏月契約", "tariff.basefee.semipeak_kw": "半尖峰契約", "tariff.basefee.sat_semipeak_kw": "週六半尖峰契約", "tariff.basefee.offpeak_kw": "離峰契約", "tariff.note.lv_nontou": "裝置契約：依用戶設置之用電器具總容量訂定契約容量（台電已不再受理新設申請）；需量契約：依雙方約定最高需量（15 分鐘平均）為契約容量。", "tariff.note.variable_peak": "尖峰時間為夏月經台電指定 30 日（180 小時）之 16:00~22:00（於執行前一日下午 4 時前通知）；指定以外日期之 09:00~24:00 併入半尖峰計價。", "tariff.note.batch": "適用生產性質用電場所。", "tariff.note.ev": "專供電動車充換電及附屬設備之用電。", "tariff.note.hv_ev": "專供電動車充換電及附屬設備之用電；以高壓供電者，按本表單價 95% 計算。", "tariffsetting.contract.title": "契約容量歷史", "tariffsetting.contract.hint": "依台電電費單填寫各契約別 kW（需量契約，15 分鐘平均）。「契約容量最佳化」回測時，每個計費月取當時有效的紀錄；只有採用方案有的契約別才會計費。", "tariffsetting.contract.add": "新增契約紀錄", "tariffsetting.contract.del": "刪除此契約紀錄", "tariffsetting.contract.save": "儲存契約容量", "tariffsetting.contract.empty": "尚未設定契約容量 — 契約容量最佳化頁仍可算建議值，但無法計算現行費用與節省金額。", "tariffsetting.contract.effective_date": "生效日（含當日）", "tariffsetting.err.contract_date_format": "契約容量生效日格式不正確（應為 yyyy-MM-dd）", "tariffsetting.err.contract_date_dup": "契約容量生效日重複：{0}", "tariffsetting.err.contract_kw_invalid": "契約容量生效日 {0} 的 kW 須為 0 以上的數字", "tariffsetting.err.contract_kw_empty": "契約容量生效日 {0} 至少須填一個契約別的 kW"},t:function(k,a){var v=this._d[k]||k;if(a)for(var i in a)v=v.split("{"+i+"}").join(a[i]);return v;},ready:function(cb){if(cb)setTimeout(cb,0);},getCulture:function(){return "zh-TW";}};</script>
+<script>
+// fetch mock：window.__MOCK[path] = function (url, opts) { return json; }（handler 拿得到 query / body）
+(function () {
+    var realFetch = window.fetch;
+    window.fetch = function (url, opts) {
+        var path = String(url).split('?')[0];
+        var h = (window.__MOCK || {})[path];
+        if (h) return Promise.resolve(new Response(JSON.stringify(h(String(url), opts || {})), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+        return realFetch.apply(this, arguments);
+    };
+})();
+</script>
+<script>
+
+// 總表高壓二段式，現行經常契約 1,500 kW，回測 2025-10 ~ 2026-09（時鐘設 2026-10-09，init 預設即此區間）
+// 單價取自 tariff-taipower-defaults.json hv_tou2.regular_kw；超約 10% 內 2 倍、超出部分 3 倍（同 ContractCapacityCalculator）
+var P_SUMMER = 223.6, P_NONSUMMER = 166.9, CUR = 1500, ROUND = 10, THRESHOLD = 95;
+var MONTHS = [
+  { m: '2025-10', d: 1236, at: '2025-10-07 14:15', dq: 99.8, s: 15 / 31 },
+  { m: '2025-11', d: 1088, at: '2025-11-12 10:30', dq: 99.9, s: 0 },
+  { m: '2025-12', d: 1042, at: '2025-12-03 10:45', dq: 99.7, s: 0 },
+  { m: '2026-01', d: 1015, at: '2026-01-21 11:00', dq: 100.0, s: 0 },
+  { m: '2026-02', d: 968,  at: '2026-02-24 14:00', dq: 98.9, s: 0 },
+  { m: '2026-03', d: 1074, at: '2026-03-18 13:45', dq: 99.9, s: 0 },
+  { m: '2026-04', d: 1142, at: '2026-04-29 14:30', dq: 99.6, s: 0 },
+  { m: '2026-05', d: 1226, at: '2026-05-27 14:15', dq: 99.9, s: 16 / 31 },
+  { m: '2026-06', d: 1318, at: '2026-06-23 13:30', dq: 99.8, s: 1 },
+  { m: '2026-07', d: 1372, at: '2026-07-15 14:00', dq: 99.9, s: 1 },
+  { m: '2026-08', d: 1396, at: '2026-08-06 13:45', dq: 100.0, s: 1 },
+  { m: '2026-09', d: 1301, at: '2026-09-09 14:15', dq: 99.7, s: 1 }
+];
+MONTHS.forEach(function (x) { x.p = P_SUMMER * x.s + P_NONSUMMER * (1 - x.s); });
+function r0(v) { return Math.round(v); }
+function monthCost(x, C) {
+  var over = Math.max(x.d - C, 0);
+  var o1 = Math.min(over, 0.1 * C), o2 = Math.max(x.d - 1.1 * C, 0);
+  var base = C * x.p, pen = 2 * x.p * o1 + 3 * x.p * o2;
+  return { dOverKw: over, dBase: r0(base), dPenalty: r0(pen), dTotal: r0(base) + r0(pen) };
+}
+function yearCost(C) {
+  var y = { dKw: C, dBase: 0, dPenalty: 0, dTotal: 0, nOverMonths: 0 };
+  MONTHS.forEach(function (x) { var c = monthCost(x, C); y.dBase += c.dBase; y.dPenalty += c.dPenalty; y.dTotal += c.dTotal; if (c.dOverKw > 0) y.nOverMonths++; });
+  return y;
+}
+function analyze() {
+  var maxD = Math.max.apply(null, MONTHS.map(function (x) { return x.d; }));
+  var SAFE = Math.ceil(maxD / ROUND) * ROUND, MIN = 0, minCost = Infinity, curve = [];
+  for (var c = 1000; c <= 1600; c += ROUND) {
+    var y = yearCost(c); curve.push({ dKw: c, dBase: y.dBase, dPenalty: y.dPenalty });
+    if (y.dTotal < minCost) { minCost = y.dTotal; MIN = c; }
+  }
+  var flat = curve.filter(function (p) { return p.dBase + p.dPenalty <= minCost * 1.01; });
+  var cur = yearCost(CUR), safe = yearCost(SAFE), opt = yearCost(MIN);
+  [safe, opt].forEach(function (s) { s.dSaving = cur.dTotal - s.dTotal; s.dSavingPct = s.dSaving / cur.dTotal * 100; });
+  return {
+    szPlanId: 'hv_tou2', szPlanName: null, dCurrentKw: CUR, nMonths: 12, nEvaluableMonths: 12,
+    isMultiplePlans: false, isCurrentChanged: false, dMaxDemandKw: maxD, nRoundKw: ROUND, dCompletenessPct: THRESHOLD,
+    nFlatLowKw: flat[0].dKw, nFlatHighKw: flat[flat.length - 1].dKw,
+    current: cur, safe: safe, optimum: opt, curve: curve,
+    months: MONTHS.map(function (x) {
+      return { szLabel: x.m, dMaxDemandKw: x.d, isEvaluable: true, dSummerShare: x.s, dCurrentKw: CUR,
+               dRegularPrice: x.p, szPeakAt: x.at, dCompletenessPct: x.dq, nExcludedWindows: 0, szReason: null,
+               cur: monthCost(x, CUR), safe: monthCost(x, SAFE), optimum: monthCost(x, MIN) };
+    })
+  };
+}
+window.__MOCK = {
+  '/ContractCapacity/api/circuits': function () { return [{ nId: 1, szName: '總表', isMainMeter: true }, { nId: 2, szName: '空調系統', isMainMeter: false }]; },
+  '/ContractCapacity/api/analyze': function () { return analyze(); }
+};
+</script>
+    <script src="{{WWWROOT}}/js/contractcapacity.js"></script>
+<script>
+
+// 等迴路下拉載入後按「回測」
+(function () {
+  function drive() {
+    if (document.getElementById('ccCircuit').options.length < 1) { setTimeout(drive, 50); return; }
+    window._cc.run();
+  }
+  document.addEventListener('DOMContentLoaded', function () { setTimeout(drive, 100); });
+})();
+</script>
+    <!-- ═══════════ PAGE_SCRIPTS 結束 ═══════════ -->
+</body>
+</html>

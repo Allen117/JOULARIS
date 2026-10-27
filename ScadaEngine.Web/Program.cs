@@ -282,6 +282,10 @@ builder.Services.AddScoped<ScadaEngine.Web.Services.RefrigerationTonReportExcelE
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnergyDeclarationExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.AirCompressorDeclarationExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.ContractCapacityExcelExporter>();
+// 歷史趨勢：查詢 + 統計（/api/history/data 與匯出共用）、匯出 Excel（統計 / 圖表分頁）、工程師專屬系統參數（SystemSettings system_parameters）
+builder.Services.AddScoped<ScadaEngine.Web.Services.HistoryQueryService>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.HistoryExcelExporter>();
+builder.Services.AddScoped<ScadaEngine.Web.Services.SystemParameterService>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.ElectricityCostReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.EnPIReportExcelExporter>();
 builder.Services.AddScoped<ScadaEngine.Web.Services.WaterUsageReportExcelExporter>();
@@ -309,6 +313,11 @@ builder.Services.AddSingleton<ScadaEngine.Web.Services.I18nResourceService>();
 
 // 全站搜尋索引（Ctrl+K 命令面板 — 註冊表 + 雙語標題，依登入者權限過濾）
 builder.Services.AddSingleton<ScadaEngine.Web.Services.GlobalSearchService>();
+
+// 線上使用手冊（Manual/{book}/_toc.json + 各章 .md；ContentRoot 開發 = 專案目錄可即改即看、服務模式 = 安裝目錄）
+builder.Services.AddSingleton(sp => new ScadaEngine.Web.Services.ManualContentService(
+    Path.Combine(builder.Environment.ContentRootPath, "Manual"),
+    sp.GetRequiredService<ILogger<ScadaEngine.Web.Services.ManualContentService>>()));
 
 // 警報訊息 i18n 翻譯器（依當前 culture 套 messageKey + args → 顯示字串）
 builder.Services.AddScoped<ScadaEngine.Web.Services.AlarmMessageLocalizer>();

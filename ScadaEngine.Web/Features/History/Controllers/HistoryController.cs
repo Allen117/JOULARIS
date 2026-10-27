@@ -4,6 +4,8 @@ using Microsoft.Extensions.Localization;
 using ScadaEngine.Engine.Communication.Modbus.Models;
 using ScadaEngine.Engine.Data.Interfaces;
 using ScadaEngine.Web.Features.History.Models;
+using ScadaEngine.Web.Services;
+using ScadaEngine.Web.Services.HistoryStatistics;
 
 namespace ScadaEngine.Web.Features.History.Controllers;
 
@@ -11,15 +13,24 @@ namespace ScadaEngine.Web.Features.History.Controllers;
 public class HistoryController : Controller
 {
     private readonly IDataRepository _dataRepository;
+    private readonly HistoryQueryService _queryService;
+    private readonly SystemParameterService _systemParameterService;
+    private readonly HistoryExcelExporter _excelExporter;
     private readonly ILogger<HistoryController> _logger;
     private readonly IStringLocalizer<HistoryController> _l;
 
     public HistoryController(
         IDataRepository dataRepository,
+        HistoryQueryService queryService,
+        SystemParameterService systemParameterService,
+        HistoryExcelExporter excelExporter,
         ILogger<HistoryController> logger,
         IStringLocalizer<HistoryController> localizer)
     {
         _dataRepository = dataRepository;
+        _queryService = queryService;
+        _systemParameterService = systemParameterService;
+        _excelExporter = excelExporter;
         _logger = logger;
         _l = localizer;
     }
@@ -79,6 +90,7 @@ public class HistoryController : Controller
     /// GET /api/history/data?szSID=xxx&szStart=...&szEnd=...&nInterval=15
     /// 查詢 HistoryData 資料表並回傳 JSON，供前端 Chart.js 使用。
     /// nInterval：取樣間隔（分鐘），0 = 原始；>0 = 整點對齊取每 bucket 首筆
+    /// 統計走 HistoryStatisticsCalculator（只算 Good、累計值差異值分段相加），與匯出「統計」分頁同一份。
     /// </summary>
     [HttpGet("~/api/history/data")]
     public async Task<IActionResult> GetHistoryData(
@@ -103,63 +115,36 @@ public class HistoryController : Controller
 
         try
         {
-            const int nMaxRecords = 5000;
-            var historyData = (await _dataRepository.GetHistoryTableDataAsync(
-                szSID, dtStart, dtEnd, nMaxRecords, nInterval)).ToList();
+            var param = await _systemParameterService.GetAsync();
+            var points = await _queryService.ResolvePointsAsync([szSID], _l["history.demand.point_suffix"].Value);
+            points.TryGetValue(szSID, out var point);
 
-            // 查詢點位名稱與單位（Modbus + 計算點位 + DB 來源）
-            var allPoints = await _dataRepository.GetAllModbusPointsAsync();
-            var point = allPoints.FirstOrDefault(p => p.szSID == szSID);
-            if (point == null && szSID.StartsWith("CALC-"))
-            {
-                var calcPoints = await _dataRepository.GetAllCalculatedPointsAsync();
-                var cp = calcPoints.FirstOrDefault(c => c.szSID == szSID);
-                if (cp != null)
-                    point = new ModbusPointModel { szSID = cp.szSID, szName = cp.szName, szUnit = cp.szUnit };
-            }
-            if (point == null && szSID.StartsWith("DB"))
-            {
-                var dbPoints = await _dataRepository.GetAllDbPointsAsync();
-                var dp = dbPoints.FirstOrDefault(p => p.szSID == szSID);
-                if (dp != null)
-                    point = new ModbusPointModel { szSID = dp.szSID, szName = dp.szName, szUnit = dp.szUnit ?? string.Empty };
-            }
-            if (point == null && szSID.StartsWith("OPC"))
-            {
-                var opcUaPoints = await _dataRepository.GetAllOpcUaPointsAsync();
-                var op = opcUaPoints.FirstOrDefault(p => p.szSID == szSID);
-                if (op != null)
-                    point = new ModbusPointModel { szSID = op.szSID, szName = op.szName, szUnit = op.szUnit ?? string.Empty };
-            }
-            if (point == null && szSID.StartsWith("DMD-"))
-            {
-                var demandInfos = await _dataRepository.GetDemandPointInfosAsync();
-                var dm = demandInfos.FirstOrDefault(d => $"DMD-{d.szSID}" == szSID);
-                if (dm != null)
-                    point = new ModbusPointModel { szSID = szSID, szName = $"{dm.szName} {_l["history.demand.point_suffix"].Value}", szUnit = "kW" };
-            }
-
-            // 計算標準差
-            double? dStdDev = null;
-            if (historyData.Count > 1)
-            {
-                var dAvgVal = historyData.Average(d => d.fValue);
-                dStdDev = Math.Sqrt(historyData.Average(d => Math.Pow(d.fValue - dAvgVal, 2)));
-            }
+            var r = await _queryService.QueryPointAsync(szSID, point, dtStart, dtEnd, nInterval,
+                param.nHistoryMaxRecordsPerPoint, param.dCumulativeJitterTolerancePct);
+            var st = r.stats;
 
             return Ok(new
             {
-                success    = true,
-                szSID      = szSID,
-                szName     = point?.szName ?? szSID,
-                szUnit     = point?.szUnit ?? "",
-                nCount     = historyData.Count,
-                isLimited  = historyData.Count >= nMaxRecords,
-                dMin       = historyData.Count > 0 ? historyData.Min(d => d.fValue) : (double?)null,
-                dMax       = historyData.Count > 0 ? historyData.Max(d => d.fValue) : (double?)null,
-                dAvg       = historyData.Count > 0 ? historyData.Average(d => d.fValue) : (double?)null,
-                dStdDev    = dStdDev,
-                data       = historyData.Select(d => new
+                success      = true,
+                szSID        = r.szSID,
+                szName       = r.szName,
+                szUnit       = r.szUnit,
+                nCount       = st.nCount,
+                nValidCount  = st.nValidCount,
+                nMaxRecords  = param.nHistoryMaxRecordsPerPoint,
+                isLimited    = r.isLimited,
+                szPointKind  = st.kind.ToString(),
+                szUnitGroup  = st.szUnitGroup,
+                dMin         = st.dMin,
+                dMax         = st.dMax,
+                dAvg         = st.dAvg,
+                dStdDev      = st.dStdDev,
+                dDiff        = st.dDiff,
+                nDropCount   = st.nDropCount,
+                nSpikeCount  = st.nSpikeCount,
+                isStartInset = st.isStartInset,
+                isEndInset   = st.isEndInset,
+                data         = r.data.Select(d => new
                 {
                     t = d.dtTimestamp.ToString("yyyy-MM-ddTHH:mm:ss"),
                     v = d.fValue,
@@ -171,6 +156,55 @@ public class HistoryController : Controller
         {
             _logger.LogError(ex, "查詢歷史資料失敗: SID={SID}", szSID);
             return StatusCode(500, new { success = false, message = "查詢失敗，請稍後再試" });
+        }
+    }
+
+    /// <summary>
+    /// POST /api/history/export — 依趨勢頁同一組參數重查並產生 Excel（資料分頁 + 統計 + 圖表）。
+    /// 先以時間與間隔預估儲存格數（不查 DB），超過系統參數上限回 400 + 預估值與上限。
+    /// </summary>
+    [HttpPost("~/api/history/export")]
+    public async Task<IActionResult> Export([FromBody] HistoryExportRequest request)
+    {
+        var sids = (request.sids ?? new()).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().ToList();
+        if (sids.Count == 0)
+            return BadRequest(new { success = false, code = "no_points" });
+        if (!DateTime.TryParse(request.szStart, out var dtStart) || !DateTime.TryParse(request.szEnd, out var dtEnd) || dtStart >= dtEnd)
+            return BadRequest(new { success = false, code = "bad_time_range" });
+        var nInterval = Math.Max(request.nInterval, 0);
+
+        try
+        {
+            var param = await _systemParameterService.GetAsync();
+            var nEstimated = HistoryQueryService.EstimateExportCells(sids.Count, dtStart, dtEnd, nInterval, param.nHistoryMaxRecordsPerPoint);
+            if (nEstimated > param.nHistoryExportMaxCells)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    code = "export_limit",
+                    nEstimatedCells = nEstimated,
+                    nMaxCells = param.nHistoryExportMaxCells
+                });
+            }
+
+            var points = await _queryService.ResolvePointsAsync(sids, _l["history.demand.point_suffix"].Value);
+            var results = new List<HistoryPointResult>();
+            foreach (var szSID in sids)
+            {
+                points.TryGetValue(szSID, out var point);
+                results.Add(await _queryService.QueryPointAsync(szSID, point, dtStart, dtEnd, nInterval,
+                    param.nHistoryMaxRecordsPerPoint, param.dCumulativeJitterTolerancePct));
+            }
+
+            var bytes = _excelExporter.Export(results, dtStart, dtEnd, nInterval);
+            var szFileName = $"{_excelExporter.FileNamePrefix}_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", szFileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "匯出歷史資料失敗: SIDs={SIDs}", string.Join(",", sids));
+            return StatusCode(500, new { success = false, code = "export_failed" });
         }
     }
 }

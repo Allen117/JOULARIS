@@ -62,7 +62,6 @@
 
   <data name="history.basket.title" xml:space="preserve"><value>Query List</value></data>
   <data name="history.basket.button.clear_all" xml:space="preserve"><value>Clear All</value></data>
-  <data name="history.basket.empty" xml:space="preserve"><value>No points added</value></data>
   <data name="history.basket.hint" xml:space="preserve"><value>Cross-device additions allowed, max 8 points</value></data>
 
   <data name="history.time.start" xml:space="preserve"><value>Start Time</value></data>
@@ -81,7 +80,6 @@
   <data name="history.chart.title.placeholder" xml:space="preserve"><value>Add points and click Query</value></data>
   <data name="history.chart.title.queried" xml:space="preserve"><value>{0} point(s) queried</value></data>
 
-  <data name="history.chart.warning.limit" xml:space="preserve"><value>Some points exceed the 5000-row limit</value></data>
   <data name="history.chart.button.export" xml:space="preserve"><value>Export Excel</value></data>
   <data name="history.chart.axis_dual" xml:space="preserve"><value>Dual</value></data>
   <data name="history.chart.axis_single" xml:space="preserve"><value>Single</value></data>
@@ -99,7 +97,6 @@
   <data name="history.stats.max" xml:space="preserve"><value>Max</value></data>
   <data name="history.stats.avg" xml:space="preserve"><value>Avg</value></data>
   <data name="history.stats.std_dev" xml:space="preserve"><value>Std Dev</value></data>
-  <data name="history.stats.diff" xml:space="preserve"><value>Diff</value></data>
   <data name="history.stats.count" xml:space="preserve"><value>Count</value></data>
 
   <data name="history.multistats.point" xml:space="preserve"><value>Point</value></data>
@@ -126,18 +123,10 @@
 
   <data name="history.basket.button.remove" xml:space="preserve"><value>Remove</value></data>
 
-  <data name="history.excel.col.timestamp" xml:space="preserve"><value>Timestamp</value></data>
-  <data name="history.excel.col.value" xml:space="preserve"><value>Value</value></data>
-  <data name="history.excel.col.quality" xml:space="preserve"><value>Quality</value></data>
-  <data name="history.excel.summary.sheet" xml:space="preserve"><value>Summary</value></data>
-  <data name="history.excel.summary.col.point" xml:space="preserve"><value>Point Name</value></data>
-  <data name="history.excel.summary.col.unit" xml:space="preserve"><value>Unit</value></data>
-  <data name="history.excel.summary.col.count" xml:space="preserve"><value>Count</value></data>
-  <data name="history.excel.summary.col.min" xml:space="preserve"><value>Min</value></data>
-  <data name="history.excel.summary.col.max" xml:space="preserve"><value>Max</value></data>
-  <data name="history.excel.summary.col.avg" xml:space="preserve"><value>Avg</value></data>
-  <data name="history.excel.summary.col.std_dev" xml:space="preserve"><value>Std Dev</value></data>
-  <data name="history.excel.summary.col.diff" xml:space="preserve"><value>Diff</value></data>
-  <data name="history.excel.filename" xml:space="preserve"><value>Trend</value></data>
   <data name="history.coordinator.demand" xml:space="preserve"><value>Demand</value></data>
+  <data name="history.chart.warning.limit" xml:space="preserve"><value>Some points exceed the per-point row limit</value></data>
+  <data name="history.stats.diff" xml:space="preserve"><value>Difference</value></data>
+  <data name="history.alert.export_limit" xml:space="preserve"><value>Estimated {0} cells exceeds the export limit of {1} cells. Please shorten the time range, reduce points, or increase the sampling interval.</value></data>
+  <data name="history.alert.export_failed" xml:space="preserve"><value>Export failed. Please try again later.</value></data>
+  <data name="history.chart.button.exporting" xml:space="preserve"><value>Exporting…</value></data>
 </root>
