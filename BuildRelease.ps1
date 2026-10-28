@@ -441,7 +441,7 @@ set "_IS_UPGRADE=0"
 
 if exist "%_ROOT%\Engine\App\Modbus" (
     set "_IS_UPGRADE=1"
-    echo [INFO] Detected existing installation — preserving site config...
+    echo [INFO] Detected existing installation - preserving site config...
     echo.
     if not exist "%_BACKUP%" mkdir "%_BACKUP%"
     xcopy /E /I /Y "%_ROOT%\Engine\App\Modbus"      "%_BACKUP%\Engine\Modbus"      >nul
@@ -695,7 +695,7 @@ if "%_IS_UPGRADE%"=="1" (
     echo [OK] Site config was PRESERVED ^(Modbus, Setting, MqttSetting, DBPoint, OpcUaPoint^).
     echo      Shared configs are in %_ROOT%\Shared ^(dbSetting / EmailSetting / SmsSetting / LineSetting - ONE copy for Engine+Web^).
 ) else (
-    echo [NOTE] First install — edit config files as needed:
+    echo [NOTE] First install - edit config files as needed:
     echo   %_ROOT%\Shared\dbSetting.json                  ^(DB connection - ONE file for Engine/Web/Gateway^)
     echo   %_ROOT%\Shared\EmailSetting.json               ^(SMTP - or edit in Web: Alarm Setting / Email tab^)
     echo   %_ROOT%\Shared\SmsSetting.json                 ^(SMS modem - or edit in Web: Alarm Setting / SMS tab^)
@@ -746,11 +746,17 @@ if defined _FAIL (
 )
 echo   This result was also saved to: %_LOG%
 echo ========================================
->>"%_LOG%" echo [%DATE% %TIME%] ---- Install finished (JOULARIS v$AppVersion) ----
+:: Log is UTF-8 with BOM (migrate-install-root.ps1 appends UTF-8 Chinese to the same file).
+:: Ensure the BOM exists, and keep every line cmd writes pure ASCII: %DATE% is locale-dependent
+:: (zh-TW gives a Big5 weekday) and would mix encodings, so the timestamp comes from Get-Date.
+powershell -NoProfile -Command "`$f='%_LOG%'; `$b=[byte[]](0xEF,0xBB,0xBF); if(-not (Test-Path `$f)){[IO.File]::WriteAllBytes(`$f,`$b)} else {`$d=[IO.File]::ReadAllBytes(`$f); if(`$d.Length -lt 3 -or `$d[0] -ne 0xEF -or `$d[1] -ne 0xBB -or `$d[2] -ne 0xBF){[IO.File]::WriteAllBytes(`$f,[byte[]](`$b+`$d))}}"
+set "_TS="
+for /f "delims=" %%t in ('powershell -NoProfile -Command "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"') do set "_TS=%%t"
+>>"%_LOG%" echo [%_TS%] ---- Install finished (JOULARIS v$AppVersion) ----
 sc query JoularisEngine  | find "STATE" >>"%_LOG%"
 sc query JoularisWeb     | find "STATE" >>"%_LOG%"
 sc query JoularisLicense | find "STATE" >>"%_LOG%"
-if defined _FAIL (>>"%_LOG%" echo [%DATE% %TIME%] RESULT: FAILED ^(Engine/Web not running^)) else (>>"%_LOG%" echo [%DATE% %TIME%] RESULT: SUCCESS)
+if defined _FAIL (>>"%_LOG%" echo [%_TS%] RESULT: FAILED ^(Engine/Web not running^)) else (>>"%_LOG%" echo [%_TS%] RESULT: SUCCESS)
 echo.
 echo ----------------------------------------
 echo This window stays open so you can read the result above.
@@ -851,8 +857,8 @@ if exist "%_ROOT%\Shared\dbSetting.json" (
 )
 
 :: -- Read configured ports from the (site) setting file --
-for /f "usebackq" %%p in (`powershell -NoProfile -Command "(Get-Content '%_APP%\Setting\ModbusServerSetting.json' -Raw | ConvertFrom-Json).ModbusListenPort"`) do set MODBUS_PORT=%%p
-for /f "usebackq" %%p in (`powershell -NoProfile -Command "(Get-Content '%_APP%\Setting\ModbusServerSetting.json' -Raw | ConvertFrom-Json).WebPort"`) do set WEB_PORT=%%p
+for /f "usebackq" %%p in (`powershell -NoProfile -Command "(Get-Content '%_APP%\Setting\ModbusServerSetting.json' -Raw -Encoding UTF8 | ConvertFrom-Json).ModbusListenPort"`) do set MODBUS_PORT=%%p
+for /f "usebackq" %%p in (`powershell -NoProfile -Command "(Get-Content '%_APP%\Setting\ModbusServerSetting.json' -Raw -Encoding UTF8 | ConvertFrom-Json).WebPort"`) do set WEB_PORT=%%p
 if "%MODBUS_PORT%"=="" set MODBUS_PORT=502
 if "%WEB_PORT%"=="" set WEB_PORT=5041
 
@@ -883,7 +889,7 @@ goto CHECK_WEB
 echo   Web port %WEB_PORT% OK
 
 :: -- Persist selected ports into ModbusServerSetting.json --
-powershell -NoProfile -Command "$f='%_APP%\Setting\ModbusServerSetting.json'; $j=Get-Content $f -Raw | ConvertFrom-Json; $j.ModbusListenPort=[int]%MODBUS_PORT%; $j.WebPort=[int]%WEB_PORT%; $j | ConvertTo-Json -Depth 10 | Set-Content $f -Encoding UTF8"
+powershell -NoProfile -Command "$f='%_APP%\Setting\ModbusServerSetting.json'; $j=Get-Content $f -Raw -Encoding UTF8 | ConvertFrom-Json; $j.ModbusListenPort=[int]%MODBUS_PORT%; $j.WebPort=[int]%WEB_PORT%; $j | ConvertTo-Json -Depth 10 | Set-Content $f -Encoding UTF8"
 
 echo [4/6] Registering Windows service...
 sc query %_SVC% >nul 2>&1

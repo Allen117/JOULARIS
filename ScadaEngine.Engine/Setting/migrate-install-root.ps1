@@ -50,7 +50,18 @@ function Write-Log([string]$szMsg, [string]$szColor = 'Gray') {
 function Save-Log {
     $szDir = if (Test-Path $NewRoot) { $NewRoot } elseif (Test-Path $OldRoot) { $OldRoot } else { $null }
     if (-not $szDir -or $isDryRun) { return }
-    try { Add-Content -Path (Join-Path $szDir 'install-log.txt') -Value $script:logLines -Encoding UTF8 -WhatIf:$false } catch { }
+    # UTF-8 帶 BOM：Add-Content 只在新建檔時寫 BOM，舊檔缺 BOM 先補，否則編輯器會誤判成 ANSI 亂碼
+    try {
+        $szLog = Join-Path $szDir 'install-log.txt'
+        $bom = [byte[]](0xEF, 0xBB, 0xBF)
+        if (Test-Path $szLog) {
+            $data = [IO.File]::ReadAllBytes($szLog)
+            if ($data.Length -lt 3 -or $data[0] -ne 0xEF -or $data[1] -ne 0xBB -or $data[2] -ne 0xBF) {
+                [IO.File]::WriteAllBytes($szLog, [byte[]]($bom + $data))
+            }
+        }
+        Add-Content -Path $szLog -Value $script:logLines -Encoding UTF8 -WhatIf:$false
+    } catch { }
 }
 
 function Test-UnderRoot([string]$szText, [string]$szRoot) {
