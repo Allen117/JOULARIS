@@ -9,6 +9,7 @@
 @if (ViewData["IsEngineer"] as bool? == true)
 {
     <link rel="stylesheet" href="~/css/point-picker.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/flatpickr/flatpickr.min.css" />
 }
 
 @* 版面與 Compressor / 另一類設備共用 Views/Shared/_EquipmentDiagnosis.cshtml，差別只在 data-kind；
@@ -24,6 +25,9 @@
     {
         <script src="~/js/common/point-grouping.js" asp-append-version="true"></script>
         <script src="~/js/common/point-picker.js" asp-append-version="true"></script>
+        <script src="~/lib/flatpickr/flatpickr.min.js"></script>
+        <script src="~/lib/flatpickr/zh-tw.js"></script>
+        <script src="~/js/flatpickr-init.js" asp-append-version="true"></script>
     }
     <script src="~/js/compressor-diagnosis.js" asp-append-version="true"></script>
 }

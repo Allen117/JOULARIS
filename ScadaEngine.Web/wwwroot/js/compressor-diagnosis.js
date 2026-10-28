@@ -408,9 +408,9 @@
         // 劣化基準期
         html += card('fa-calendar-alt', t('eq.diag.ui.baseline_period_title'),
             '<div class="row g-2"><div class="col-6"><label class="form-label small mb-0">' + esc(t('eq.diag.ui.from')) + '</label>' +
-            '<input type="date" class="form-control form-control-sm" id="cdgBaseFrom" value="' + esc(s.szBaselineFrom || '') + '" /></div>' +
+            '<input type="text" class="form-control form-control-sm" id="cdgBaseFrom" autocomplete="off" placeholder="YYYY-MM-DD" value="' + esc(s.szBaselineFrom || '') + '" /></div>' +
             '<div class="col-6"><label class="form-label small mb-0">' + esc(t('eq.diag.ui.to')) + '</label>' +
-            '<input type="date" class="form-control form-control-sm" id="cdgBaseTo" value="' + esc(s.szBaselineTo || '') + '" /></div></div>' +
+            '<input type="text" class="form-control form-control-sm" id="cdgBaseTo" autocomplete="off" placeholder="YYYY-MM-DD" value="' + esc(s.szBaselineTo || '') + '" /></div></div>' +
             '<div class="form-text">' + esc(t('eq.diag.ui.baseline_period_hint')) + '</div>');
         html += '</div><div class="col-xl-6">';
 
@@ -441,6 +441,8 @@
             '<button type="button" class="btn btn-sm btn-outline-primary" id="cdgConfirmAll"><i class="fas fa-check-double me-1"></i>' + esc(t('eq.diag.ui.confirm_all')) + '</button></div>' +
             paramsTableHtml(), 'mt-3');
 
+        // innerHTML 重建前先收掉舊 flatpickr，否則掛在 body 的面板會殘留
+        ['cdgBaseFrom', 'cdgBaseTo'].forEach(function (id) { var el = $(id); if (el && el._flatpickr) el._flatpickr.destroy(); });
         $('cdgSettingRoot').innerHTML = html;
         bindSetting();
     }
@@ -523,6 +525,7 @@
 
     function bindSetting() {
         var root = $('cdgSettingRoot');
+        if (window._fpInit) { window._fpInit.date($('cdgBaseFrom')); window._fpInit.date($('cdgBaseTo')); }
         $('cdgSave').addEventListener('click', saveSetting);
         $('cdgFillWeekday').addEventListener('click', function () {
             collectSetting();

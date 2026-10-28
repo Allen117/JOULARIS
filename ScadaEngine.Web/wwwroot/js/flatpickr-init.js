@@ -1,6 +1,7 @@
 /* ── flatpickr 共用初始化（強制 24h、依 <html lang> 切換 zh-TW / en locale）──
  * 用法：
  *   window._fpInit.datetime('#dtStart');          // yyyy-MM-dd HH:mm
+ *   window._fpInit.date('#dtDay');                // yyyy-MM-dd（可留白的純日期欄位用）
  *   window._fpInit.time(document.getElementById('txtStartTime'));  // HH:mm
  *
  * 載入順序：flatpickr.min.js → zh-tw.js → flatpickr-init.js → 你的 feature.js
@@ -34,6 +35,15 @@
         }));
     }
 
+    // 純日期：原生 <input type="date"> 有值時沒問題，但允許空白的欄位在 zh-TW Chromium 會露出「yyyy/月/dd」佔位，改用這個
+    function bindDate(target) {
+        if (!window.flatpickr) return null;
+        applyLocaleOnce();
+        return window.flatpickr(target, Object.assign({}, COMMON, {
+            dateFormat: 'Y-m-d'
+        }));
+    }
+
     function bindTime(target) {
         if (!window.flatpickr) return null;
         applyLocaleOnce();
@@ -46,6 +56,7 @@
 
     window._fpInit = {
         datetime: bindDateTime,
+        date:     bindDate,
         time:     bindTime
     };
 })();
