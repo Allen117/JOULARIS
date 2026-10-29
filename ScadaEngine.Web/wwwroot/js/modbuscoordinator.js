@@ -25,6 +25,8 @@
     function showFullDetail(index) {
         var c = coordinators[index];
         if (!c) return;
+        nCurrentIndex = index;
+        nCurrentSubIndex = -1;
 
         document.getElementById('fullDetail').style.display = '';
         document.getElementById('subDetail').style.display = 'none';
@@ -41,6 +43,7 @@
 
         showOpenPointsButton(c.szName || '');
         updateSourceControls(c.szName || '');
+        updateRenameControls(c.szName || '');
     }
 
     function showSubDetail(id, modbusId, name, index, subIndex) {
@@ -127,7 +130,13 @@
                 });
                 var result = await resp.json();
                 if (result.success) {
+                    // 後端正規化後的名稱串（JSON 與 DB 同一份）
+                    if (typeof result.deviceName === 'string') {
+                        szNewDeviceName = result.deviceName;
+                        deviceNames = szNewDeviceName.split(',').map(function (s) { return s.trim(); });
+                    }
                     c.szDeviceName = szNewDeviceName;
+                    if (result.workbookNotice) window.alert(result.workbookNotice);
                     var subItems = document.querySelectorAll('.sub-item[data-index="' + nCurrentIndex + '"]');
                     subItems.forEach(function (el, j) {
                         var name = deviceNames[j] || '';
@@ -147,6 +156,91 @@
             }
             statusEl.style.display = '';
         });
+    }
+
+    /* ============================================================
+     * 設備名稱改名（限 Engineer — 非 Engineer 時 #btnRenameCoordinator 不存在，以下短路）
+     *
+     * 後端 DB 先改（Id 不變 → SID / 歷史不變）再原子改 JSON 檔名，Engine 自動停舊名迴圈、以新名載入；
+     * 成功後重新整理頁面（左側清單 / 選取狀態以新名重建）。設定檔已移除的設備不可改名。
+     * ============================================================ */
+
+    var btnRename = document.getElementById('btnRenameCoordinator');
+    var SELECT_AFTER_RELOAD_KEY = 'modbuscoordinator.selectAfterReload';
+
+    function setRenameStatus(szText, isError) {
+        var el = document.getElementById('renameStatus');
+        if (!el) return;
+        el.textContent = szText;
+        el.className = 'small mt-1 ' + (isError ? 'text-danger' : 'text-success');
+        el.style.display = szText ? '' : 'none';
+    }
+
+    function updateRenameControls(szName) {
+        if (!btnRename) return;
+        var isMissing = !!szName && aMissingConfig.indexOf(szName.toLowerCase()) >= 0;
+        btnRename.disabled = !szName || isMissing;
+        var input = document.getElementById('fieldName');
+        if (input) input.readOnly = !szName || isMissing;
+        setRenameStatus('', false);
+    }
+
+    if (btnRename) {
+        btnRename.addEventListener('click', async function () {
+            var c = coordinators[nCurrentIndex];
+            if (!c) return;
+            var szOld = c.szName || '';
+            var szNew = (document.getElementById('fieldName').value || '').trim();
+
+            if (!szNew) { setRenameStatus(t('modbuscoordinator.msg.rename_empty'), true); return; }
+            if (szNew.toLowerCase() === szOld.toLowerCase()) { setRenameStatus(t('modbuscoordinator.msg.rename_unchanged'), true); return; }
+            if (!window.confirm(t('modbuscoordinator.confirm.rename', { old: szOld, new: szNew }))) return;
+
+            btnRename.disabled = true;
+            try {
+                var resp = await fetch('/ModbusCoordinator/RenameCoordinator', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ oldName: szOld, newName: szNew })
+                });
+                var result = await resp.json();
+                if (resp.ok && result.success) {
+                    setRenameStatus(t('modbuscoordinator.msg.rename_success'), false);
+                    if (result.workbookNotice) window.alert(result.workbookNotice);
+                    try { sessionStorage.setItem(SELECT_AFTER_RELOAD_KEY, result.newName || szNew); } catch (e) { /* 無痕 / 封鎖儲存 → 重新整理後不自動選取 */ }
+                    window.location.reload();
+                    return;
+                }
+                setRenameStatus(result.message || t('modbuscoordinator.msg.save_failed'), true);
+            } catch (ex) {
+                setRenameStatus(t('modbuscoordinator.msg.save_failed_with', { error: ex.message }), true);
+            }
+            btnRename.disabled = false;
+        });
+    }
+
+    /** 改名後重新整理：自動選回改名的那台設備 */
+    function selectAfterReload() {
+        var szName = null;
+        try {
+            szName = sessionStorage.getItem(SELECT_AFTER_RELOAD_KEY);
+            sessionStorage.removeItem(SELECT_AFTER_RELOAD_KEY);
+        } catch (e) { return false; }
+        if (!szName) return false;
+
+        for (var i = 0; i < coordinators.length; i++) {
+            if ((coordinators[i].szName || '').toLowerCase() !== szName.toLowerCase()) continue;
+            var el = document.querySelector('.coordinator-item[data-index="' + i + '"], .coordinator-toggle[data-index="' + i + '"]');
+            if (!el) return false;
+            var nIndex = i;
+            clearAllActive();
+            el.classList.add('active');
+            var run = function () { nCurrentIndex = nIndex; showFullDetail(nIndex); };
+            if (window.i18n && window.i18n.ready) window.i18n.ready(run); else run();
+            return true;
+        }
+        return false;
     }
 
     /* ============================================================
@@ -532,8 +626,10 @@
         });
     }
 
-    // 預設：若第一筆是單一 ModbusID，自動載入
-    if (coordinators.length > 0) {
+    // 預設：改名後選回該設備；否則若第一筆是單一 ModbusID，自動載入
+    if (selectAfterReload()) {
+        // 已選取
+    } else if (coordinators.length > 0) {
         var first = coordinators[0];
         var ids = (first.szModbusID || '').split(',');
         if (ids.length <= 1) {

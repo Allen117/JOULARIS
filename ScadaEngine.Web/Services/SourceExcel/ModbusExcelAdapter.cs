@@ -11,7 +11,8 @@ namespace ScadaEngine.Web.Services.SourceExcel;
 /// <summary>
 /// Modbus 設備 Excel ⇄ JSON adapter。版面沿用舊 `Modbus通訊檔案產生工具.xlsm`（舊檔可直接上傳，巨集忽略）：
 ///
-/// - 第 1 列：A1=IP 標籤 B1=IP、C1=Port D1=502、E1=ModbusID F1="1,2,3"、G1=ConnectTimeout H1=1000（空白預設 1000，修正巨集的 Integer 錯誤）
+/// - 第 1 列：A1=IP 標籤 B1=IP、C1=Port D1=502、E1=ModbusID F1="1,2,3"、G1=ConnectTimeout H1=1000（空白預設 1000，修正巨集的 Integer 錯誤）、
+///   I1=DeviceName J1="冰水主機1,冰水主機2,冷卻水塔"（子設備名稱，依 F1 站號順序對應；可整格留白或部分留空）
 ///   → 實際以「標籤文字」掃描第 1 列、取右側儲存格，標籤找不到才退回固定位置
 /// - 第 2 列：欄位標題
 /// - 第 3 列起：A~G = Name / Address / DataType / Ratio / Unit / Min / Max，**H = Device（新增，可留白）**
@@ -28,7 +29,21 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
     private const int DATA_FIRST_ROW = 3;
     private const int TEMPLATE_VALIDATION_ROWS = 1000;
 
-    private static readonly string[] _headerFields = { "IP", "Port", "ModbusId", "ConnectTimeout" };
+    private const int COL_DEVICENAME_LABEL = 9, COL_DEVICENAME_VALUE = 10;
+
+    /// <summary>ModbusCoordinator.DeviceName 欄位長度（nvarchar(100)）</summary>
+    public const int DEVICE_NAME_MAX_LENGTH = 100;
+
+    /// <summary>JSON 頂層欄位：子站名稱逗號串（順序對應 ModbusId；選填，舊檔沒有 → Engine 不動 DB）</summary>
+    public const string DEVICE_NAME_FIELD = "DeviceName";
+
+    /// <summary>
+    /// Excel 不帶、但匯入重寫 JSON 時要從既有檔保留的頂層欄位：
+    /// 進階通訊參數（現場手改）與網頁改名紀錄（舊 Excel 重匯保護用）
+    /// </summary>
+    private static readonly string[] _preservedJsonFields = { "RetryCount", "NoResponseReconnectRounds", "UnreachableProbeIntervalMs", SourceJsonStamp.RENAMED_FROM };
+
+    private static readonly string[] _headerFields = { "IP", "Port", "ModbusId", "ConnectTimeout", DEVICE_NAME_FIELD };
     private static readonly string[] _pointFields = { "Name", "Address", "DataType", "Ratio", "Unit", "Min", "Max", "Device" };
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
@@ -102,6 +117,48 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
         if (!SourceExcelCells.TryParsePositiveInt(szTimeout, out _))
             sheet.Errors.Add(SheetIssue.At(1, "H", "srcxl.err.header_timeout_invalid"));
         sheet.Header["ConnectTimeout"] = SourceExcelCells.NormalizeNumber(szTimeout);
+
+        // DeviceName（選填）：沒有 I1 標籤（舊版 Excel）→ 不放進 Header，Reconcile 時沿用既有 JSON 值、不清空
+        var szDeviceName = SourceExcelCells.FindRow1Value(ws, DEVICE_NAME_FIELD, "子設備名稱", "子設備名稱 DeviceName");
+        if (szDeviceName != null)
+        {
+            var nStationCount = isIdsValid ? szNormalizedIds.Split(',', StringSplitOptions.RemoveEmptyEntries).Length : 0;
+            var szNormalizedNames = NormalizeDeviceNameList(szDeviceName, nStationCount, out var nNameCount);
+            if (nStationCount > 0 && nNameCount > nStationCount)
+                sheet.Errors.Add(SheetIssue.At(1, "J", "srcxl.err.header_devicename_too_many", nNameCount, nStationCount));
+            else if (szNormalizedNames.Length > DEVICE_NAME_MAX_LENGTH)
+                sheet.Errors.Add(SheetIssue.At(1, "J", "srcxl.err.header_devicename_too_long", DEVICE_NAME_MAX_LENGTH));
+            sheet.Header[DEVICE_NAME_FIELD] = szNormalizedNames;
+        }
+    }
+
+    /// <summary>
+    /// 子站名稱逗號串正規化：全形逗號視同半形、各段 Trim、去掉尾端空段；
+    /// 全部空白 → 空字串；名稱數少於站號數 → 尾端補空段（對齊站號）。nNameCount = 去尾端空段後的名稱數（數量檢核用）
+    /// </summary>
+    public static string NormalizeDeviceNameList(string? sz, int nStationCount, out int nNameCount)
+    {
+        var parts = (sz ?? string.Empty).Replace('\uFF0C', ',')
+            .Split(',')
+            .Select(p => p.Trim())
+            .ToList();
+        while (parts.Count > 0 && parts[^1].Length == 0)
+            parts.RemoveAt(parts.Count - 1);
+
+        nNameCount = parts.Count;
+        if (parts.Count == 0) return string.Empty;
+
+        while (parts.Count < nStationCount)
+            parts.Add(string.Empty);
+        return string.Join(",", parts);
+    }
+
+    /// <summary>站號 → 名稱對應（名稱不足補空白）</summary>
+    public static List<(string szModbusId, string szName)> PairStationNames(string? szModbusIds, string? szDeviceNames)
+    {
+        var ids = (szModbusIds ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var names = (szDeviceNames ?? string.Empty).Split(',').Select(n => n.Trim()).ToArray();
+        return ids.Select((szId, i) => (szId, i < names.Length ? names[i] : string.Empty)).ToList();
     }
 
     /// <summary>"1, 2,3" → "1,2,3"；任一項非 0~255 整數 → isValid=false（仍回傳清理後字串供顯示）</summary>
@@ -193,6 +250,9 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
             sheet.Header["Port"] = SourceExcelCells.NormalizeNumber(root["Port"]?.ToString() ?? "502");
             sheet.Header["ModbusId"] = NormalizeModbusIdList(root["ModbusId"]?.ToString(), out _);
             sheet.Header["ConnectTimeout"] = SourceExcelCells.NormalizeNumber(root["ConnectTimeout"]?.ToString() ?? "1000");
+            // DeviceName 欄位不存在（舊檔）→ 不放進 Header，與「明確清空」區分
+            if (root[DEVICE_NAME_FIELD] is JsonValue deviceNameValue)
+                sheet.Header[DEVICE_NAME_FIELD] = NormalizeDeviceNameList(deviceNameValue.ToString(), 0, out _);
             sheet.SourceWorkbook = root[SourceJsonStamp.SOURCE_WORKBOOK]?.ToString();
             sheet.WebEditedAt = SourceJsonStamp.ReadWebEdited(root);
 
@@ -234,6 +294,8 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
             ["ModbusId"] = sheet.Header.GetValueOrDefault("ModbusId", "1"),
             ["ConnectTimeout"] = int.TryParse(sheet.Header.GetValueOrDefault("ConnectTimeout"), out var nTimeout) ? nTimeout : 1000,
         };
+        if (sheet.Header.TryGetValue(DEVICE_NAME_FIELD, out var szDeviceName))
+            root[DEVICE_NAME_FIELD] = szDeviceName;
         if (!string.IsNullOrWhiteSpace(szSourceWorkbook))
             root["SourceWorkbook"] = szSourceWorkbook;
 
@@ -257,6 +319,72 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
         return root.ToJsonString(_jsonOptions);
     }
 
+    /// <summary>匯入重寫 JSON：Excel 不帶的頂層欄位（RetryCount / NoResponseReconnectRounds / RenamedFrom）從既有檔保留</summary>
+    public string ToJson(ParsedSourceSheet sheet, string? szSourceWorkbook, string? szExistingJson)
+    {
+        var szJson = ToJson(sheet, szSourceWorkbook);
+        if (string.IsNullOrWhiteSpace(szExistingJson)
+            || SourceConfigFileIo.ParseJsonObject(szExistingJson) is not JsonObject existing
+            || SourceConfigFileIo.ParseJsonObject(szJson) is not JsonObject root)
+            return szJson;
+
+        var isPreserved = false;
+        foreach (var szField in _preservedJsonFields)
+        {
+            if (existing[szField] is { } value)
+            {
+                root[szField] = value.DeepClone();
+                isPreserved = true;
+            }
+        }
+        return isPreserved ? root.ToJsonString(_jsonOptions) : szJson;
+    }
+
+    /// <summary>舊版 Excel（第 1 列無 DeviceName 標籤）→ 沿用既有 JSON 的子站名稱，不視為清空</summary>
+    public void Reconcile(ParsedSourceSheet sheet, ParsedSourceSheet? existing)
+    {
+        if (!sheet.Header.ContainsKey(DEVICE_NAME_FIELD)
+            && existing != null && existing.Header.TryGetValue(DEVICE_NAME_FIELD, out var szExisting))
+            sheet.Header[DEVICE_NAME_FIELD] = szExisting;
+    }
+
+    /// <summary>
+    /// 匯入預覽「站號 → 名稱」對應（防順序錯置：數量檢核抓不到兩個名稱調換）。
+    /// 單站號且兩邊都沒有名稱時不顯示。舊名以「同一站號」比對，不以位置。
+    /// </summary>
+    public IReadOnlyList<SheetDiffStationName>? BuildStationNames(ParsedSourceSheet uploaded, ParsedSourceSheet? existing)
+    {
+        var pairs = PairStationNames(uploaded.Header.GetValueOrDefault("ModbusId"), uploaded.Header.GetValueOrDefault(DEVICE_NAME_FIELD));
+        var oldByStation = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (existing != null)
+        {
+            foreach (var (szId, szName) in PairStationNames(existing.Header.GetValueOrDefault("ModbusId"), existing.Header.GetValueOrDefault(DEVICE_NAME_FIELD)))
+                oldByStation.TryAdd(szId, szName);
+        }
+
+        if (pairs.Count <= 1 && pairs.All(p => p.szName.Length == 0) && oldByStation.Values.All(n => n.Length == 0))
+            return null;
+
+        return pairs.Select(p =>
+        {
+            var szOld = existing == null ? null : oldByStation.GetValueOrDefault(p.szModbusId, string.Empty);
+            return new SheetDiffStationName
+            {
+                ModbusId = p.szModbusId,
+                Name = p.szName,
+                OldName = szOld,
+                IsChanged = szOld != null && !string.Equals(szOld, p.szName, StringComparison.Ordinal),
+            };
+        }).ToList();
+    }
+
+    /// <summary>匯出用：舊 JSON 沒有 DeviceName 欄位 → 以 DB 的 ModbusCoordinator.DeviceName 補（之後第一次匯入即落進 JSON）</summary>
+    public static void ApplyDeviceNameFallback(ParsedSourceSheet sheet, string? szDbDeviceName)
+    {
+        if (!sheet.Header.ContainsKey(DEVICE_NAME_FIELD) && !string.IsNullOrWhiteSpace(szDbDeviceName))
+            sheet.Header[DEVICE_NAME_FIELD] = NormalizeDeviceNameList(szDbDeviceName, 0, out _);
+    }
+
     // ───────────────────────────── 範本 / 匯出版面 ─────────────────────────────
 
     public void WriteSheet(IXLWorksheet ws, ParsedSourceSheet? sheet)
@@ -271,7 +399,10 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
         ws.Cell(1, 6).Style.NumberFormat.Format = "@";
         ws.Cell(1, 7).Value = "ConnectTimeout";
         ws.Cell(1, 8).Value = int.TryParse(sheet?.Header.GetValueOrDefault("ConnectTimeout"), out var nTimeout) ? nTimeout : 1000;
-        foreach (var c in new[] { 1, 3, 5, 7 }) SourceExcelCells.StyleLabel(ws.Cell(1, c));
+        ws.Cell(1, COL_DEVICENAME_LABEL).Value = DEVICE_NAME_FIELD;
+        ws.Cell(1, COL_DEVICENAME_VALUE).Value = sheet?.Header.GetValueOrDefault(DEVICE_NAME_FIELD) ?? string.Empty;
+        ws.Cell(1, COL_DEVICENAME_VALUE).Style.NumberFormat.Format = "@";
+        foreach (var c in new[] { 1, 3, 5, 7, COL_DEVICENAME_LABEL }) SourceExcelCells.StyleLabel(ws.Cell(1, c));
 
         // 第 2 列：欄位標題
         var aHeaders = new[] { "名稱 Name", "位址 Address", "資料型態 DataType", "倍率 Ratio", "單位 Unit", "最小值 Min", "最大值 Max", "子設備 Device" };
@@ -332,6 +463,7 @@ public class ModbusExcelAdapter : ISourceExcelAdapter
         // 第 1 列的 IP / ModbusID 清單可能比資料欄寬長（例 "1,2,3,4,5,6,7,8"），右鄰是標籤無法溢出 → 放寬
         SourceExcelCells.FitColumnToRow1Value(ws, 2);
         SourceExcelCells.FitColumnToRow1Value(ws, 6);
+        SourceExcelCells.FitColumnToRow1Value(ws, COL_DEVICENAME_VALUE);
     }
 
     /// <summary>可解析為數字就寫數值儲存格，否則寫文字（空字串 → 留白）</summary>

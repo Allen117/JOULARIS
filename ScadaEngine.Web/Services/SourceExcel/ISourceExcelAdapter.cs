@@ -61,6 +61,11 @@ public interface ISourceExcelAdapter
     /// </summary>
     void Reconcile(ParsedSourceSheet sheet, ParsedSourceSheet? existing) { }
 
+    /// <summary>
+    /// 匯入預覽逐站號列出子設備名稱對應（Modbus 多站號用；其他來源回 null = 不顯示）。必須是純函數。
+    /// </summary>
+    IReadOnlyList<SheetDiffStationName>? BuildStationNames(ParsedSourceSheet uploaded, ParsedSourceSheet? existing) => null;
+
     /// <summary>序列化為 Engine 可載入的 JSON 文字；szSourceWorkbook 非空時寫入頂層 SourceWorkbook</summary>
     string ToJson(ParsedSourceSheet sheet, string? szSourceWorkbook);
 

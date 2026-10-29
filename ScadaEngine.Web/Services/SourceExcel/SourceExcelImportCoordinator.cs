@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using ClosedXML.Excel;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Localization;
+using ScadaEngine.Engine.Data.Interfaces;
 using ScadaEngine.Web.Features.Shared.Models;
 
 namespace ScadaEngine.Web.Services.SourceExcel;
@@ -34,16 +35,21 @@ public class SourceExcelImportCoordinator
     private readonly IStringLocalizer<SourceExcelImportCoordinator> _l;
     private readonly ILogger<SourceExcelImportCoordinator> _logger;
 
+    /// <summary>選用：Modbus 匯出時舊 JSON 無 DeviceName → 以 DB 值補（單元測試可不給）</summary>
+    private readonly IDataRepository? _repository;
+
     public SourceExcelImportCoordinator(
         SourceConfigFileIo io,
         IMemoryCache cache,
         IStringLocalizer<SourceExcelImportCoordinator> localizer,
-        ILogger<SourceExcelImportCoordinator> logger)
+        ILogger<SourceExcelImportCoordinator> logger,
+        IDataRepository? repository = null)
     {
         _io = io;
         _cache = cache;
         _l = localizer;
         _logger = logger;
+        _repository = repository;
     }
 
     // ───────────────────────────── 預覽 ─────────────────────────────
@@ -166,6 +172,21 @@ public class SourceExcelImportCoordinator
                 }
                 foreach (var diff in result.Sheets.Where(d => d.Kind == SheetDiffKind.Added))
                     diff.RenameHintFrom = SourceExcelDiffBuilder.FindRenameHint(session.Sheets[diff.SheetName], candidateSheets);
+            }
+
+            // 網頁改名保護：工作表名稱 = 某設備 RenamedFrom 裡的舊名 → 拿改名前的舊 Excel 重匯（會建立新設備、SID 全換）。
+            // 該工作表與「改名後的設備」刪除候選都改為預設不勾選，避免一鍵確認就把改過名的設備換成新 Id
+            var renamedTo = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in existingInfos)
+                foreach (var szOld in e.RenamedFrom)
+                    renamedTo.TryAdd(szOld, e.Name);
+            foreach (var diff in result.Sheets.Where(d => d.Kind == SheetDiffKind.Added))
+            {
+                if (!renamedTo.TryGetValue(diff.SheetName, out var szCurrent)) continue;
+                diff.RenamedTo = szCurrent;
+                diff.DefaultChecked = false;
+                foreach (var e in result.DeleteCandidates.Where(c => string.Equals(c.Name, szCurrent, StringComparison.OrdinalIgnoreCase)))
+                    e.DefaultChecked = false;
             }
 
             result.Token = Guid.NewGuid().ToString("N");
@@ -459,7 +480,33 @@ public class SourceExcelImportCoordinator
                 sheets.Add(parsed);
             }
         }
+
+        await ApplyDbFallbackAsync(adapter, sheets);
         return sheets;
+    }
+
+    /// <summary>
+    /// Modbus：舊 JSON 沒有 DeviceName 欄位 → 以 DB 的 ModbusCoordinator.DeviceName 補進匯出（之後第一次匯入即落進 JSON）。
+    /// DB 讀不到只記 log，不影響匯出。
+    /// </summary>
+    private async Task ApplyDbFallbackAsync(ISourceExcelAdapter adapter, List<ParsedSourceSheet> sheets)
+    {
+        if (_repository == null || adapter.Kind != SourceExcelKind.Modbus
+            || sheets.All(s => s.Header.ContainsKey(ModbusExcelAdapter.DEVICE_NAME_FIELD)))
+            return;
+
+        try
+        {
+            var dbNames = (await _repository.GetAllCoordinatorsAsync())
+                .GroupBy(c => c.szName, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().szDeviceName, StringComparer.OrdinalIgnoreCase);
+            foreach (var sheet in sheets)
+                ModbusExcelAdapter.ApplyDeviceNameFallback(sheet, dbNames.GetValueOrDefault(sheet.SheetName));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "匯出時讀取 DB 子設備名稱失敗（略過補值）");
+        }
     }
 
     /// <summary>既有設定一覽：名稱 + JSON 內 SourceWorkbook（讀不到 → null）</summary>
@@ -479,7 +526,10 @@ public class SourceExcelImportCoordinator
                 {
                     var (szJson, _) = await SourceConfigFileIo.ReadAllTextDetectEncodingAsync(szPath);
                     if (SourceConfigFileIo.ParseJsonObject(szJson) is { } root)
+                    {
                         info.SourceWorkbook = root["SourceWorkbook"]?.ToString();
+                        info.RenamedFrom = SourceJsonStamp.ReadRenamedFrom(root);
+                    }
                 }
             }
             catch (Exception ex)

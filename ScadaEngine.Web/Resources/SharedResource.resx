@@ -122,4 +122,5 @@
   <data name="control.action.pump_freq_set" xml:space="preserve"><value>{0} 將泵浦「{1}」頻率設為 {2} Hz</value></data>
   <data name="control.action.pump_switch_auto" xml:space="preserve"><value>{0} 將泵浦「{1}」切換為自動</value></data>
   <data name="control.action.point_config_changed" xml:space="preserve"><value>{0} 修改點位「{1}」組態：{2}</value></data>
+  <data name="control.action.coordinator_config_changed" xml:space="preserve"><value>{0} 修改設備「{1}」組態：{2}</value></data>
 </root>

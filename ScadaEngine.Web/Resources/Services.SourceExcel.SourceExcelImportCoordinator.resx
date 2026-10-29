@@ -111,4 +111,6 @@
   <data name="srcxl.svc.skip_reason_name_unsafe" xml:space="preserve"><value>{0}（檔名含「..」或非法字元，無法解析路徑）</value></data>
   <data name="srcxl.warn.sheet_name_whitespace" xml:space="preserve"><value>工作表名稱頭尾有空白，會原樣作為設備名稱／檔名（與去掉空白的名稱視為不同設備）</value></data>
   <data name="srcxl.svc.skip_reason_sheet_name" xml:space="preserve"><value>{0}（名稱超過 31 字或含 [ ] : * ? / \，不能作為工作表名稱）</value></data>
+  <data name="srcxl.err.header_devicename_too_many" xml:space="preserve"><value>子設備名稱 DeviceName 有 {0} 個，多於 ModbusID 站號數 {1}</value></data>
+  <data name="srcxl.err.header_devicename_too_long" xml:space="preserve"><value>子設備名稱 DeviceName 合計不可超過 {0} 字</value></data>
 </root>

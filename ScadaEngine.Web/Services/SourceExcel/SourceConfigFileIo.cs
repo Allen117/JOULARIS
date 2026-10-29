@@ -181,6 +181,32 @@ public class SourceConfigFileIo
     }
 
     /// <summary>
+    /// dev 鏡像改名：寫入新名稱檔、刪除舊名稱檔（資料夾不存在即略過；失敗僅記 log，不影響主寫入）
+    /// </summary>
+    public void MirrorRename(string szSection, string szOldName, string szNewName, string szContent, Encoding encoding)
+    {
+        var szMirrorFolder = GetMirrorFolder(szSection);
+        if (szMirrorFolder == null) return;
+
+        try
+        {
+            if (!Directory.Exists(szMirrorFolder)) return;
+            var szNewPath = ResolveWithin(szMirrorFolder, szNewName);
+            var szOldPath = ResolveWithin(szMirrorFolder, szOldName);
+            if (szNewPath == null || szOldPath == null) return;
+
+            File.WriteAllText(szNewPath, szContent, encoding);
+            if (File.Exists(szOldPath) && !string.Equals(szOldPath, szNewPath, StringComparison.OrdinalIgnoreCase))
+                File.Delete(szOldPath);
+            _logger.LogInformation("來源設定已鏡像改名: {Old} → {New}", szOldPath, szNewPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "鏡像改名失敗（不影響主寫入）: {Old} → {New}", szOldName, szNewName);
+        }
+    }
+
+    /// <summary>
     /// 刪除 = 移到 {folder}/_deleted/{name}_{timestamp}.json（可人工搬回復原）。
     /// 鏡像資料夾（若存在同名檔）同步搬到其 _deleted/。回傳備份檔完整路徑；原檔不存在回 null。
     /// </summary>

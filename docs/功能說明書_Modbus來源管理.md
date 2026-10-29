@@ -6,7 +6,9 @@
 
 右側詳情顯示 Name / **IP / Port** / ModbusID / DelayTime / MonitorEnabled（不顯示 DB 自增 Id）。IP / Port 不在 `ModbusCoordinator` 表內，由 Controller 以 `ModbusConfigFileService.GetEndpointAsync` 逐台讀設備 JSON 頂層 `IP` / `Port`，以 `window._modbusEndpoints`（名稱 → `{ip, port}`）帶給前端；「設定檔已移除」的設備查不到則留空。多站號子項目也顯示同一台的 IP / Port。
 
-1. **子設備名稱編輯**：多站號（ModbusID 逗號分隔）設備可為每個站號取名（寫 `ModbusCoordinator.DeviceName`，主權在 DB）
+1. **子設備名稱編輯**：多站號（ModbusID 逗號分隔）設備可為每個站號取名。**主權在 JSON 頂層 `DeviceName`**（26.20 起；之前只存 DB，換機 / 重建 DB / 從 Excel 重建會遺失），DB `ModbusCoordinator.DeviceName` 為 Engine 載入時同步的執行期副本；Excel 第 1 列 `J1`（見 §4.3）
+5. **設備改名**（限 Engineer）：右側 Name 欄可改，DB 先改（Id 不變 → SID 不變）再原子改 JSON 檔名，連動 Excel 工作表名（見 §4.2）
+6. **多 ID 單站失敗隔離**：同一 IP:Port 掛多個站號時一站沒回不拖累其他站（Engine 端，見 [功能說明書_Engine核心.md](功能說明書_Engine核心.md) §4.7）
 2. **點位熱編輯**（限 Admin）：選擇設備後，右側詳情卡片標題列出現「點位設定」按鈕，點擊彈出 Modal 視窗，原地編輯設備 JSON 內點位的 Name / Address / DataType / Ratio / Unit / Min / Max / **子設備（Device）**，存檔後 **不需重啟 Engine**，數秒內以新設定採集
 3. **站號內子設備分群（Tag.Device）**：一顆 PLC（單一站號）內放多台設備時，可為每個點位標註所屬子設備做分群，讓點位選擇器可展開瀏覽（見 §站號內子設備分群）
 4. **Excel 匯入／匯出／刪除**（限 Engineer）：頁首「下載範本／匯出 Excel／匯入 Excel」，上傳 .xlsx（或舊 .xlsm，巨集忽略）→ 預覽差異（新增／覆寫／無變更／錯誤 + 刪除候選）→ 勾選確認 → 寫 JSON，Engine watcher 數秒內生效；每台設備另有「刪除設備」按鈕。**取代舊 `Modbus通訊檔案產生工具.xlsm` 巨集流程**（見 §4.1）
@@ -71,7 +73,8 @@
 | 方法 | 路由 | 說明 | 認證 |
 |------|------|------|------|
 | GET  | `/ModbusCoordinator` | 設備清單頁 | 需登入 |
-| POST | `/ModbusCoordinator/UpdateDeviceName` | 更新子設備名稱（寫 DB） | 需登入 |
+| POST | `/ModbusCoordinator/UpdateDeviceName` | `{ id, deviceName }` 更新子設備名稱：正規化 → 寫 JSON `DeviceName`（蓋 `WebEditedAt`）+ DB → 重產來源資料夾 Excel；有變更寫 EventLog。回 `{ deviceName（正規化後）, workbookNotice }` | Engineer |
+| POST | `/ModbusCoordinator/RenameCoordinator` | `{ oldName, newName }` 設備改名（§4.2）；重名回 **409** | Engineer |
 | GET  | `/ModbusCoordinator/Points/{name}` | 讀取設備 JSON 點位清單 | **Admin** |
 | POST | `/ModbusCoordinator/UpdatePoints` | 原地更新點位欄位（寫 JSON） | **Admin** |
 | GET  | `/ModbusCoordinator/ImportTemplate` | 下載空白 Excel 範本（`Modbus範本.xlsx`） | Engineer |
@@ -84,7 +87,7 @@
 | POST | `/ModbusCoordinator/DeleteSource` | `{ name }` 逐台刪除（JSON 移到 `_deleted/`） | Engineer |
 | GET  | `/ModbusCoordinator/SourceStatus` | `{ loaded[], existing[] }` — DB 已載入的 Coordinator 名稱 + 資料夾 JSON 名稱，前端匯入後輪詢用 | Engineer |
 
-`{name}` = Coordinator 名稱 = JSON 檔名（不含副檔名）。非 Admin 直接呼叫回 403，頁面上不渲染編輯卡片。
+`{name}` = Coordinator 名稱 = JSON 檔名（不含副檔名）。整個 Controller 限 Engineer（`[Authorize(Roles = "Engineer")]`），非 Engineer 直接呼叫回 403。
 
 ## 3. 設定（Web appsettings.json）
 
@@ -175,7 +178,7 @@ Install.bat → 填 Modbus範本.xlsx（任何能編輯 xlsx 的軟體；或頁�
 
 | 位置 | 內容 |
 |------|------|
-| 第 1 列 | `A1=IP` `B1=值`、`C1=Port` `D1=502`、`E1=ModbusID` `F1=1,2,3`、`G1=ConnectTimeout` `H1=1000`（以**標籤文字**掃描第 1 列取右側值，找不到才退回固定位置；Port 空白 → 502、ConnectTimeout 空白 → 1000） |
+| 第 1 列 | `A1=IP` `B1=值`、`C1=Port` `D1=502`、`E1=ModbusID` `F1=1,2,3`、`G1=ConnectTimeout` `H1=1000`、`I1=DeviceName` `J1=冰水主機1,冰水主機2`（以**標籤文字**掃描第 1 列取右側值，找不到才退回固定位置；Port 空白 → 502、ConnectTimeout 空白 → 1000；DeviceName 無標籤 = 舊版 Excel，沿用既有值，見 §4.3） |
 | 第 2 列 | 欄位標題 |
 | 第 3 列起 | `A~G = Name / Address / DataType / Ratio / Unit / Min / Max`，**`H = Device`（可留白）**；`I` 欄 DataType 清單（C 欄下拉驗證來源） |
 | 工作表名稱 | = 設備名稱 = JSON 檔名；一個 Excel 可放多張工作表（現場習慣**一盤／一 Gateway 一份 Excel、一盤多設備**） |
@@ -199,7 +202,9 @@ Install.bat → 填 Modbus範本.xlsx（任何能編輯 xlsx 的軟體；或頁�
 - **整份都不可勾選時**（工作表全是錯誤／無變更、也沒有刪除候選）：預覽頂部顯示黃底說明、底部狀態列紅字「沒有可匯入的項目：N 張工作表有錯誤…」而非「尚未勾選任何項目」。常見情境是直接上傳**空白範本**（IP 未填、無點位）—— 修正 Excel 後重新上傳即可，勾選框並非故障
 
 - **SID 位移**（高風險、不擋）：逐點比對 Name，只在尾端增減 → 一般覆寫；中間插入／刪除／換順序 → 標示「第 N 點起 SID 位移」，需另外勾選「我了解歷史資料與控制對應會錯位」才能提交。同位置改名且新舊名稱都不在另一側 → 視為原地改名，不算位移
-- **工作表改名**：新增的工作表點位名稱與某刪除候選完全相同 → 提示「可能是改名：會建立新 CoordinatorId，歷史不會接上」
+- **工作表改名**：新增的工作表點位名稱與某刪除候選完全相同 → 提示「可能是改名：會建立新 CoordinatorId，歷史不會接上」。要改名應走網頁改名（§4.2）
+- **網頁改名後的舊 Excel**：工作表名命中某設備 JSON 的 `RenamedFrom` → 紅字提示、該列與對應刪除候選預設不勾（§4.2）
+- **子設備名稱對應**：多站號工作表逐列列出「站號 → 名稱」與變更（§4.3）
 - Excel 改檔名（`盤A_v2.xlsx`）時舊設備落到「其他」區不會自動勾選 → 預覽每筆都顯示來源檔名
 
 ### 刪除語意
@@ -224,6 +229,48 @@ Install.bat → 填 Modbus範本.xlsx（任何能編輯 xlsx 的軟體；或頁�
 | `Features/Shared/Views/_SourceExcelImport.cshtml` + `wwwroot/js/common/source-excel-import.js` + `css/source-excel-import.css` | 工具列 + 預覽／確認 Modal（Modbus / DB / OPC UA 三頁共用，`data-srcxl-base` 參數化） |
 | `ScadaEngine.Engine/Modbus/Modbus範本.xlsx` | 隨 Release 附的空白範本（由 TemplateWriter 產生） |
 | `ScadaEngine.Tests/SourceExcel/*` | 解析／驗證／差異／往返單元測試 |
+
+## 4.2 設備改名
+
+設備名稱（`ModbusCoordinator.Name`）同時是 JSON 檔名、來源 Excel 工作表名、Engine 採集迴圈鍵、MQTT topic 中段。**陷阱**：Engine `SaveCoordinatorAsync` 以 **Name** 查 DB，若只改檔名 Engine 會當新設備 INSERT → 新 Id → SID（`Id*65536+…`）全換、歷史 / 警報 / 畫面綁定全斷。故順序固定為 **DB 先、檔案後，Id 永不變**（plan 2026-10-29 決策 4）：
+
+```
+POST /ModbusCoordinator/RenameCoordinator { oldName, newName }
+  → ModbusConfigFileService.RenameAsync（與點位熱編輯共用寫鎖）
+     ① 檢核：非空、頭尾無空白、IsSafeName、無 Excel 工作表禁用字元 : \ / ? * [ ]、≤ 31 字、與原名不同（不分大小寫）
+        重名（不分大小寫）：資料夾既有 JSON + DB 既有 Coordinator（含「設定檔已移除」者）
+     ② 備好新內容：原檔（同編碼）蓋 WebEditedAt、RenamedFrom 追加舊名
+     ③ DB：RenameCoordinatorAsync — Serializable 交易內再驗新名未被用 → UPDATE Name WHERE Id AND Name=舊名
+        （Engine 尚未載入、DB 無列者略過）
+     ④ File.Move(舊.json → 新.json)（單一原子 rename，與 ③ 之間無其他 I/O）；失敗 → 回滾 DB 名稱
+     ⑤ 新檔原子寫入蓋章內容；刪舊名 .json.bak 殘檔；dev 鏡像寫新刪舊（MirrorRename）
+  → Engine watcher Renamed（舊名.json → 新名.json）：停舊名迴圈 + 去抖後以新名載入
+     → SaveCoordinatorAsync 以新名命中原 Id → 不新增 DB 列、SID 不變；MQTT topic 走新名
+  → EventLog（key control.action.coordinator_config_changed，value="Name: 舊 → 新"）
+  → RefreshFolderWorkbooksAsync 重產資料夾 xlsx（工作表名由 JSON 檔名產生 → 自然變新名；Excel 開著 / 未匯入修改不覆寫並回提示）
+  → 前端 reload，sessionStorage 記新名、重新整理後自動選回
+```
+
+- **舊 Excel 重匯保護**：JSON 頂層 `RenamedFrom`（字串陣列）記改名前的名稱。之後拿改名前匯出的 Excel 重匯 → 舊名工作表在預覽屬「新增」，但名稱命中某設備的 `RenamedFrom` → 紅字「此設備已在網頁改名為 X」、`RenamedTo` 填入、該列與改名後設備的刪除候選**預設不勾選**（避免一鍵確認就換成新 Id）。Excel 匯入重寫 JSON 時保留 `RenamedFrom`（`ModbusExcelAdapter` 帶既有 JSON 的 `ToJson` 多載）
+- **Engine 端無需特別處理**：watcher 早已把同資料夾 `X.json → Y.json` 視為 X 移除 + Y 新增；DB 已先改名，Y 載入時以新名命中原 Id。控制路徑（MqttControlSubscribe / ConditionControl）以 DatabaseId 找設定，不受名稱影響
+- **MQTT retained 舊 topic**：舊名 topic `SCADA/Realtime/{舊名}/{SID}` 的 retained 訊息留在 broker。Web 訂閱端以 payload 內 SID 為鍵，不影響即時值；僅 Web 重啟當下可能先收到舊名 retained 的最後值，下一次發布（值變化或 3 分鐘定期重發）即更新。未主動清除（清除需對每個 SID 發空 payload，Web 端會把空 payload 記成解析錯誤）
+- 「設定檔已移除」的設備不可改名（前端 disable；後端回檔案不存在）
+
+## 4.3 子設備名稱進 JSON / Excel
+
+| 項目 | 規則 |
+|------|------|
+| JSON | 頂層選填 `DeviceName`（逗號串，順序對應 `ModbusId`）。**有此欄位** → Engine 載入時寫進 DB；**沒有此欄位（舊檔）→ Engine 不動 DB**（現有站點名稱不遺失） |
+| Excel | 第 1 列 `I1 = DeviceName` 標籤、`J1` 值（文字格式）。寫法比照 F1：純名稱逗號串、依站號順序對應，可整格留白或部分留空（`冰水主機1,,冷卻水塔`） |
+| 正規化 | 全形逗號「，」視同半形、各段 Trim、去尾端空段；名稱少於站號 → 尾端補空段對齊站號 |
+| 匯入檢核 | 名稱數 > 站號數 → 錯誤（`J` 欄）；合計 > 100 字（DB 欄位長度）→ 錯誤 |
+| 舊版 Excel | 第 1 列無 DeviceName 標籤 → 不放進 Header，`Reconcile` 沿用既有 JSON 值（不視為清空） |
+| 匯出 | JSON 無 `DeviceName` 欄位（舊檔）→ 以 DB 值補進 J1（`SourceExcelImportCoordinator` 選用注入 `IDataRepository`）；之後第一次匯入即落進 JSON |
+| 匯入預覽 | 多站號（或有名稱）時逐列顯示「站號 N → 名稱」，與既有 JSON **以同一站號**比對舊名，有變更者粗體標「（原：X）」— 數量檢核抓不到兩站調換，靠逐列核對 |
+| 網頁編輯 | 子選單 → 名稱 → 儲存名稱：後端正規化 + 同上檢核 → 寫 JSON（蓋 `WebEditedAt`）+ DB → 重產 Excel。JSON 有寫入時 Engine 會重載該設備一次（斷線重連 1~3 秒）；名稱未變不寫檔 |
+| 頁面顯示 | 清單讀 DB；舊 JSON 無欄位時 DB 值即為顯示來源 |
+
+另外 `RetryCount` / `NoResponseReconnectRounds` / `UnreachableProbeIntervalMs`（Engine 進階通訊參數，Excel 範本不放）與 `RenamedFrom` 在 Excel 匯入重寫 JSON 時**從既有檔保留**，不會被匯入洗掉。
 
 ## 5. 已知限制與運維注意
 

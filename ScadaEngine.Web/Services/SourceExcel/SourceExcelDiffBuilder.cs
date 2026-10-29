@@ -37,6 +37,8 @@ public static class SourceExcelDiffBuilder
             return diff;
         }
 
+        diff.StationNames = adapter.BuildStationNames(uploaded, existing);
+
         if (existing == null)
         {
             diff.Kind = SheetDiffKind.Added;

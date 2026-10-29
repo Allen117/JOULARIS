@@ -79,8 +79,28 @@ public class SheetDiff
     /// <summary>新增的工作表若與某個刪除候選的點位名稱完全相同 → 很可能是工作表改名（= 新 CoordinatorId + 舊的被刪）</summary>
     public string? RenameHintFrom { get; set; }
 
+    /// <summary>新增的工作表名稱曾在網頁改名為此設備（拿改名前的舊 Excel 重匯 → 會建立新設備、SID 全換），預設不勾選</summary>
+    public string? RenamedTo { get; set; }
+
+    /// <summary>站號 → 子設備名稱對應（Modbus 多站號；其他來源 null）</summary>
+    public IReadOnlyList<SheetDiffStationName>? StationNames { get; set; }
+
     /// <summary>預覽勾選框預設值（新增/覆寫 = true；無變更/錯誤 = false）</summary>
     public bool DefaultChecked { get; set; }
+}
+
+/// <summary>匯入預覽：一個站號對應的子設備名稱</summary>
+public class SheetDiffStationName
+{
+    public string ModbusId { get; set; } = string.Empty;
+
+    /// <summary>匯入後名稱（空字串 = 未命名，頁面顯示站號）</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>既有 JSON 中同站號的名稱；新增工作表為 null</summary>
+    public string? OldName { get; set; }
+
+    public bool IsChanged { get; set; }
 }
 
 /// <summary>既有設定（監控資料夾中的一個 JSON）的摘要</summary>
@@ -90,6 +110,10 @@ public class ExistingSourceInfo
 
     /// <summary>JSON 內 SourceWorkbook（null = 未知來源）</summary>
     public string? SourceWorkbook { get; set; }
+
+    /// <summary>JSON 內 RenamedFrom（網頁改名前的舊名稱，舊 Excel 重匯保護用）</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<string> RenamedFrom { get; set; } = new();
 
     /// <summary>刪除候選預設勾選（同一來源 Excel 這次沒帶到 = true）</summary>
     public bool DefaultChecked { get; set; }

@@ -198,6 +198,10 @@
             var isSelectable = s.kind === 'Added' || s.kind === 'Overwrite';
             var detail = '';
 
+            if (s.renamedTo) {
+                detail += '<div class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>' +
+                    escapeHtml(t('srcxl.detail.renamed_to', { to: s.renamedTo })) + '</div>';
+            }
             if (s.renameHintFrom) {
                 detail += '<div class="text-primary"><i class="fas fa-info-circle me-1"></i>' +
                     escapeHtml(t('srcxl.detail.rename_hint', { from: s.renameHintFrom })) + '</div>';
@@ -221,6 +225,7 @@
                     escapeHtml(t('srcxl.detail.keyed_removed', { count: s.keyedRemovedCount })) + '</div>';
             }
             detail += listHtml(s.headerChanges, 'srcxl-list-change', 10);
+            detail += stationNamesHtml(s.stationNames);
             var pointLines = (s.pointChanges || []).map(function (c) {
                 var szLabel = c.change === 'Added' ? t('srcxl.change.added')
                             : c.change === 'Removed' ? t('srcxl.change.removed') : '';
@@ -272,6 +277,19 @@
         otherBody.querySelectorAll('input').forEach(function (cb) { cb.addEventListener('change', refreshCommitState); });
         szNoSelectableMsg = refreshNoSelectableHint(data);
         refreshCommitState();
+    }
+
+    /** 站號 → 子設備名稱對應（Modbus 多站號）：逐列列出防順序錯置，有變更者標示原名 */
+    function stationNamesHtml(list) {
+        if (!list || !list.length) return '';
+        var html = '<div class="text-muted small mt-1">' + escapeHtml(t('srcxl.detail.station_names')) + '</div><ul class="srcxl-list srcxl-list-change">';
+        list.forEach(function (n) {
+            var szName = n.name ? n.name : t('srcxl.detail.station_name_blank');
+            var szLine = t('srcxl.detail.station_name_row', { id: n.modbusId, name: szName });
+            if (n.isChanged) szLine += t('srcxl.detail.station_name_old', { old: n.oldName || t('srcxl.detail.station_name_blank') });
+            html += '<li' + (n.isChanged ? ' class="text-primary fw-bold"' : '') + '>' + escapeHtml(szLine) + '</li>';
+        });
+        return html + '</ul>';
     }
 
     function existingRow(d, szClass, i) {

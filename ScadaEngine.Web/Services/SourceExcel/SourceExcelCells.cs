@@ -159,7 +159,8 @@ public static class SourceExcelCells
     {
         var szText = ReadString(ws, 1, nCol);
         if (szText.Length == 0) return;
-        var dNeeded = szText.Length + 2;
+        // 中日韓全形字約佔兩個半形寬
+        var dNeeded = szText.Sum(ch => ch >= 0x2E80 ? 2 : 1) + 2;
         if (ws.Column(nCol).Width < dNeeded)
             ws.Column(nCol).Width = dNeeded;
     }

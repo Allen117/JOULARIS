@@ -124,6 +124,13 @@ public interface IDataRepository
     Task<bool> UpdateDeviceNameAsync(int nId, string szDeviceName);
 
     /// <summary>
+    /// Coordinator 改名（Id 不變 → SID 不變）：交易內確認新名未被其他列使用（不分大小寫）後
+    /// UPDATE Name WHERE Id AND Name = 舊名
+    /// </summary>
+    /// <returns>Success / NameTaken（新名已存在）/ NotFound（Id + 舊名對不上）</returns>
+    Task<CoordinatorRenameResult> RenameCoordinatorAsync(int nId, string szOldName, string szNewName);
+
+    /// <summary>
     /// 查詢 HistoryData 資料表中指定 SID 的歷史記錄
     /// </summary>
     /// <param name="szSID">點位識別碼</param>

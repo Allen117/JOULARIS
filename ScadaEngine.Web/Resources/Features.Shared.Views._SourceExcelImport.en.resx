@@ -116,4 +116,9 @@
   <data name="srcxl.msg.export_failed" xml:space="preserve"><value>Export failed (HTTP {status})</value></data>
   <data name="srcxl.msg.folder_list_failed" xml:space="preserve"><value>Cannot read the Excel file list of the source folder</value></data>
   <data name="srcxl.pending.hint" xml:space="preserve"><value>Excel files in the source folder have changes that are not imported yet (Engine reads only the config files; saving in Excel has no effect — click a file name to import):</value></data>
+  <data name="srcxl.detail.renamed_to" xml:space="preserve"><value>This device was renamed to "{to}" on the web: this Excel predates the rename, importing it creates a new device (new CoordinatorId, all SIDs change). Export the latest Excel instead</value></data>
+  <data name="srcxl.detail.station_names" xml:space="preserve"><value>Sub-device names:</value></data>
+  <data name="srcxl.detail.station_name_row" xml:space="preserve"><value>ID {id} → {name}</value></data>
+  <data name="srcxl.detail.station_name_old" xml:space="preserve"><value> (was: {old})</value></data>
+  <data name="srcxl.detail.station_name_blank" xml:space="preserve"><value>(unnamed, shows ID)</value></data>
 </root>

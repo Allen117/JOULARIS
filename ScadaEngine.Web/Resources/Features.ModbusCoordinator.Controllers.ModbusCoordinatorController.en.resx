@@ -54,4 +54,12 @@
   <data name="modbuscoordinator.api.invalid_point" xml:space="preserve"><value>Invalid point data</value></data>
   <data name="modbuscoordinator.api.save_failed" xml:space="preserve"><value>Save failed</value></data>
   <data name="modbuscoordinator.api.excel_ext_invalid" xml:space="preserve"><value>Only .xlsx / .xlsm files are accepted</value></data>
+  <data name="modbuscoordinator.api.devicename_too_many" xml:space="preserve"><value>More sub-device names than Modbus IDs</value></data>
+  <data name="modbuscoordinator.api.devicename_too_long" xml:space="preserve"><value>Sub-device names must not exceed {0} characters in total</value></data>
+  <data name="modbuscoordinator.api.rename_empty" xml:space="preserve"><value>Device name is required</value></data>
+  <data name="modbuscoordinator.api.rename_invalid_chars" xml:space="preserve"><value>Device name must not contain : \ / ? * [ ] &lt; &gt; | " or leading/trailing spaces</value></data>
+  <data name="modbuscoordinator.api.rename_too_long" xml:space="preserve"><value>Device name must not exceed {0} characters (Excel sheet name limit)</value></data>
+  <data name="modbuscoordinator.api.rename_unchanged" xml:space="preserve"><value>Name is unchanged</value></data>
+  <data name="modbuscoordinator.api.rename_taken" xml:space="preserve"><value>"{0}" is already used by another device (case-insensitive)</value></data>
+  <data name="modbuscoordinator.api.rename_failed" xml:space="preserve"><value>Rename failed; config file and database keep the original name</value></data>
 </root>

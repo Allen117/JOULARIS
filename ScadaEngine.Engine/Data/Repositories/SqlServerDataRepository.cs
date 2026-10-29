@@ -130,8 +130,9 @@ public class SqlServerDataRepository : IDataRepository, IDisposable
     /// 新增或更新 Coordinator 配置
     /// </summary>
     /// <param name="coordinator">Coordinator 模型</param>
+    /// <param name="szDeviceNameFromConfig">JSON 的子站名稱逗號串；null = JSON 無此欄位（舊檔）→ 不動 DB 既有值</param>
     /// <returns>(資料庫 ID, DB 中的 DelayTime)</returns>
-    public async Task<(int nId, int nDelayTime)> SaveCoordinatorAsync(CoordinatorModel coordinator)
+    public async Task<(int nId, int nDelayTime)> SaveCoordinatorAsync(CoordinatorModel coordinator, string? szDeviceNameFromConfig = null)
     {
         try
         {
@@ -145,14 +146,18 @@ public class SqlServerDataRepository : IDataRepository, IDisposable
             if (existing.HasValue)
             {
                 // 更新現有記錄的 ModbusID（不覆蓋 DelayTime，由 DB 管理採集週期）
+                // DeviceName 只在 JSON 有此欄位時覆寫（JSON 為子站名稱單一真相，DB 為執行期副本）
                 const string szUpdateSql = @"
                     UPDATE ModbusCoordinator
-                    SET ModbusID = @ModbusID
+                    SET ModbusID = @ModbusID,
+                        DeviceName = CASE WHEN @HasDeviceName = 1 THEN @DeviceName ELSE DeviceName END
                     WHERE Id = @Id";
 
                 await connection.ExecuteAsync(szUpdateSql, new
                 {
                     ModbusID = coordinator.szModbusID,
+                    HasDeviceName = szDeviceNameFromConfig != null,
+                    DeviceName = szDeviceNameFromConfig ?? string.Empty,
                     Id = existing.Value.Id
                 });
 
@@ -165,13 +170,14 @@ public class SqlServerDataRepository : IDataRepository, IDisposable
                 // 新增記錄（DelayTime 預設 1000ms）
                 var nDefaultDelay = coordinator.nDelayTime > 0 ? coordinator.nDelayTime : 1000;
                 const string szInsertSql = @"
-                    INSERT INTO ModbusCoordinator (Name, ModbusID, DelayTime, MonitorEnabled)
-                    VALUES (@Name, @ModbusID, @DelayTime, @MonitorEnabled);
+                    INSERT INTO ModbusCoordinator (Name, ModbusID, DeviceName, DelayTime, MonitorEnabled)
+                    VALUES (@Name, @ModbusID, @DeviceName, @DelayTime, @MonitorEnabled);
                     SELECT SCOPE_IDENTITY();";
 
                 var newId = await connection.QuerySingleAsync<int>(szInsertSql, new
                 {
                     Name = coordinator.szName,
+                    DeviceName = szDeviceNameFromConfig,
                     ModbusID = coordinator.szModbusID,
                     DelayTime = nDefaultDelay,
                     MonitorEnabled = coordinator.isMonitorEnabled
@@ -272,6 +278,44 @@ public class SqlServerDataRepository : IDataRepository, IDisposable
             _logger.LogError(ex, "更新 Coordinator DeviceName 時發生錯誤 (Id={Id})", nId);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Coordinator 改名（Id 不變 → SID 不變）
+    /// </summary>
+    public async Task<CoordinatorRenameResult> RenameCoordinatorAsync(int nId, string szOldName, string szNewName)
+    {
+        if (string.IsNullOrEmpty(_szConnectionString))
+            await InitializeAsync();
+
+        using var connection = new SqlConnection(_szConnectionString);
+        await connection.OpenAsync();
+        using var transaction = connection.BeginTransaction(System.Data.IsolationLevel.Serializable);
+
+        // 不分大小寫比對（與 Web / 檔名一致，不依賴 DB collation）
+        const string szCheckSql = @"
+            SELECT COUNT(1) FROM ModbusCoordinator WITH (UPDLOCK, HOLDLOCK)
+            WHERE Id <> @nId AND LOWER(Name) = LOWER(@szNewName)";
+        var nTaken = await connection.ExecuteScalarAsync<int>(szCheckSql, new { nId, szNewName }, transaction);
+        if (nTaken > 0)
+        {
+            transaction.Rollback();
+            return CoordinatorRenameResult.NameTaken;
+        }
+
+        const string szUpdateSql = @"
+            UPDATE ModbusCoordinator SET Name = @szNewName
+            WHERE Id = @nId AND Name = @szOldName";
+        var nRows = await connection.ExecuteAsync(szUpdateSql, new { nId, szOldName, szNewName }, transaction);
+        if (nRows != 1)
+        {
+            transaction.Rollback();
+            return CoordinatorRenameResult.NotFound;
+        }
+
+        transaction.Commit();
+        _logger.LogInformation("Coordinator 改名: Id={Id}, {Old} → {New}", nId, szOldName, szNewName);
+        return CoordinatorRenameResult.Success;
     }
 
     #endregion

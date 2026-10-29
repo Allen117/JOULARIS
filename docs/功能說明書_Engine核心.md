@@ -141,7 +141,11 @@ ExecuteAsync()
 | IP | string | Y | 設備 IP 位址 |
 | Port | int | Y | TCP 通訊埠（預設 502） |
 | ModbusId | string | Y | Modbus 站號，多個以逗號分隔（如 `"1,2,3"`） |
-| ConnectTimeout | int | N | 連線逾時（毫秒，預設 1000） |
+| ConnectTimeout | int | N | 連線逾時 = 單筆回應逾時（毫秒，預設 1000）；`× 20` 為 Bad 寬限期與重連間隔 |
+| DeviceName | string | N | 子站名稱逗號串，順序對應 `ModbusId`（如 `"冰水主機1,,冷卻水塔"`）。**有此欄位** → 載入時寫進 DB `ModbusCoordinator.DeviceName`；**沒有此欄位（舊檔）→ 不動 DB**。由 Web 子設備名稱編輯 / Excel J1 寫入 |
+| RetryCount | int | N | 站層失敗（逾時 / 例外碼）同段重送次數（預設 2，0~5）。Excel 範本不放，現場手改 JSON；Excel 匯入重寫 JSON 時保留 |
+| NoResponseReconnectRounds | int | N | 整台連續幾輪「所有站都沒回」才主動斷 TCP 重連（預設 5）。同上 |
+| UnreachableProbeIntervalMs | int | N | 已判定不可達的站號多久探測一次（毫秒，預設 30000；0 = 每輪都探測）。同上 |
 | Tags | array | Y | 點位定義陣列 |
 | Tags[].Name | string | Y | 點位名稱 |
 | Tags[].Address | string | Y | 5 位數慣例地址（見下方說明） |
@@ -258,14 +262,36 @@ FC04 的點位 [addr=512, addr=513, addr=514, addr=600, addr=601]
   批次2: startAddr=600, count=2（連續）
 ```
 
-### 4.7 斷線重連機制
+### 4.7 斷線重連機制與多 ID 單站失敗隔離
+
+一個設定檔 = 一條 TCP，同一 IP:Port（RS485→TCP Gateway）可掛多個 ModbusID，循序輪詢。**一站沒回應不可拖垮整條連線上的其他站**（26.20 前的行為是：任一站逾時 → 判成連線錯誤 → 關 TCP → 後面的站整輪不讀 → 重連後又撞到死站，死站排越前面其他站越回不來）。規則移植 iAUTO 公版 `tgCoordinator.vb`（現場驗證過）：
+
+**讀取傳輸層 `ModbusTcpTransport`**（讀取不再用 FluentModbus — 它不比對 MBAP Transaction ID，逾時後 Gateway 遲到的回應會被下一筆誤收，同站同 FC 時靜默串台）：
+
+- 每筆請求 TID 遞增（跳過 0；0 保留給「Gateway 不帶回 tid」）
+- 收到的位元組累積後依 MBAP 長度切框，**tid + 站號 + 功能碼 + 位元組數全對上才收**；遲到 / 無主框整框略過繼續等；Protocol ID ≠ 0 或長度不合理 → 滑 1 byte 重新對齊；保留「開頭直接對上就收」退路（有些 Gateway MBAP 長度欄填錯）
+- 收到 `FC|0x80` → 該站例外碼（站層錯誤，非斷線）
+- 每輪開頭、每次站層失敗後 `Drain()` 清殘框
+- 控制寫入（MqttControlSubscribe / ConditionControl / LogicFlow）各自短連線，仍用 FluentModbus，不受影響
+
+**錯誤三分類**（`ModbusCommunicationService`）：
+
+| 類別 | 例 | 行為 |
+|------|----|------|
+| 站層 | 逾時、例外碼、框對不上 | 同段重送 `RetryCount`（預設 2）次 → 仍失敗：逾時與 Gateway 例外 `0x0A` / `0x0B` 視為**站不可達**，跳過該站剩餘批次、換下一站；其他例外碼（非法位址等）站有回，只該區塊無資料。**TCP 不斷** |
+| 連線層 | `SocketException`、`IOException`、遠端關閉 | `IsConnected=false` + 關 TCP；本輪剩餘站不讀；等 `ShouldReconnect()` |
+| 其他 | 解碼錯 | 只記 log |
 
 | 項目 | 說明 |
 |------|------|
-| 偵測方式 | `IsConnected` 旗標 + TCP 例外 |
-| 重連間隔 | `ConnectTimeout × 20`（如 500ms → 10 秒） |
-| 斷線時行為 | 產出 Quality="Bad" 的資料，繼續輪詢 |
-| 重連判斷 | `ShouldReconnect()` 檢查距上次重連是否已過間隔 |
+| Bad 寬限期 | **per-ModbusID**：該站首次失敗起超過 `ConnectTimeout × 20`（如 1000ms → 20 秒）才把**它自己的**點位標 Bad；寬限期內不產生資料（不推 Bad）。該站任一區塊有回應即清除計時、下一輪回 Good |
+| 整台斷線 | 連線層斷線 / 連不上時，所有站號共用同一時間點開始計寬限 → 寬限後全部 Bad（與舊行為一致） |
+| 整台卡死保險 | 連線正常但連續 `NoResponseReconnectRounds`（預設 5）輪**所有站都沒回** → 主動斷 TCP 重連 |
+| 重連間隔 | `ShouldReconnect()`：距上次重連嘗試、且距最後一次任一站成功讀取，皆 ≥ `ConnectTimeout × 20` |
+| 已知死站降級探測 | 某站判定不可達後：平時**跳過不問**，每 `UnreachableProbeIntervalMs`（預設 30 秒）探測一次，且**只問一次、不重送**；探測有回應 → 立即恢復正常輪詢。跳過期間寬限期已過者照常產生 Bad（品質維持 Bad）。**所有站都不可達時不跳過**（沒有健康站要保護，整台重連保險照常計數），但仍只問一次 |
+| 單站死站代價 | 判定當輪多耗 ≈ (1 + RetryCount) × ConnectTimeout（預設 3 秒）；之後只有探測那一輪多耗 1 × ConnectTimeout，其餘輪次不拖慢同條連線其他站。代價：死站恢復後最多晚一個探測間隔才回 Good。不另開連線探測（Gateway 常限制連線數） |
+| Log | 「站號 + 功能碼 + 起始位址」區塊失敗只記第一次（Warning，含原因與重送次數），恢復時記一次（Information）；站號寬限期後恢復另記一次 |
+| 單點回退 | 站有回但所有批次都回例外碼 → 改逐點讀（不重送；站不可達即中止）。逐點失敗**不再產生值 0 的 Good 資料**（舊行為會推出假 0） |
 
 ### 4.8 設定檔熱更新
 
@@ -722,7 +748,8 @@ StopAsync()
 
 | 故障場景 | 處理方式 |
 |---------|---------|
-| 設備 TCP 斷線 | 自動重連，產出 Bad Quality 資料 |
+| 設備 TCP 斷線 | 自動重連，寬限期後產出 Bad Quality 資料 |
+| 多 ID 其中一站無回應 | 只該站寬限期後 Bad，其他站照常、TCP 不斷；死站改為定期探測（§4.7） |
 | MQTT Broker 不可達 | 30 秒定期重試，資料仍寫入 DB |
 | 資料庫連線失敗 | 拋出例外，資料暫存於記憶體 |
 | JSON 設定檔格式錯誤 | 跳過該設備，不影響其他設備 |

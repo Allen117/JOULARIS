@@ -156,6 +156,20 @@ public class ModbusConfigService
             config.szModbusId = jsonObj.ModbusId ?? "1";
             config.nConnectTimeout = jsonObj.ConnectTimeout ?? 1000;
 
+            // 選填通訊參數（Excel 範本不放，進階現場手改 JSON）
+            int nRetryCount = jsonObj.RetryCount ?? 2;
+            config.nRetryCount = Math.Clamp(nRetryCount, 0, 5);
+            int nNoResponseRounds = jsonObj.NoResponseReconnectRounds ?? 5;
+            config.nNoResponseReconnectRounds = Math.Max(1, nNoResponseRounds);
+            int nProbeIntervalMs = jsonObj.UnreachableProbeIntervalMs ?? 30000;
+            config.nUnreachableProbeIntervalMs = Math.Clamp(nProbeIntervalMs, 0, 3_600_000);
+
+            // 子站名稱：欄位不存在（舊檔）→ null，載入時不覆蓋 DB 既有值
+            Newtonsoft.Json.Linq.JToken? deviceNameToken = jsonObj.DeviceName;
+            config.szDeviceName = deviceNameToken is null || deviceNameToken.Type == Newtonsoft.Json.Linq.JTokenType.Null
+                ? null
+                : deviceNameToken.ToString();
+
             // 映射點位清單
             if (jsonObj.Tags != null)
             {
@@ -327,7 +341,8 @@ public class ModbusConfigService
             };
 
             // 儲存或更新到資料庫並取得 ID 與 DelayTime
-            var (nDatabaseId, nDelayTime) = await _dataRepository.SaveCoordinatorAsync(coordinator);
+            var (nDatabaseId, nDelayTime) = // 子站名稱：null（舊 JSON 無此欄位）→ Repository 不動 DB 的 DeviceName
+            await _dataRepository.SaveCoordinatorAsync(coordinator, config.szDeviceName);
 
             _logger.LogInformation("Coordinator 配置已儲存到資料庫: ID={Id}, Name={Name}, ModbusID={ModbusID}, DelayTime={DelayTime}ms",
                                  nDatabaseId, coordinator.szName, coordinator.szModbusID, nDelayTime);

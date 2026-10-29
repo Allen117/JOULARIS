@@ -525,6 +525,28 @@ public class ModbusDeviceConfigModel
     public int nCollectionIntervalMs { get; set; } = 1000;
 
     /// <summary>
+    /// 站層讀取失敗（逾時 / 例外碼）同段重送次數（JSON 選填 RetryCount，預設 2；0~5）
+    /// </summary>
+    public int nRetryCount { get; set; } = 2;
+
+    /// <summary>
+    /// 整台 Coordinator 連續幾輪「所有站都沒回」才主動斷 TCP 重連（JSON 選填 NoResponseReconnectRounds，預設 5）
+    /// </summary>
+    public int nNoResponseReconnectRounds { get; set; } = 5;
+
+    /// <summary>
+    /// 已判定不可達的站號多久探測一次（毫秒；JSON 選填 UnreachableProbeIntervalMs，預設 30000，0 = 每輪都探測）。
+    /// 探測只問一次、不重送；間隔內跳過不問，讓同條連線其他站不被死站拖慢
+    /// </summary>
+    public int nUnreachableProbeIntervalMs { get; set; } = 30000;
+
+    /// <summary>
+    /// 子站名稱逗號串（順序對應 szModbusId；JSON 選填 DeviceName）。
+    /// null = JSON 沒有此欄位（舊檔）→ 載入時不動 DB；空字串 = 明確清空。
+    /// </summary>
+    public string? szDeviceName { get; set; }
+
+    /// <summary>
     /// 點位標籤清單
     /// </summary>
     public List<ModbusTagModel> tagList { get; set; } = new();

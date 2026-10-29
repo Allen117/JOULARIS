@@ -111,4 +111,6 @@
   <data name="srcxl.warn.sheet_name_whitespace" xml:space="preserve"><value>Worksheet name has leading/trailing spaces; it is used as-is for the device name / file name (a trimmed name counts as a different device)</value></data>
   <data name="srcxl.svc.skip_reason_sheet_name" xml:space="preserve"><value>{0} (name exceeds 31 characters or contains [ ] : * ? / \ and cannot be used as a sheet name)</value></data>
   <data name="srcxl.svc.folder_no_matching" xml:space="preserve"><value>No configuration comes from the source workbook "{0}"</value></data>
+  <data name="srcxl.err.header_devicename_too_many" xml:space="preserve"><value>DeviceName has {0} names, more than the {1} Modbus IDs</value></data>
+  <data name="srcxl.err.header_devicename_too_long" xml:space="preserve"><value>DeviceName must not exceed {0} characters in total</value></data>
 </root>

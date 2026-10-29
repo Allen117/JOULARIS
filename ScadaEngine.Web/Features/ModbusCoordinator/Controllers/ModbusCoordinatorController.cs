@@ -84,17 +84,91 @@ public class ModbusCoordinatorController : Controller
         return View(coordinators);
     }
 
+    /// <summary>
+    /// 子站名稱（多 ID 子選單）— 寫 JSON DeviceName（單一真相）+ DB，再重產來源資料夾 Excel；變更寫 EventLog 稽核
+    /// </summary>
     [HttpPost("/ModbusCoordinator/UpdateDeviceName")]
     public async Task<IActionResult> UpdateDeviceName([FromBody] UpdateDeviceNameRequest request)
     {
         if (request == null || request.Id <= 0)
             return BadRequest(new { success = false, message = _l["modbuscoordinator.api.param_error"].Value });
 
-        var isSuccess = await _repository.UpdateDeviceNameAsync(request.Id, request.DeviceName ?? "");
-        if (isSuccess)
-            return Ok(new { success = true });
+        var result = await _configFileService.UpdateDeviceNamesAsync(request.Id, request.DeviceName, _repository);
+        if (!result.isSuccess)
+        {
+            return result.nError switch
+            {
+                ModbusDeviceNameError.NotFound => NotFound(new { success = false, message = _l["modbuscoordinator.api.param_error"].Value }),
+                ModbusDeviceNameError.TooMany => BadRequest(new { success = false, message = _l["modbuscoordinator.api.devicename_too_many"].Value }),
+                ModbusDeviceNameError.TooLong => BadRequest(new { success = false, message = _l["modbuscoordinator.api.devicename_too_long", ModbusExcelAdapter.DEVICE_NAME_MAX_LENGTH].Value }),
+                _ => StatusCode(500, new { success = false, message = _l["modbuscoordinator.api.update_failed"].Value }),
+            };
+        }
 
-        return StatusCode(500, new { success = false, message = _l["modbuscoordinator.api.update_failed"].Value });
+        if (!string.Equals(result.szOldDeviceName, result.szDeviceName, StringComparison.Ordinal))
+        {
+            await _controlEventLogger.LogCoordinatorConfigChangedAsync(
+                BuildSidPrefix(request.Id, result.szModbusId), result.szCoordinatorName,
+                $"DeviceName: {result.szOldDeviceName} → {result.szDeviceName}", User.Identity?.Name ?? "anonymous");
+        }
+
+        var szWorkbookNotice = await _importCoordinator.RefreshFolderWorkbooksAsync(_excelAdapter);
+        return Ok(new { success = true, deviceName = result.szDeviceName, workbookNotice = szWorkbookNotice });
+    }
+
+    /// <summary>
+    /// 設備名稱（= JSON 檔名 = Excel 工作表名）改名 — DB 先改（Id 不變 → SID 不變）、再原子改檔名，Engine 自動停舊起新；
+    /// 成功後重產來源資料夾 Excel、寫 EventLog 稽核
+    /// </summary>
+    [HttpPost("/ModbusCoordinator/RenameCoordinator")]
+    public async Task<IActionResult> RenameCoordinator([FromBody] RenameCoordinatorRequest request)
+    {
+        var szOldName = request?.OldName ?? string.Empty;
+        var szNewName = (request?.NewName ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(szOldName))
+            return BadRequest(new { success = false, message = _l["modbuscoordinator.api.param_error"].Value });
+
+        var result = await _configFileService.RenameAsync(szOldName, szNewName, _repository);
+        if (!result.isSuccess)
+        {
+            var szMessage = result.nError switch
+            {
+                ModbusRenameError.Empty => _l["modbuscoordinator.api.rename_empty"].Value,
+                ModbusRenameError.InvalidChars => _l["modbuscoordinator.api.rename_invalid_chars"].Value,
+                ModbusRenameError.TooLong => _l["modbuscoordinator.api.rename_too_long", ModbusConfigFileService.COORDINATOR_NAME_MAX_LENGTH].Value,
+                ModbusRenameError.Unchanged => _l["modbuscoordinator.api.rename_unchanged"].Value,
+                ModbusRenameError.NameTaken => _l["modbuscoordinator.api.rename_taken", szNewName].Value,
+                ModbusRenameError.FileNotFound => _l["modbuscoordinator.api.file_not_found"].Value,
+                _ => _l["modbuscoordinator.api.rename_failed"].Value,
+            };
+            return result.nError switch
+            {
+                ModbusRenameError.FileNotFound => NotFound(new { success = false, message = szMessage }),
+                ModbusRenameError.NameTaken => Conflict(new { success = false, message = szMessage }),
+                ModbusRenameError.WriteFailed => StatusCode(500, new { success = false, message = szMessage }),
+                _ => BadRequest(new { success = false, message = szMessage }),
+            };
+        }
+
+        if (result.nCoordinatorId is int nId)
+        {
+            await _controlEventLogger.LogCoordinatorConfigChangedAsync(
+                BuildSidPrefix(nId, result.szModbusId), szNewName,
+                $"Name: {szOldName} → {szNewName}", User.Identity?.Name ?? "anonymous");
+        }
+
+        var szWorkbookNotice = await _importCoordinator.RefreshFolderWorkbooksAsync(_excelAdapter);
+        return Ok(new { success = true, newName = szNewName, workbookNotice = szWorkbookNotice });
+    }
+
+    /// <summary>EventLog 用 SID 前綴：{Id*65536 + 首個ModbusId*256 + 1}（不帶 -S 序號）</summary>
+    private static string BuildSidPrefix(int nCoordinatorId, string? szModbusId)
+    {
+        var szFirst = (szModbusId ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault();
+        var nFirst = int.TryParse(szFirst, out var n) ? n : 1;
+        return (nCoordinatorId * 65536 + nFirst * 256 + 1).ToString();
     }
 
     /// <summary>讀取指定設備（JSON 檔）的點位清單 — 點位熱編輯用，限 Engineer</summary>

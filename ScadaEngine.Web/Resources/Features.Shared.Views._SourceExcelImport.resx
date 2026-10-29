@@ -116,4 +116,9 @@
   <data name="srcxl.msg.export_failed" xml:space="preserve"><value>匯出失敗（HTTP {status}）</value></data>
   <data name="srcxl.msg.folder_list_failed" xml:space="preserve"><value>無法讀取來源資料夾內的 Excel 清單</value></data>
   <data name="srcxl.pending.hint" xml:space="preserve"><value>來源資料夾內的 Excel 有尚未匯入的修改（Engine 只讀設定檔，在 Excel 存檔不會生效，請點檔名匯入）：</value></data>
+  <data name="srcxl.detail.renamed_to" xml:space="preserve"><value>此設備已在網頁改名為「{to}」：這份 Excel 是改名前的舊版，匯入會建立新設備（新 CoordinatorId、SID 全換），請改匯出最新 Excel</value></data>
+  <data name="srcxl.detail.station_names" xml:space="preserve"><value>子設備名稱對應：</value></data>
+  <data name="srcxl.detail.station_name_row" xml:space="preserve"><value>站號 {id} → {name}</value></data>
+  <data name="srcxl.detail.station_name_old" xml:space="preserve"><value>（原：{old}）</value></data>
+  <data name="srcxl.detail.station_name_blank" xml:space="preserve"><value>（未命名，顯示站號）</value></data>
 </root>

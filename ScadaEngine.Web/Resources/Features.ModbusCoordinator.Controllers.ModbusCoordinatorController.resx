@@ -54,4 +54,12 @@
   <data name="modbuscoordinator.api.invalid_point" xml:space="preserve"><value>點位資料不合法</value></data>
   <data name="modbuscoordinator.api.save_failed" xml:space="preserve"><value>存檔失敗</value></data>
   <data name="modbuscoordinator.api.excel_ext_invalid" xml:space="preserve"><value>只接受 .xlsx / .xlsm 檔案</value></data>
+  <data name="modbuscoordinator.api.devicename_too_many" xml:space="preserve"><value>子設備名稱數量多於站號數</value></data>
+  <data name="modbuscoordinator.api.devicename_too_long" xml:space="preserve"><value>子設備名稱合計不可超過 {0} 字</value></data>
+  <data name="modbuscoordinator.api.rename_empty" xml:space="preserve"><value>設備名稱不可空白</value></data>
+  <data name="modbuscoordinator.api.rename_invalid_chars" xml:space="preserve"><value>設備名稱不可含 : \ / ? * [ ] &lt; &gt; | " 等字元，頭尾不可有空白</value></data>
+  <data name="modbuscoordinator.api.rename_too_long" xml:space="preserve"><value>設備名稱不可超過 {0} 字（Excel 工作表名稱上限）</value></data>
+  <data name="modbuscoordinator.api.rename_unchanged" xml:space="preserve"><value>名稱未變更</value></data>
+  <data name="modbuscoordinator.api.rename_taken" xml:space="preserve"><value>「{0}」已有其他設備使用（不分大小寫）</value></data>
+  <data name="modbuscoordinator.api.rename_failed" xml:space="preserve"><value>改名失敗，設定檔與資料庫已維持原名</value></data>
 </root>

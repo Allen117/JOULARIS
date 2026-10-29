@@ -23,6 +23,9 @@ public static class SourceJsonStamp
     /// <summary>JSON 頂層欄位名稱 — 來源 Excel 檔名</summary>
     public const string SOURCE_WORKBOOK = "SourceWorkbook";
 
+    /// <summary>JSON 頂層欄位名稱 — 網頁改名前的舊名稱清單（字串陣列，最近的在後）</summary>
+    public const string RENAMED_FROM = "RenamedFrom";
+
     /// <summary>活頁簿自訂屬性名稱</summary>
     public const string EXPORTED_AT_PROPERTY = "ScadaExportedAt";
 
@@ -43,6 +46,23 @@ public static class SourceJsonStamp
 
     /// <summary>讀 JSON 頂層 WebEditedAt；沒有或壞掉回 null</summary>
     public static DateTimeOffset? ReadWebEdited(JsonObject root) => Parse(root[WEB_EDITED_AT]?.ToString());
+
+    /// <summary>讀 JSON 頂層 RenamedFrom；沒有或格式不符回空清單</summary>
+    public static List<string> ReadRenamedFrom(JsonObject root)
+        => root[RENAMED_FROM] is JsonArray array
+            ? array.Select(n => n?.ToString() ?? string.Empty).Where(n => n.Length > 0).ToList()
+            : new List<string>();
+
+    /// <summary>在 RenamedFrom 追加一個舊名稱（不重複，不分大小寫）</summary>
+    public static void AppendRenamedFrom(JsonObject root, string szOldName)
+    {
+        var names = ReadRenamedFrom(root);
+        names.RemoveAll(n => string.Equals(n, szOldName, StringComparison.OrdinalIgnoreCase));
+        names.Add(szOldName);
+        var array = new JsonArray();
+        foreach (var szName in names) array.Add(szName);
+        root[RENAMED_FROM] = array;
+    }
 
     /// <summary>匯出時在活頁簿寫入 ScadaExportedAt 自訂屬性</summary>
     public static void StampExported(IXLWorkbook workbook, DateTimeOffset? now = null)

@@ -110,4 +110,11 @@
   <data name="modbuscoordinator.msg.config_missing_hint" xml:space="preserve"><value>此設備的設定檔已移除，Engine 已停止採集；資料庫與歷史資料保留。重新匯入同名工作表即可恢復。</value></data>
   <data name="modbuscoordinator.badge.pending_engine" xml:space="preserve"><value>待 Engine 載入</value></data>
   <data name="modbuscoordinator.msg.pending_engine_hint" xml:space="preserve"><value>此設備的設定檔已匯入，但 Engine 尚未載入（Web 連的資料庫沒有紀錄）。請依序確認：(1) Engine 正在執行（啟動時自動載入，執行中由 watcher 數秒內載入）；(2) Web 與 Engine 的 Setting\dbSetting.json 指向**同一個**資料庫；(3) Engine Log 是否有設定驗證失敗。</value></data>
+  <data name="modbuscoordinator.btn.rename" xml:space="preserve"><value>改名</value></data>
+  <data name="modbuscoordinator.hint.rename" xml:space="preserve"><value>改名會同步資料庫、JSON 設定檔名與來源 Excel 工作表名；SID、歷史資料、警報與畫面綁定不變。Engine 會以新名稱重新連線一次</value></data>
+  <data name="modbuscoordinator.msg.rename_empty" xml:space="preserve"><value>設備名稱不可空白</value></data>
+  <data name="modbuscoordinator.msg.rename_unchanged" xml:space="preserve"><value>名稱未變更</value></data>
+  <data name="modbuscoordinator.msg.rename_success" xml:space="preserve"><value>改名成功，重新整理中…</value></data>
+  <data name="modbuscoordinator.confirm.rename" xml:space="preserve"><value>確定將設備「{old}」改名為「{new}」？
+JSON 檔名、來源 Excel 工作表名會一併更新，SID 與歷史資料不變。</value></data>
 </root>

@@ -77,6 +77,28 @@ public class ControlEventLogger
         await WriteEventAsync("control.action.point_config_changed", args, szSid, ControlActionType.PointConfigChanged);
     }
 
+    /// <summary>
+    /// 寫入一筆 Modbus 設備層組態變更 EventLog（改名「舊 → 新」、子設備名稱變更）。
+    /// SID 用該設備首個站號的 SID 前綴（{Id*65536 + 首個ModbusId*256 + 1}，不帶 -S 序號）。
+    /// </summary>
+    public async Task LogCoordinatorConfigChangedAsync(
+        string szSidPrefix,
+        string szCoordinatorName,
+        string szChangeSummary,
+        string szUsername)
+    {
+        if (string.IsNullOrWhiteSpace(szSidPrefix)) return;
+
+        var args = new Dictionary<string, string>
+        {
+            ["username"] = string.IsNullOrWhiteSpace(szUsername) ? "anonymous" : szUsername,
+            ["name"]     = szCoordinatorName,
+            ["value"]    = szChangeSummary,
+        };
+
+        await WriteEventAsync("control.action.coordinator_config_changed", args, szSidPrefix, ControlActionType.CoordinatorConfigChanged);
+    }
+
     /// <summary>組出 fallback Message 並寫入 EventLog（共用收尾）</summary>
     private async Task WriteEventAsync(
         string szKey,
@@ -187,6 +209,7 @@ public class ControlEventLogger
         "control.action.pump_freq_set"    => new[] { "username", "name", "value" },
         "control.action.pump_switch_auto"     => new[] { "username", "name" },
         "control.action.point_config_changed" => new[] { "username", "name", "value" },
+        "control.action.coordinator_config_changed" => new[] { "username", "name", "value" },
         _ => Array.Empty<string>()
     };
 

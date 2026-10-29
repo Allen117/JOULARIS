@@ -155,8 +155,23 @@
                         <!-- 完整欄位（單一 ModbusID 時顯示） -->
                         <div id="fullDetail" class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-muted small">@Localizer["modbuscoordinator.label.name"]</label>
-                                <input type="text" class="form-control form-control-sm" id="fieldName" readonly />
+                                <label class="form-label fw-bold text-muted small" for="fieldName">@Localizer["modbuscoordinator.label.name"]</label>
+                                @if (User.IsInRole("Engineer"))
+                                {
+                                    <!-- 改名：同步 DB Name（Id 不變）、JSON 檔名、來源 Excel 工作表名；SID 與歷史不變 -->
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control form-control-sm" id="fieldName" maxlength="31" autocomplete="off" />
+                                        <button class="btn btn-outline-primary" type="button" id="btnRenameCoordinator">
+                                            <i class="fas fa-pen me-1"></i>@Localizer["modbuscoordinator.btn.rename"]
+                                        </button>
+                                    </div>
+                                    <div class="form-text small" id="renameHint">@Localizer["modbuscoordinator.hint.rename"]</div>
+                                    <div id="renameStatus" class="small" style="display:none;"></div>
+                                }
+                                else
+                                {
+                                    <input type="text" class="form-control form-control-sm" id="fieldName" readonly />
+                                }
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-bold text-muted small">@Localizer["modbuscoordinator.label.ip"]</label>

@@ -110,4 +110,11 @@ Note:
   <data name="modbuscoordinator.msg.config_missing_hint" xml:space="preserve"><value>This device's config file has been removed and the Engine stopped polling it; DB rows and history are kept. Re-import a worksheet with the same name to restore.</value></data>
   <data name="modbuscoordinator.badge.pending_engine" xml:space="preserve"><value>Awaiting Engine</value></data>
   <data name="modbuscoordinator.msg.pending_engine_hint" xml:space="preserve"><value>This device's config has been imported but the Engine has not loaded it (no record in the database the Web uses). Check in order: (1) the Engine is running (loads on startup; while running, the watcher picks it up within seconds); (2) Web and Engine Setting\dbSetting.json point to the SAME database; (3) the Engine log for validation errors.</value></data>
+  <data name="modbuscoordinator.btn.rename" xml:space="preserve"><value>Rename</value></data>
+  <data name="modbuscoordinator.hint.rename" xml:space="preserve"><value>Renaming updates the database, the JSON config file name and the source Excel sheet name; SIDs, history, alarms and page bindings are kept. Engine reconnects once under the new name</value></data>
+  <data name="modbuscoordinator.msg.rename_empty" xml:space="preserve"><value>Device name is required</value></data>
+  <data name="modbuscoordinator.msg.rename_unchanged" xml:space="preserve"><value>Name is unchanged</value></data>
+  <data name="modbuscoordinator.msg.rename_success" xml:space="preserve"><value>Renamed, reloading…</value></data>
+  <data name="modbuscoordinator.confirm.rename" xml:space="preserve"><value>Rename device "{old}" to "{new}"?
+The JSON file name and source Excel sheet name are updated too; SIDs and history are kept.</value></data>
 </root>
