@@ -37,7 +37,7 @@ public static class PermissionService
         ("/WaterUsageReport", "用水報表"),
         ("/WaterTariffSetting", "水費設定"),
         ("/WaterCostReport", "水費報表"),
-        ("/GasMeterSetting", "氣表/迴路設定"),
+        ("/GasMeterSetting", "天然氣表/迴路設定"),
         ("/GasUsageReport", "用氣報表"),
         ("/GasTariffSetting", "氣費設定"),
         ("/GasCostReport", "氣費報表"),

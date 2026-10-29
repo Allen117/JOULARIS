@@ -51,11 +51,11 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <!-- 頁面 -->
-  <data name="gasmeter.title" xml:space="preserve"><value>氣表/迴路設定</value></data>
+  <data name="gasmeter.title" xml:space="preserve"><value>天然氣表/迴路設定</value></data>
 
   <!-- 樹狀清單 -->
   <data name="gasmeter.tree.header" xml:space="preserve"><value>迴路階層</value></data>
-  <data name="gasmeter.tree.add_root" xml:space="preserve"><value>新增氣表/迴路</value></data>
+  <data name="gasmeter.tree.add_root" xml:space="preserve"><value>新增天然氣表/迴路</value></data>
   <data name="gasmeter.tree.loading" xml:space="preserve"><value>載入中...</value></data>
   <data name="gasmeter.tree.empty" xml:space="preserve"><value>尚無迴路，請點右上角新增</value></data>
   <data name="gasmeter.tree.load_failed" xml:space="preserve"><value>載入失敗</value></data>
@@ -76,25 +76,25 @@
 
   <!-- 類型 badge -->
   <data name="gasmeter.badge.virtual" xml:space="preserve"><value>虛擬迴路</value></data>
-  <data name="gasmeter.badge.meter" xml:space="preserve"><value>實體氣表</value></data>
+  <data name="gasmeter.badge.meter" xml:space="preserve"><value>實體天然氣表</value></data>
 
   <!-- 表單 -->
   <data name="gasmeter.form.name" xml:space="preserve"><value>名稱</value></data>
-  <data name="gasmeter.form.name_placeholder" xml:space="preserve"><value>例如：全廠總氣表 / 鍋爐天然氣</value></data>
+  <data name="gasmeter.form.name_placeholder" xml:space="preserve"><value>例如：全廠總天然氣表 / 鍋爐天然氣</value></data>
   <data name="gasmeter.form.type" xml:space="preserve"><value>節點類型</value></data>
   <data name="gasmeter.form.type_virtual" xml:space="preserve"><value>虛擬迴路</value></data>
-  <data name="gasmeter.form.type_meter" xml:space="preserve"><value>實體氣表</value></data>
+  <data name="gasmeter.form.type_meter" xml:space="preserve"><value>實體天然氣表</value></data>
   <data name="gasmeter.form.sign" xml:space="preserve"><value>貢獻方向</value></data>
   <data name="gasmeter.form.sign_pos" xml:space="preserve"><value>正向（加入父）</value></data>
   <data name="gasmeter.form.sign_neg" xml:space="preserve"><value>反向（從父扣減）</value></data>
   <data name="gasmeter.form.sign_hint" xml:space="preserve"><value>用於建立「總表 − 已分配子表」這類算式；根節點不適用</value></data>
   <data name="gasmeter.form.point" xml:space="preserve"><value>氣量點位</value></data>
   <data name="gasmeter.form.point_unbound" xml:space="preserve"><value>尚未綁定點位</value></data>
-  <data name="gasmeter.form.point_hint" xml:space="preserve"><value>僅列出「單位可換算為 m³（m³ / Nm³ / 度 / 公升系）」**且**「點位名稱含天然氣關鍵字（天然氣 / 瓦斯 / 燃氣 / 用氣 / 氣量 / 氣表 / gas / LNG…）」的累積點位；單位本身已無歧義者（Nm³ / SCM / 氣度 / 天然氣度 / 瓦斯度）不需名稱關鍵字亦會列出。含計算點、DB 來源點位。</value></data>
+  <data name="gasmeter.form.point_hint" xml:space="preserve"><value>僅列出「單位可換算為 m³（m³ / Nm³ / 度 / 公升系）」且「點位名稱含天然氣關鍵字（天然氣 / 瓦斯 / 燃氣 / 用氣 / 氣量 / 氣表 / gas / LNG…）」的累積點位；單位本身已無歧義者（Nm³ / SCM / 氣度 / 天然氣度 / 瓦斯度）不需名稱關鍵字亦會列出。含計算點、DB 來源點位。</value></data>
   <data name="gasmeter.form.unit_scale_display" xml:space="preserve"><value>點位單位 {unit} → 換算係數 {scale}（m³）</value></data>
   <data name="gasmeter.form.max_volume" xml:space="preserve"><value>溢位上限 MaxVolume</value></data>
   <data name="gasmeter.form.max_volume_placeholder" xml:space="preserve"><value>例如：1,000,000,000（以點位原始單位計）</value></data>
-  <data name="gasmeter.form.max_volume_hint" xml:space="preserve"><value>氣表累積值溢位/歸零時用於計算 delta，以點位原始單位計；留空表示不處理溢位</value></data>
+  <data name="gasmeter.form.max_volume_hint" xml:space="preserve"><value>天然氣表累積值溢位/歸零時用於計算 delta，以點位原始單位計；留空表示不處理溢位</value></data>
   <data name="gasmeter.form.desc" xml:space="preserve"><value>說明</value></data>
   <data name="gasmeter.form.desc_placeholder" xml:space="preserve"><value>選填</value></data>
 
@@ -109,7 +109,7 @@
   <data name="gasmeter.btn.delete" xml:space="preserve"><value>刪除</value></data>
 
   <!-- Modal 標題 -->
-  <data name="gasmeter.modal.create_title" xml:space="preserve"><value>新增氣表/迴路</value></data>
+  <data name="gasmeter.modal.create_title" xml:space="preserve"><value>新增天然氣表/迴路</value></data>
   <data name="gasmeter.modal.create_child_title" xml:space="preserve"><value>新增子節點</value></data>
   <data name="gasmeter.modal.edit_title" xml:space="preserve"><value>編輯：{name}</value></data>
 
@@ -117,7 +117,7 @@
   <data name="gasmeter.picker.title" xml:space="preserve"><value>選擇氣量點位</value></data>
   <data name="gasmeter.picker.device" xml:space="preserve"><value>通訊設備</value></data>
   <data name="gasmeter.picker.point" xml:space="preserve"><value>點位</value></data>
-  <data name="gasmeter.picker.search_placeholder" xml:space="preserve"><value>搜尋點位名稱 / SID...</value></data>
+  <data name="gasmeter.picker.search_placeholder" xml:space="preserve"><value>搜尋點位名稱...</value></data>
   <data name="gasmeter.picker.no_data" xml:space="preserve"><value>尚無點位資料</value></data>
   <data name="gasmeter.picker.pick_device_first" xml:space="preserve"><value>請先選擇左側設備</value></data>
   <data name="gasmeter.picker.pick_subunit_first" xml:space="preserve"><value>請先選擇子單元</value></data>
@@ -134,7 +134,7 @@
 
   <!-- 前端提示訊息 -->
   <data name="gasmeter.msg.name_required" xml:space="preserve"><value>請輸入名稱</value></data>
-  <data name="gasmeter.msg.sid_required" xml:space="preserve"><value>實體氣表必須綁定氣量點位</value></data>
+  <data name="gasmeter.msg.sid_required" xml:space="preserve"><value>實體天然氣表必須綁定氣量點位</value></data>
   <data name="gasmeter.msg.save_failed" xml:space="preserve"><value>儲存失敗：{msg}</value></data>
   <data name="gasmeter.msg.delete_failed" xml:space="preserve"><value>刪除失敗：{msg}</value></data>
   <data name="gasmeter.msg.sort_failed" xml:space="preserve"><value>排序更新失敗：{msg}</value></data>
@@ -149,11 +149,11 @@
   <data name="gasmeter.err.has_children" xml:space="preserve"><value>該迴路含子節點，刪除將一併移除所有子孫</value></data>
   <data name="gasmeter.err.sort_failed" xml:space="preserve"><value>排序更新失敗</value></data>
   <data name="gasmeter.err.unknown" xml:space="preserve"><value>未知錯誤</value></data>
-  <data name="gasmeter.form.name_filter_hint" xml:space="preserve"><value>找不到你的氣表點位？兩種可能：① 點位名稱沒帶天然氣關鍵字 → 請在點位管理把名稱改成含「天然氣 / 瓦斯 / 用氣量」等字樣；② 單位不是累積氣量單位（如標成 Nm³/h 流量）→ 請改標 Nm³ 或 m³。名稱關鍵字這道過濾是為了擋掉單位同樣標「度」的電表點位。</value></data>
+  <data name="gasmeter.form.name_filter_hint" xml:space="preserve"><value>找不到你的天然氣表點位？兩種可能：① 點位名稱沒帶天然氣關鍵字 → 請在點位管理把名稱改成含「天然氣 / 瓦斯 / 用氣量」等字樣；② 單位不是累積氣量單位（如標成 Nm³/h 流量）→ 請改標 Nm³ 或 m³。名稱關鍵字這道過濾是為了擋掉單位同樣標「度」的電表點位。</value></data>
   <data name="gasmeter.err.sort_cycle" xml:space="preserve"><value>不能把迴路搬到自己的子迴路底下</value></data>
   <data name="gasmeter.err.sort_multi_root" xml:space="preserve"><value>只允許一個全廠根節點，不能搬成第二個根</value></data>
   <data name="gasmeter.err.sort_missing_node" xml:space="preserve"><value>節點不存在，請重新整理頁面</value></data>
   <data name="gasmeter.err.sort_missing_parent" xml:space="preserve"><value>目標迴路不存在，請重新整理頁面</value></data>
   <data name="gasmeter.msg.confirm_move" xml:space="preserve"><value>確定把「{name}」搬到「{parent}」底下？&#10;搬動後上層迴路的加總與報表會立即改變。</value></data>
-  <data name="gasmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>注意：目標是實體氣表：掛子迴路後，該氣表會連自身一起加總。</value></data>
+  <data name="gasmeter.msg.confirm_move_into_meter" xml:space="preserve"><value>注意：目標是實體天然氣表：掛子迴路後，該天然氣表會連自身一起加總。</value></data>
 </root>

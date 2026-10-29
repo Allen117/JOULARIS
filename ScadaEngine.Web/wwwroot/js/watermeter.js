@@ -554,9 +554,8 @@
         let list = g_sidOptions.filter(o => deviceKeyOf(o) === g_pp.deviceKey &&
             (!hasSub || (o.deviceName || '') === g_pp.subUnit));
         if (szFilter) {
-            list = list.filter(o =>
-                (o.name || '').toLowerCase().includes(szFilter) ||
-                (o.sid || '').toLowerCase().includes(szFilter));
+            // 清單不顯示 SID，搜尋也只比對名稱，免得命中看不到的欄位
+            list = list.filter(o => (o.name || '').toLowerCase().includes(szFilter));
         }
 
         if (list.length === 0) {
@@ -566,7 +565,6 @@
                 `<div class="point-list-item ${g_pp.pickedSid === o.sid ? 'selected' : ''}" data-sid="${escapeHtml(o.sid)}">
                     <div>
                         <div class="point-name">${escapeHtml(o.name)}</div>
-                        <div class="point-sid">${escapeHtml(o.sid)}</div>
                     </div>
                     <span class="point-unit">${escapeHtml(o.unit)} × ${escapeHtml(formatScale(o.unitScale))}</span>
                 </div>`).join('');

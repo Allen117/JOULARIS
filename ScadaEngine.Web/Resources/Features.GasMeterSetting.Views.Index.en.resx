@@ -102,7 +102,7 @@
   <data name="gasmeter.picker.title" xml:space="preserve"><value>Select Gas Volume Point</value></data>
   <data name="gasmeter.picker.device" xml:space="preserve"><value>Devices</value></data>
   <data name="gasmeter.picker.point" xml:space="preserve"><value>Points</value></data>
-  <data name="gasmeter.picker.search_placeholder" xml:space="preserve"><value>Search point name / SID...</value></data>
+  <data name="gasmeter.picker.search_placeholder" xml:space="preserve"><value>Search point name...</value></data>
   <data name="gasmeter.picker.no_data" xml:space="preserve"><value>No points available</value></data>
   <data name="gasmeter.picker.pick_device_first" xml:space="preserve"><value>Select a device on the left first</value></data>
   <data name="gasmeter.picker.pick_subunit_first" xml:space="preserve"><value>Select a sub-unit first</value></data>

@@ -95,14 +95,16 @@
                 </div>
 
                 <div class="mb-3" id="wmMeterFields" style="display:none;">
-                    <label class="form-label fw-semibold"><i class="fas fa-plug me-1"></i>@Localizer["watermeter.form.point"]</label>
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-tint me-1"></i>@Localizer["watermeter.form.point"]
+                        <i class="fas fa-question-circle text-muted ms-1 meter-help-icon" title="@Localizer["watermeter.form.point_hint"]" aria-label="@Localizer["watermeter.form.point_hint"]" tabindex="0"></i>
+                    </label>
                     <div class="d-flex gap-2 align-items-center">
                         <div class="form-control form-control-sm wm-point-display" id="wmPointDisplay">@Localizer["watermeter.form.point_unbound"]</div>
                         <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" onclick="window._wm.openPointPicker()">
                             <i class="fas fa-crosshairs me-1"></i>@Localizer["watermeter.btn.pick_point"]
                         </button>
                     </div>
-                    <small class="text-muted d-block mt-1">@Localizer["watermeter.form.point_hint"]</small>
                     <div class="wm-unitscale-info mt-1" id="wmUnitScaleInfo" style="display:none;"></div>
 
                     <label class="form-label fw-semibold mt-3"><i class="fas fa-sort-numeric-up me-1"></i>@Localizer["watermeter.form.max_volume"]</label>
@@ -140,7 +142,7 @@
                         <div id="ppDeviceList" class="pp-list"></div>
                     </div>
                     <div class="col-md-7">
-                        <div class="pp-panel-title"><i class="fas fa-plug me-1"></i>@Localizer["watermeter.picker.point"]</div>
+                        <div class="pp-panel-title"><i class="fas fa-tint me-1"></i>@Localizer["watermeter.picker.point"]</div>
                         <input type="text" class="form-control form-control-sm mb-1" id="ppSearch" placeholder="@Localizer["watermeter.picker.search_placeholder"]" autocomplete="off">
                         <div id="ppPointList" class="pp-list"></div>
                     </div>

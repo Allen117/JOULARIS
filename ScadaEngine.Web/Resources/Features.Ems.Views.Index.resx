@@ -90,10 +90,10 @@
   <data name="ems.water.cost.effective" xml:space="preserve"><value>方案「{0}」（{1} 起生效）</value></data>
 
   <!-- 氣表三卡（ems-hub-gas.js 用） -->
-  <data name="ems.gas.no_root" xml:space="preserve"><value>尚未建立氣表迴路，請先至「氣表/迴路設定」建立</value></data>
+  <data name="ems.gas.no_root" xml:space="preserve"><value>尚未建立天然氣表迴路，請先至「天然氣表/迴路設定」建立</value></data>
   <data name="ems.gas.no_data" xml:space="preserve"><value>期間內無用氣資料</value></data>
   <data name="ems.gas.neg_excluded" xml:space="preserve"><value>{0}：{1} m³（未列入占比）</value></data>
-  <data name="ems.gas.stale_note" xml:space="preserve"><value>部分時段氣表資料不完整（可能斷線）</value></data>
+  <data name="ems.gas.stale_note" xml:space="preserve"><value>部分時段天然氣表資料不完整（可能斷線）</value></data>
   <data name="ems.gas.cost.period" xml:space="preserve"><value>本期 {0}</value></data>
   <data name="ems.gas.cost.no_plan" xml:space="preserve"><value>尚未設定氣費方案</value></data>
   <data name="ems.gas.cost.goto_tariff" xml:space="preserve"><value>前往氣費設定</value></data>
@@ -105,6 +105,6 @@
   <data name="ems.gas.cost.tier_above" xml:space="preserve"><value>{0} m³ 以上</value></data>
   <data name="ems.gas.cost.per_m3" xml:space="preserve"><value>元/m³</value></data>
   <data name="ems.gas.cost.stale" xml:space="preserve"><value>資料不完整</value></data>
-  <data name="ems.gas.cost.stale_note" xml:space="preserve"><value>氣表資料不完整，金額可能低估</value></data>
+  <data name="ems.gas.cost.stale_note" xml:space="preserve"><value>天然氣表資料不完整，金額可能低估</value></data>
   <data name="ems.gas.cost.effective" xml:space="preserve"><value>方案「{0}」（{1} 起生效）</value></data>
 </root>

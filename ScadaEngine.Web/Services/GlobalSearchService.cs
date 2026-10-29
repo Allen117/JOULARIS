@@ -64,7 +64,7 @@ public class GlobalSearchService
         new("/WaterMeterSetting",          "layout.menu.water_meter",                "fas fa-faucet",              "自來水 水表 迴路 設定 water meter"),
         new("/WaterBillingPeriodSetting",  "layout.menu.water_billing_period",       "fas fa-calendar-day",        "水費 月結 週期 期別 water billing period"),
         new("/WaterTariffSetting",         "layout.menu.water_tariff_setting",       "fas fa-tint",                "水費 水價 費率 water tariff"),
-        new("/GasMeterSetting",            "layout.menu.gas_meter",                  "fas fa-gas-pump",            "氣表 天然氣 瓦斯 迴路 設定 gas meter"),
+        new("/GasMeterSetting",            "layout.menu.gas_meter",                  "fas fa-gas-pump",            "天然氣表 天然氣 瓦斯 迴路 設定 gas meter"),
         new("/GasBillingPeriodSetting",    "layout.menu.gas_billing_period",         "fas fa-calendar-day",        "氣費 月結 週期 期別 gas billing period"),
         new("/GasTariffSetting",           "layout.menu.gas_tariff_setting",         "fas fa-money-bill-wave",     "氣費 氣價 費率 天然氣 瓦斯 gas tariff"),
         new("/AirMeterSetting",            "layout.menu.air_meter",                  "fas fa-wind",                "產氣量 產氣量表 空壓 空壓機 壓縮空氣 迴路 設定 air flow meter compressor"),

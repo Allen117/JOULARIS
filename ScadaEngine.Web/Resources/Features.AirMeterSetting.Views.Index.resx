@@ -85,7 +85,7 @@
   <data name="airmeter.form.sign_hint" xml:space="preserve"><value>用於建立「總表 − 已分配子表」這類算式；根節點不適用</value></data>
   <data name="airmeter.form.point" xml:space="preserve"><value>產氣量點位</value></data>
   <data name="airmeter.form.point_unbound" xml:space="preserve"><value>尚未綁定點位</value></data>
-  <data name="airmeter.form.point_hint" xml:space="preserve"><value>僅列出「單位可換算為 Nm³（Nm³ / m³ / SCM / 公升系）」**且**「點位名稱含空壓關鍵字（空壓 / 壓縮空氣 / 產氣 / 氣量 / air / compressor / FAD）」的累積點位；名稱含天然氣字樣（天然氣 / 瓦斯 / 燃氣 / LNG…）者一律排除。含計算點、DB 來源點位。</value></data>
+  <data name="airmeter.form.point_hint" xml:space="preserve"><value>僅列出「單位可換算為 Nm³（Nm³ / m³ / SCM / 公升系）」且「點位名稱含空壓關鍵字（空壓 / 壓縮空氣 / 產氣 / 氣量 / air / compressor / FAD）」的累積點位；名稱含天然氣字樣（天然氣 / 瓦斯 / 燃氣 / LNG…）者一律排除。含計算點、DB 來源點位。</value></data>
   <data name="airmeter.form.name_filter_hint" xml:space="preserve"><value>找不到你的產氣量點位？兩種可能：① 點位名稱沒帶空壓關鍵字 → 請在點位管理把名稱改成含「空壓 / 壓縮空氣 / 產氣量」等字樣；② 單位不是累積量單位（如標成 Nm³/min 或 Nm³/h 流量）→ 請改綁流量計的累積量點位（Nm³）。Nm³ / m³ 對天然氣表、水表也成立，名稱是唯一能分辨的訊號。</value></data>
   <data name="airmeter.form.unit_scale_display" xml:space="preserve"><value>點位單位 {unit} → 換算係數 {scale}（Nm³）</value></data>
   <data name="airmeter.form.max_volume" xml:space="preserve"><value>溢位上限 MaxVolume</value></data>
@@ -110,7 +110,7 @@
   <data name="airmeter.picker.title" xml:space="preserve"><value>選擇產氣量點位</value></data>
   <data name="airmeter.picker.device" xml:space="preserve"><value>通訊設備</value></data>
   <data name="airmeter.picker.point" xml:space="preserve"><value>點位</value></data>
-  <data name="airmeter.picker.search_placeholder" xml:space="preserve"><value>搜尋點位名稱 / SID...</value></data>
+  <data name="airmeter.picker.search_placeholder" xml:space="preserve"><value>搜尋點位名稱...</value></data>
   <data name="airmeter.picker.no_data" xml:space="preserve"><value>尚無點位資料</value></data>
   <data name="airmeter.picker.pick_device_first" xml:space="preserve"><value>請先選擇左側設備</value></data>
   <data name="airmeter.picker.pick_subunit_first" xml:space="preserve"><value>請先選擇子單元</value></data>

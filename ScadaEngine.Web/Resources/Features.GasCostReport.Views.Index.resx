@@ -52,14 +52,14 @@
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <data name="gascostreport.title" xml:space="preserve"><value>氣費報表</value></data>
   <data name="gascostreport.filter.title" xml:space="preserve"><value>查詢條件</value></data>
-  <data name="gascostreport.filter.circuit" xml:space="preserve"><value>氣表迴路</value></data>
+  <data name="gascostreport.filter.circuit" xml:space="preserve"><value>天然氣表迴路</value></data>
   <data name="gascostreport.filter.month_start" xml:space="preserve"><value>起始期別</value></data>
   <data name="gascostreport.filter.month_end" xml:space="preserve"><value>結束期別</value></data>
   <data name="gascostreport.button.query" xml:space="preserve"><value>查詢</value></data>
   <data name="gascostreport.button.export" xml:space="preserve"><value>匯出 Excel</value></data>
   <data name="gascostreport.select.loading" xml:space="preserve"><value>載入中...</value></data>
   <data name="gascostreport.select.placeholder" xml:space="preserve"><value>請選擇迴路</value></data>
-  <data name="gascostreport.select.empty" xml:space="preserve"><value>無氣表迴路資料</value></data>
+  <data name="gascostreport.select.empty" xml:space="preserve"><value>無天然氣表迴路資料</value></data>
   <data name="gascostreport.period.hint" xml:space="preserve"><value>期別區間：{0} ~ {1}，共 {2} 期</value></data>
   <data name="gascostreport.chart.title" xml:space="preserve"><value>各期氣費</value></data>
   <data name="gascostreport.chart.dataset_label" xml:space="preserve"><value>{0} 氣費</value></data>

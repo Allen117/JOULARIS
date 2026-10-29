@@ -7,7 +7,7 @@ using ScadaEngine.Web.Services;
 namespace ScadaEngine.Web.Features.GasCostReport.Controllers;
 
 /// <summary>
-/// 氣費報表 — 氣表迴路 × 月結期別區間 → 每期用氣量（m³）套天然氣分段累進之氣費。
+/// 氣費報表 — 天然氣表迴路 × 月結期別區間 → 每期用氣量（m³）套天然氣分段累進之氣費。
 /// 資料源 GasUsageReportService（用氣量）+ GasTariffService（費率選版），計算核心在 GasCostService。
 /// 期別可設兩月一期（已刪除期別不列）。
 /// </summary>
@@ -38,7 +38,7 @@ public class GasCostReportController : Controller
         return View(new GasCostReportViewModel());
     }
 
-    /// <summary>取得氣表迴路樹（給左側下拉用）</summary>
+    /// <summary>取得天然氣表迴路樹（給左側下拉用）</summary>
     [HttpGet("api/circuits")]
     public async Task<IActionResult> GetCircuits()
     {
@@ -85,7 +85,7 @@ public class GasCostReportController : Controller
         {
             var circuit = await _circuitService.GetByIdAsync(dto.circuitId);
             if (circuit == null)
-                return BadRequest(new { message = $"氣表迴路 Id={dto.circuitId} 不存在" });
+                return BadRequest(new { message = $"天然氣表迴路 Id={dto.circuitId} 不存在" });
 
             var rows = await _costService.GetPeriodCostsAsync(
                 dto.circuitId, dtFrom.Year, dtFrom.Month, dtTo.Year, dtTo.Month);

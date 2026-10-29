@@ -6,7 +6,7 @@ namespace ScadaEngine.Web.Services;
 /// <summary>
 /// 氣費計算 — 對「該迴路自身期別總用氣量」套天然氣分段累進級距（1 度 = 1 m³）。
 /// 每迴路獨立套級距（不做占比分攤 — 與電費 progressive 的根迴路分攤不同，
-/// 氣表迴路彼此獨立計量，各自就是一只錶）。
+/// 天然氣表迴路彼此獨立計量，各自就是一只錶）。
 /// 方案版本依「期別起日」選用（GasTariffService.SelectPlanForDate）；
 /// 計費週期走**氣費**期別（GasBillingPeriodService，支援兩月一期，與電/水費期別各自獨立）；
 /// 用氣量來源 GasUsageReportService（isHasWarning → isStale 註記）。
@@ -134,7 +134,7 @@ public class GasCostService
         int nCircuitId, int nFromYear, int nFromMonth, int nToYear, int nToMonth)
     {
         var circuit = await _circuitService.GetByIdAsync(nCircuitId)
-            ?? throw new InvalidOperationException($"氣表迴路 Id={nCircuitId} 不存在");
+            ?? throw new InvalidOperationException($"天然氣表迴路 Id={nCircuitId} 不存在");
 
         var periods = await _billingPeriodService.GetPeriodRangesAsync(
             new DateTime(nFromYear, nFromMonth, 1), new DateTime(nToYear, nToMonth, 1));

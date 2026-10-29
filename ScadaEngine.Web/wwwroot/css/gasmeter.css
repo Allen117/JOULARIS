@@ -268,3 +268,8 @@
     margin-left: auto;
     white-space: nowrap;
 }
+
+/* 點位欄位旁「?」說明圖示（篩選規則放 title tooltip） */
+.meter-help-icon {
+    cursor: help;
+}

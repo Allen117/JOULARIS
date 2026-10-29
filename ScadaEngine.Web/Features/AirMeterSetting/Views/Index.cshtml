@@ -95,16 +95,16 @@
                 </div>
 
                 <div class="mb-3" id="amMeterFields" style="display:none;">
-                    <label class="form-label fw-semibold"><i class="fas fa-plug me-1"></i>@Localizer["airmeter.form.point"]</label>
+                    @{ var szAirPointHelp = Localizer["airmeter.form.point_hint"].Value + "\n\n" + Localizer["airmeter.form.name_filter_hint"].Value; }
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-wind me-1"></i>@Localizer["airmeter.form.point"]
+                        <i class="fas fa-question-circle text-muted ms-1 meter-help-icon" title="@szAirPointHelp" aria-label="@szAirPointHelp" tabindex="0"></i>
+                    </label>
                     <div class="d-flex gap-2 align-items-center">
                         <div class="form-control form-control-sm am-point-display" id="amPointDisplay">@Localizer["airmeter.form.point_unbound"]</div>
                         <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" onclick="window._am.openPointPicker()">
                             <i class="fas fa-crosshairs me-1"></i>@Localizer["airmeter.btn.pick_point"]
                         </button>
-                    </div>
-                    <small class="text-muted d-block mt-1">@Localizer["airmeter.form.point_hint"]</small>
-                    <div class="alert alert-info py-1 px-2 mt-1 mb-0 small">
-                        <i class="fas fa-info-circle me-1"></i>@Localizer["airmeter.form.name_filter_hint"]
                     </div>
                     <div class="am-unitscale-info mt-1" id="amUnitScaleInfo" style="display:none;"></div>
 
@@ -143,7 +143,7 @@
                         <div id="ppDeviceList" class="pp-list"></div>
                     </div>
                     <div class="col-md-7">
-                        <div class="pp-panel-title"><i class="fas fa-plug me-1"></i>@Localizer["airmeter.picker.point"]</div>
+                        <div class="pp-panel-title"><i class="fas fa-wind me-1"></i>@Localizer["airmeter.picker.point"]</div>
                         <input type="text" class="form-control form-control-sm mb-1" id="ppSearch" placeholder="@Localizer["airmeter.picker.search_placeholder"]" autocomplete="off">
                         <div id="ppPointList" class="pp-list"></div>
                     </div>

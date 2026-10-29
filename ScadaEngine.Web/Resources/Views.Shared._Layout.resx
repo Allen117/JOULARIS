@@ -89,9 +89,9 @@
   <data name="layout.menu.chilled_water" xml:space="preserve"><value>空調水系統迴路設定</value></data>
   <data name="layout.menu.billing_period" xml:space="preserve"><value>電費月結週期</value></data>
   <data name="layout.menu.water_billing_period" xml:space="preserve"><value>水費月結週期</value></data>
-  <data name="layout.menu.group_gas_meter" xml:space="preserve"><value>氣表</value></data>
+  <data name="layout.menu.group_gas_meter" xml:space="preserve"><value>天然氣表</value></data>
   <data name="layout.menu.group_general_settings" xml:space="preserve"><value>設定</value></data>
-  <data name="layout.menu.gas_meter" xml:space="preserve"><value>氣表/迴路設定</value></data>
+  <data name="layout.menu.gas_meter" xml:space="preserve"><value>天然氣表/迴路設定</value></data>
   <data name="layout.menu.gas_usage_report" xml:space="preserve"><value>用氣報表</value></data>
   <data name="layout.menu.gas_tariff_setting" xml:space="preserve"><value>氣費設定</value></data>
   <data name="layout.menu.gas_cost_report" xml:space="preserve"><value>氣費報表</value></data>

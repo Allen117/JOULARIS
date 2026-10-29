@@ -6,7 +6,7 @@
 <div class="container-fluid mt-2">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h2 class="mb-0">
-            @* 圖示與側欄「氣表/迴路設定」選單一致（fa-gas-pump）；勿改回 fa-sitemap — 那是電表迴路設定的 *@
+            @* 圖示與側欄「天然氣表/迴路設定」選單一致（fa-gas-pump）；勿改回 fa-sitemap — 那是電表迴路設定的 *@
             <i class="fas fa-gas-pump text-primary me-2"></i>@Localizer["gasmeter.title"]
         </h2>
     </div>
@@ -95,16 +95,16 @@
                 </div>
 
                 <div class="mb-3" id="gmMeterFields" style="display:none;">
-                    <label class="form-label fw-semibold"><i class="fas fa-plug me-1"></i>@Localizer["gasmeter.form.point"]</label>
+                    @{ var szGasPointHelp = Localizer["gasmeter.form.point_hint"].Value + "\n\n" + Localizer["gasmeter.form.name_filter_hint"].Value; }
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-fire me-1"></i>@Localizer["gasmeter.form.point"]
+                        <i class="fas fa-question-circle text-muted ms-1 meter-help-icon" title="@szGasPointHelp" aria-label="@szGasPointHelp" tabindex="0"></i>
+                    </label>
                     <div class="d-flex gap-2 align-items-center">
                         <div class="form-control form-control-sm gm-point-display" id="gmPointDisplay">@Localizer["gasmeter.form.point_unbound"]</div>
                         <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" onclick="window._gm.openPointPicker()">
                             <i class="fas fa-crosshairs me-1"></i>@Localizer["gasmeter.btn.pick_point"]
                         </button>
-                    </div>
-                    <small class="text-muted d-block mt-1">@Localizer["gasmeter.form.point_hint"]</small>
-                    <div class="alert alert-info py-1 px-2 mt-1 mb-0 small">
-                        <i class="fas fa-info-circle me-1"></i>@Localizer["gasmeter.form.name_filter_hint"]
                     </div>
                     <div class="gm-unitscale-info mt-1" id="gmUnitScaleInfo" style="display:none;"></div>
 
@@ -143,7 +143,7 @@
                         <div id="ppDeviceList" class="pp-list"></div>
                     </div>
                     <div class="col-md-7">
-                        <div class="pp-panel-title"><i class="fas fa-plug me-1"></i>@Localizer["gasmeter.picker.point"]</div>
+                        <div class="pp-panel-title"><i class="fas fa-fire me-1"></i>@Localizer["gasmeter.picker.point"]</div>
                         <input type="text" class="form-control form-control-sm mb-1" id="ppSearch" placeholder="@Localizer["gasmeter.picker.search_placeholder"]" autocomplete="off">
                         <div id="ppPointList" class="pp-list"></div>
                     </div>

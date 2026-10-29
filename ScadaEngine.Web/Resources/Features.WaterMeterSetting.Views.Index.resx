@@ -118,7 +118,7 @@
   <data name="watermeter.picker.title" xml:space="preserve"><value>選擇水量點位</value></data>
   <data name="watermeter.picker.device" xml:space="preserve"><value>通訊設備</value></data>
   <data name="watermeter.picker.point" xml:space="preserve"><value>點位</value></data>
-  <data name="watermeter.picker.search_placeholder" xml:space="preserve"><value>搜尋點位名稱 / SID...</value></data>
+  <data name="watermeter.picker.search_placeholder" xml:space="preserve"><value>搜尋點位名稱...</value></data>
   <data name="watermeter.picker.no_data" xml:space="preserve"><value>尚無點位資料</value></data>
   <data name="watermeter.picker.pick_device_first" xml:space="preserve"><value>請先選擇左側設備</value></data>
   <data name="watermeter.picker.pick_subunit_first" xml:space="preserve"><value>請先選擇子單元</value></data>

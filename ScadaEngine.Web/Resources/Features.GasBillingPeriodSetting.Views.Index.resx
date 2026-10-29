@@ -51,7 +51,7 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <data name="gasbillingperiod.title" xml:space="preserve"><value>氣費月結週期設定</value></data>
-  <data name="gasbillingperiod.hint.overview" xml:space="preserve"><value>每個期別（月份）各自設定氣費單起訖日期；未自訂的期別預設 = 上期結束 +1 天起算一個月（完全未自訂時 = 自然月）。設定即時生效，所有用氣月粒度顯示（用氣報表 / 氣費報表 / EMS 氣表卡片）依期別切分，歷史月報也會用新設定重算。</value></data>
+  <data name="gasbillingperiod.hint.overview" xml:space="preserve"><value>每個期別（月份）各自設定氣費單起訖日期；未自訂的期別預設 = 上期結束 +1 天起算一個月（完全未自訂時 = 自然月）。設定即時生效，所有用氣月粒度顯示（用氣報表 / 氣費報表 / EMS 天然氣表卡片）依期別切分，歷史月報也會用新設定重算。</value></data>
   <data name="gasbillingperiod.hint.independent" xml:space="preserve"><value>本頁僅影響用氣與氣費；供氣事業抄表日與台電、台水皆不同，三套月結週期各自獨立設定，改這裡不會動到電費或水費期別。</value></data>
   <data name="gasbillingperiod.hint.bimonthly" xml:space="preserve"><value>兩月一期：按某期的「刪除此期」，該期即消失、其日數併入前一期（該年第一期則由下一期向前吸收）。依序刪掉 2/4/6/8/10/12 月即得全年 6 期。已刪除的期別收在下方摺疊區，按「復原」可完整還原。</value></data>
   <data name="gasbillingperiod.hint.gap_overlap" xml:space="preserve"><value>期別間允許空窗或重疊（僅警告不阻擋）：空窗段的用氣不會被任何期計入，重疊段會被兩期重複計入。</value></data>

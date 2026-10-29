@@ -50,7 +50,7 @@ public class GasUsageReportService
     /// <summary>
     /// 取得報表結果。
     /// </summary>
-    /// <param name="nCircuitId">氣表迴路 Id（葉子或虛擬皆可）</param>
+    /// <param name="nCircuitId">天然氣表迴路 Id（葉子或虛擬皆可）</param>
     /// <param name="szGranularity">hour / day / month / year / shift</param>
     /// <param name="dtStart">區間起點（含），時/日/班別粒度需精確到天，月需精確到月，年需精確到年</param>
     /// <param name="dtEnd">區間終點（含），同上</param>
@@ -169,7 +169,7 @@ public class GasUsageReportService
         var all = await _circuitService.GetAllAsync();
         var circuit = all.FirstOrDefault(c => c.nId == nCircuitId);
         if (circuit == null)
-            throw new InvalidOperationException($"氣表迴路 Id={nCircuitId} 不存在");
+            throw new InvalidOperationException($"天然氣表迴路 Id={nCircuitId} 不存在");
         return circuit;
     }
 

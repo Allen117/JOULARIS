@@ -42,7 +42,7 @@
 | 水費設定 | Water Tariff Settings | `/WaterTariffSetting` |
 | 水費報表 | Water Cost Report | `/WaterCostReport` |
 | 水費月結週期 | Water Billing Cycle | `/WaterBillingPeriodSetting` |
-| 氣表/迴路設定 | Gas Meter / Circuit | `/GasMeterSetting`（累積式天然氣表） |
+| 天然氣表/迴路設定 | Gas Meter / Circuit | `/GasMeterSetting`（累積式天然氣表） |
 | 用氣報表 | Gas Usage Report | `/GasUsageReport` |
 | 氣費設定 | Gas Tariff Settings | `/GasTariffSetting` |
 | 氣費報表 | Gas Cost Report | `/GasCostReport` |
@@ -364,7 +364,7 @@
 | zh-TW | en | 備註 |
 |---|---|---|
 | 天然氣 | Natural Gas | 領域名詞 |
-| 氣表 | Gas Meter | 累積式天然氣量表（m³ / Nm³ / 度） |
+| 天然氣表 | Gas Meter | 累積式天然氣量表（m³ / Nm³ / 度）；UI 一律寫「天然氣表」，不簡稱「氣表」 |
 | 用氣量 | Gas Usage | (m³) |
 | 用氣量分布 | Gas Consumption | chart 標題 |
 | 流動氣費 | Gas Flow Charge | 按度計收（分段累進）；不含基本費 |
