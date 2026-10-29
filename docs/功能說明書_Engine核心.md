@@ -276,7 +276,13 @@ Engine 啟動後會透過 `FileSystemWatcher` 監控 `Modbus/` 目錄：
 - **改名（原子替換）**：Web 點位熱編輯以「寫 `*.json.tmp` → `File.Replace`」原子替換落地，在 Windows 只產生 Renamed 事件，watcher 同樣觸發重載
 - **去抖**：同一檔案 1 秒內連續變更只重載最後一次（`ModbusCollectionManager` per-file debounce timer）— 一次存檔 `FileSystemWatcher` 常觸發 2~3 次事件，去抖後設備只斷線重連一次
 
-重載範圍為**單一 JSON 檔（單一設備）**：該設備斷線重連一次 + 該設備 `ModbusPoints` 刪除重插，其他設備不受影響。點位欄位（Name / Address / Ratio…）的主權在 JSON — Engine 每次重載與每筆控制指令都會重讀 JSON 並整批覆寫 `ModbusPoints`，因此 Web 端點位編輯**只寫 JSON 檔、不直接寫 DB**（見「功能說明書_即時數據.md」點位熱編輯章節）。
+- **刪除 / 改名移走**：Web 刪除設備（搬到 `_deleted/`）→ 只停該設定檔的採集，DB 與歷史資料保留
+
+**採集任務以設定檔為單位（26.19.6 起）**：`ModbusCollectionManager` 以**設定檔名**（= Coordinator 名稱，不分大小寫）為採集迴圈的唯一鍵，記帳收斂在 `DeviceCollectionRegistry`。一檔 = 一個 `ModbusCommunicationService` = 一條連線；**同一 IP:Port 的多個設定檔（如同一 Gateway 下的電表 / 流量計 / 露點計）各自獨立**，熱重載、刪除、改 IP/Port 都只動該檔。同名的重載 / 刪除以 per-name 鎖**序列化**（舊迴圈停止較久時再來的變更會排隊，最終只留一個最新迴圈），不同檔完全並行；新設定檔無效時舊迴圈不動。事件 `DeviceKey` 為設定檔名，log 印 `名稱 (IP:Port)`。
+
+> 26.19.5 以前以 `IP:Port` 為鍵：一次匯入多個同 IP 設定檔時，後重載的會把先前的停掉，只剩最後一個在發布；啟動時則產生未登記的孤兒迴圈（看似正常，但日後熱編輯會停錯檔、殘留舊設定迴圈）。重啟 Engine 才恢復。
+
+重載範圍為**單一 JSON 檔（單一設定檔）**：該設備斷線重連一次 + 該設備 `ModbusPoints` 刪除重插，其他設備不受影響。點位欄位（Name / Address / Ratio…）的主權在 JSON — Engine 每次重載與每筆控制指令都會重讀 JSON 並整批覆寫 `ModbusPoints`，因此 Web 端點位編輯**只寫 JSON 檔、不直接寫 DB**（見「功能說明書_即時數據.md」點位熱編輯章節）。
 
 ---
 

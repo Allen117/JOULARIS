@@ -111,7 +111,7 @@
 Web UI 存檔（Admin）
   → 後端重讀原檔驗證（數量一致、DataType 未變、Address/Ratio/Min/Max 格式）
   → 只改 Tags[i] 可編輯欄位 → 寫 *.json.tmp → File.Replace 原子替換（留 .bak）
-  → Engine watcher（Renamed）→ 去抖 1 秒 → 停舊採集 → 起新採集 → ModbusPoints 刪+插
+  → Engine watcher（Renamed）→ 去抖 1 秒 → 停舊採集 → 起新採集（僅該設定檔；同 IP:Port 他檔不受影響）→ ModbusPoints 刪+插
   → 每個有變更的點位寫一筆 EventLog 稽核（EventType=3，key control.action.point_config_changed，
      args {username, name, value=變更摘要如 "Address: 30513 → 30514"}，zh-TW/en 自動翻譯）
 ```

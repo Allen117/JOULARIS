@@ -16,9 +16,12 @@ public class ModbusCollectionManager : IDisposable
     private readonly ILogger<ModbusCollectionManager> _logger;
     private readonly MqttPublishService? _mqttPublishService;
     
-    private readonly ConcurrentDictionary<string, ModbusCommunicationService> _communicationServices = new();
-    private readonly ConcurrentDictionary<string, CancellationTokenSource> _collectionTokens = new();
-    private readonly ConcurrentDictionary<string, Task> _collectionTasks = new();
+    /// <summary>
+    /// 執行中的採集迴圈，以設定檔名（= Coordinator 名稱，不分大小寫）為鍵。
+    /// 每個設定檔各自一個 ModbusCommunicationService（各自一條連線），同 IP:Port 的多個設定檔互不影響；
+    /// 同名重載 / 移除序列化，避免交錯再生孤兒迴圈。
+    /// </summary>
+    private readonly DeviceCollectionRegistry<ModbusCommunicationService> _registry = new();
     
     private FileSystemWatcher? _configFileWatcher;
     private bool _isDisposed = false;
@@ -26,13 +29,6 @@ public class ModbusCollectionManager : IDisposable
     /// <summary>per-file 重載去抖計時器 — 一次存檔 FileSystemWatcher 常觸發 2~3 次事件，去抖後只重載一次（設備只斷線重連一次）</summary>
     private readonly ConcurrentDictionary<string, System.Threading.Timer> _reloadDebounceTimers = new(StringComparer.OrdinalIgnoreCase);
     private const int RELOAD_DEBOUNCE_MS = 1000;
-
-    /// <summary>
-    /// 設定檔名（= Coordinator 名稱，不含副檔名、不分大小寫）→ deviceKey(IP:Port)。
-    /// 設定檔被移除（Web 刪除設備 → 搬到 _deleted/）時據此找到並停止對應採集；
-    /// 同一設定檔改 IP/Port 重載時也靠它停掉舊連線。
-    /// </summary>
-    private readonly ConcurrentDictionary<string, string> _deviceKeyByConfigName = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>true 時各採集迴圈跳過資料讀取（連線保持）</summary>
     private volatile bool _isSuspended = false;
@@ -91,10 +87,10 @@ public class ModbusCollectionManager : IDisposable
                 return;
             }
 
-            // 為每個設備建立獨立的採集執行緒
+            // 為每個設定檔建立獨立的採集執行緒（同 IP:Port 多檔各自一條）
             foreach (var config in deviceConfigs)
             {
-                StartDeviceCollection(config);
+                await StartOrReplaceDeviceCollectionAsync(config);
             }
 
             _logger.LogInformation("Modbus 採集管理器啟動完成，共管理 {DeviceCount} 個設備", deviceConfigs.Count);
@@ -107,62 +103,59 @@ public class ModbusCollectionManager : IDisposable
     }
 
     /// <summary>
-    /// 啟動單個設備的採集執行緒
+    /// 啟動（或取代同名舊的）單一設定檔採集執行緒 — 同名舊迴圈先停再起新；同 IP:Port 的其他設定檔不受影響
     /// </summary>
     /// <param name="deviceConfig">設備配置</param>
-    private void StartDeviceCollection(ModbusDeviceConfigModel deviceConfig)
+    private async Task StartOrReplaceDeviceCollectionAsync(ModbusDeviceConfigModel deviceConfig)
     {
-        var szDeviceKey = GetDeviceKey(deviceConfig);
+        var szName = GetCollectionName(deviceConfig);
+        var nIntervalMs = deviceConfig.nCollectionIntervalMs > 0 ? deviceConfig.nCollectionIntervalMs : CollectionIntervalMs;
 
         try
         {
-            // 建立通訊服務
-            var logger = _serviceProvider.GetRequiredService<ILoggerFactory>()
-                                        .CreateLogger<ModbusCommunicationService>();
-            var communicationService = new ModbusCommunicationService(deviceConfig, logger, _mqttPublishService);
+            var isStarted = await _registry.ReplaceAsync(szName,
+                () =>
+                {
+                    var logger = _serviceProvider.GetRequiredService<ILoggerFactory>()
+                                                .CreateLogger<ModbusCommunicationService>();
+                    return new ModbusCommunicationService(deviceConfig, logger, _mqttPublishService);
+                },
+                (communicationService, token) => RunDeviceCollectionLoopAsync(szName, communicationService, nIntervalMs, token));
 
-            _communicationServices[szDeviceKey] = communicationService;
+            if (!isStarted)
+            {
+                _logger.LogInformation("採集管理器停止中，略過啟動: {Name} ({DeviceIP}:{DevicePort})", szName, deviceConfig.szIP, deviceConfig.nPort);
+                return;
+            }
 
-            // 記錄設定檔 → 連線鍵對照（設定檔移除時停止採集用）
-            if (!string.IsNullOrEmpty(deviceConfig.szCoordinatorName))
-                _deviceKeyByConfigName[deviceConfig.szCoordinatorName] = szDeviceKey;
+            _logger.LogInformation("啟動設備採集執行緒: {Name} ({DeviceIP}:{DevicePort}), 採集週期={IntervalMs}ms",
+                szName, deviceConfig.szIP, deviceConfig.nPort, nIntervalMs);
 
-            // 建立採集任務的取消令牌
-            var cancellationTokenSource = new CancellationTokenSource();
-            _collectionTokens[szDeviceKey] = cancellationTokenSource;
-
-            // 啟動採集任務（使用設備自己的採集週期）
-            var nIntervalMs = deviceConfig.nCollectionIntervalMs > 0 ? deviceConfig.nCollectionIntervalMs : CollectionIntervalMs;
-            var collectionTask = RunDeviceCollectionLoopAsync(communicationService, nIntervalMs, cancellationTokenSource.Token);
-            _collectionTasks[szDeviceKey] = collectionTask;
-
-            _logger.LogInformation("啟動設備採集執行緒: {DeviceIP}:{DevicePort}, 採集週期={IntervalMs}ms", deviceConfig.szIP, deviceConfig.nPort, nIntervalMs);
-
-            // 觸發設備狀態事件
-            OnDeviceStatusChanged(szDeviceKey, "Started", communicationService.GetDeviceStatus());
+            var communicationService = _registry.GetService(szName);
+            if (communicationService != null)
+                OnDeviceStatusChanged(szName, "Started", communicationService.GetDeviceStatus());
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "啟動設備 {DeviceIP} 採集執行緒失敗", deviceConfig.szIP);
+            _logger.LogError(ex, "啟動設備採集執行緒失敗: {Name} ({DeviceIP}:{DevicePort})", szName, deviceConfig.szIP, deviceConfig.nPort);
         }
     }
 
     /// <summary>
     /// 執行設備採集迴圈
     /// </summary>
+    /// <param name="szDeviceKey">設定檔名（事件 DeviceKey）</param>
     /// <param name="communicationService">通訊服務</param>
     /// <param name="nIntervalMs">該設備的採集週期 (毫秒)</param>
     /// <param name="cancellationToken">取消令牌</param>
-    private async Task RunDeviceCollectionLoopAsync(ModbusCommunicationService communicationService, int nIntervalMs, CancellationToken cancellationToken)
+    private async Task RunDeviceCollectionLoopAsync(string szDeviceKey, ModbusCommunicationService communicationService, int nIntervalMs, CancellationToken cancellationToken)
     {
-        var szDeviceKey = GetDeviceKey(communicationService.DeviceIP, communicationService.DevicePort);
-
-        _logger.LogDebug("開始設備採集迴圈: {DeviceIP}:{DevicePort}", communicationService.DeviceIP, communicationService.DevicePort);
+        _logger.LogDebug("開始設備採集迴圈: {Name} ({DeviceIP}:{DevicePort})", szDeviceKey, communicationService.DeviceIP, communicationService.DevicePort);
 
         try
         {
             // 首次連線
-            _logger.LogInformation("首次連線設備: {DeviceIP}:{DevicePort}", communicationService.DeviceIP, communicationService.DevicePort);
+            _logger.LogInformation("首次連線設備: {Name} ({DeviceIP}:{DevicePort})", szDeviceKey, communicationService.DeviceIP, communicationService.DevicePort);
             var isFirstConnected = await communicationService.ConnectAsync();
             OnDeviceStatusChanged(szDeviceKey,
                 isFirstConnected ? "Connected" : "Disconnected",
@@ -177,7 +170,7 @@ public class ModbusCollectionManager : IDisposable
                     {
                         if (communicationService.ShouldReconnect())
                         {
-                            _logger.LogInformation("嘗試重新連線設備: {DeviceIP}", communicationService.DeviceIP);
+                            _logger.LogInformation("嘗試重新連線設備: {Name} ({DeviceIP})", szDeviceKey, communicationService.DeviceIP);
 
                             var isConnected = await communicationService.ConnectAsync();
 
@@ -210,7 +203,7 @@ public class ModbusCollectionManager : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "設備採集發生錯誤: {DeviceIP}", communicationService.DeviceIP);
+                    _logger.LogError(ex, "設備採集發生錯誤: {Name} ({DeviceIP})", szDeviceKey, communicationService.DeviceIP);
                     
                     OnDeviceStatusChanged(szDeviceKey, "Error", new { 
                         Error = ex.Message, 
@@ -235,7 +228,7 @@ public class ModbusCollectionManager : IDisposable
             await communicationService.DisconnectAsync();
             OnDeviceStatusChanged(szDeviceKey, "Stopped", communicationService.GetDeviceStatus());
             
-            _logger.LogDebug("設備採集迴圈結束: {DeviceIP}:{DevicePort}", communicationService.DeviceIP, communicationService.DevicePort);
+            _logger.LogDebug("設備採集迴圈結束: {Name} ({DeviceIP}:{DevicePort})", szDeviceKey, communicationService.DeviceIP, communicationService.DevicePort);
         }
     }
 
@@ -298,25 +291,10 @@ public class ModbusCollectionManager : IDisposable
                 return;
             }
 
-            var szDeviceKey = GetDeviceKey(newConfig);
+            // 只停 / 起該設定檔自己的迴圈（含改 IP/Port：同名取代即停掉舊連線）；同 IP:Port 的其他設定檔不受影響
+            await StartOrReplaceDeviceCollectionAsync(newConfig);
 
-            // 同一設定檔改了 IP / Port → 舊連線鍵不同，必須先停掉舊連線（否則舊設備會繼續採集）
-            if (!string.IsNullOrEmpty(newConfig.szCoordinatorName)
-                && _deviceKeyByConfigName.TryGetValue(newConfig.szCoordinatorName, out var szOldKey)
-                && !string.Equals(szOldKey, szDeviceKey, StringComparison.OrdinalIgnoreCase)
-                && !IsDeviceKeyUsedByOtherConfig(szOldKey, newConfig.szCoordinatorName))
-            {
-                _logger.LogInformation("設定檔 {Name} 連線位址變更 {Old} → {New}，停止舊連線", newConfig.szCoordinatorName, szOldKey, szDeviceKey);
-                await StopDeviceCollectionAsync(szOldKey);
-            }
-
-            // 停止舊的採集任務
-            await StopDeviceCollectionAsync(szDeviceKey);
-
-            // 啟動新的採集任務
-            StartDeviceCollection(newConfig);
-
-            _logger.LogInformation("設備配置重新載入完成: {DeviceIP}", newConfig.szIP);
+            _logger.LogInformation("設備配置重新載入完成: {Name} ({DeviceIP}:{DevicePort})", GetCollectionName(newConfig), newConfig.szIP, newConfig.nPort);
         }
         catch (Exception ex)
         {
@@ -325,7 +303,7 @@ public class ModbusCollectionManager : IDisposable
     }
 
     /// <summary>
-    /// 設定檔被移除（Web 刪除設備 → 搬到 _deleted/、或改名）— 依「檔名 → deviceKey」對照停止該設備採集。
+    /// 設定檔被移除（Web 刪除設備 → 搬到 _deleted/、或改名）— 依檔名停止該設定檔的採集（同 IP:Port 其他設定檔不受影響）。
     /// FileSystemWatcher 回調執行緒不可阻塞，丟到 Task.Run。
     /// </summary>
     /// <param name="szDeletedFilePath">被移除的設定檔完整路徑</param>
@@ -345,73 +323,20 @@ public class ModbusCollectionManager : IDisposable
             if (_reloadDebounceTimers.TryRemove(szDeletedFilePath, out var timer))
                 timer.Dispose();
 
-            if (!_deviceKeyByConfigName.TryRemove(szName, out var szDeviceKey))
+            var service = _registry.GetService(szName);
+            var szEndpoint = service != null ? $"{service.DeviceIP}:{service.DevicePort}" : "";
+
+            if (!await _registry.RemoveAsync(szName))
             {
                 _logger.LogDebug("設定檔移除但無對應採集（可能本就載入失敗）: {Name}", szName);
                 return;
             }
 
-            // 兩個設定檔指到同一 IP:Port 時共用一條連線 — 另一個還在就不停
-            if (IsDeviceKeyUsedByOtherConfig(szDeviceKey, szName))
-            {
-                _logger.LogInformation("設定檔 {Name} 已移除，但 {DeviceKey} 仍被其他設定檔使用，保留連線", szName, szDeviceKey);
-                return;
-            }
-
-            await StopDeviceCollectionAsync(szDeviceKey);
-            _logger.LogInformation("設定檔已移除，停止採集: {Name} ({DeviceKey})。資料庫與歷史資料保留", szName, szDeviceKey);
+            _logger.LogInformation("設定檔已移除，停止採集: {Name} ({Endpoint})。資料庫與歷史資料保留", szName, szEndpoint);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "處理設定檔移除時發生錯誤: {FilePath}", szDeletedFilePath);
-        }
-    }
-
-    /// <summary>deviceKey 是否仍被 szExceptName 以外的設定檔使用</summary>
-    private bool IsDeviceKeyUsedByOtherConfig(string szDeviceKey, string szExceptName)
-        => _deviceKeyByConfigName.Any(kv =>
-            string.Equals(kv.Value, szDeviceKey, StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(kv.Key, szExceptName, StringComparison.OrdinalIgnoreCase));
-
-    /// <summary>
-    /// 停止指定設備的採集
-    /// </summary>
-    /// <param name="szDeviceKey">設備鍵值</param>
-    private async Task StopDeviceCollectionAsync(string szDeviceKey)
-    {
-        try
-        {
-            // 取消採集任務
-            if (_collectionTokens.TryRemove(szDeviceKey, out var tokenSource))
-            {
-                tokenSource.Cancel();
-                tokenSource.Dispose();
-            }
-
-            // 等待採集任務結束
-            if (_collectionTasks.TryRemove(szDeviceKey, out var task))
-            {
-                try
-                {
-                    await task;
-                }
-                catch (OperationCanceledException)
-                {
-                    // 正常取消，忽略例外
-                }
-            }
-
-            // 釋放通訊服務
-            if (_communicationServices.TryRemove(szDeviceKey, out var commService))
-            {
-                commService.Dispose();
-            }
-
-            _logger.LogInformation("停止設備採集: {DeviceKey}", szDeviceKey);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "停止設備採集時發生錯誤: {DeviceKey}", szDeviceKey);
         }
     }
 
@@ -452,9 +377,8 @@ public class ModbusCollectionManager : IDisposable
             }
             _reloadDebounceTimers.Clear();
 
-            // 停止所有設備採集
-            var stopTasks = _communicationServices.Keys.Select(StopDeviceCollectionAsync);
-            await Task.WhenAll(stopTasks);
+            // 停止所有設定檔的採集迴圈（之後延遲觸發的重載不會再起新迴圈）
+            await _registry.StopAllAsync();
 
             _logger.LogInformation("Modbus 採集管理器已停止");
         }
@@ -465,30 +389,17 @@ public class ModbusCollectionManager : IDisposable
     }
 
     /// <summary>
-    /// 產生設備唯一鍵值
+    /// 採集迴圈鍵 = 設定檔名（ModbusConfigService 以檔名填 szCoordinatorName）；理論上不會空，保險起見退回 IP:Port
     /// </summary>
-    /// <param name="deviceConfig">設備配置</param>
-    /// <returns>設備鍵值</returns>
-    private static string GetDeviceKey(ModbusDeviceConfigModel deviceConfig)
-    {
-        return GetDeviceKey(deviceConfig.szIP, deviceConfig.nPort);
-    }
-
-    /// <summary>
-    /// 產生設備唯一鍵值
-    /// </summary>
-    /// <param name="szIP">IP 地址</param>
-    /// <param name="nPort">埠號</param>
-    /// <returns>設備鍵值</returns>
-    private static string GetDeviceKey(string szIP, int nPort)
-    {
-        return $"{szIP}:{nPort}";
-    }
+    private static string GetCollectionName(ModbusDeviceConfigModel deviceConfig)
+        => string.IsNullOrEmpty(deviceConfig.szCoordinatorName)
+            ? $"{deviceConfig.szIP}:{deviceConfig.nPort}"
+            : deviceConfig.szCoordinatorName;
 
     /// <summary>
     /// 觸發資料採集事件
     /// </summary>
-    /// <param name="szDeviceKey">設備鍵值</param>
+    /// <param name="szDeviceKey">設定檔名</param>
     /// <param name="realtimeDataList">即時資料清單</param>
     private void OnDataCollected(string szDeviceKey, List<RealtimeDataModel> realtimeDataList)
     {
@@ -505,7 +416,7 @@ public class ModbusCollectionManager : IDisposable
     /// <summary>
     /// 觸發設備狀態變更事件
     /// </summary>
-    /// <param name="szDeviceKey">設備鍵值</param>
+    /// <param name="szDeviceKey">設定檔名</param>
     /// <param name="szStatus">狀態描述</param>
     /// <param name="statusData">狀態資料</param>
     private void OnDeviceStatusChanged(string szDeviceKey, string szStatus, object statusData)
@@ -542,6 +453,7 @@ public class ModbusCollectionManager : IDisposable
 /// </summary>
 public class RealtimeDataCollectedEventArgs : EventArgs
 {
+    /// <summary>設定檔名（= Coordinator 名稱）；同 IP:Port 可能有多個設定檔，故不用 IP:Port</summary>
     public string DeviceKey { get; }
     public List<RealtimeDataModel> RealtimeDataList { get; }
     public DateTime Timestamp { get; } = DateTime.Now;
@@ -558,6 +470,7 @@ public class RealtimeDataCollectedEventArgs : EventArgs
 /// </summary>
 public class DeviceStatusChangedEventArgs : EventArgs
 {
+    /// <summary>設定檔名（= Coordinator 名稱）</summary>
     public string DeviceKey { get; }
     public string Status { get; }
     public object StatusData { get; }
